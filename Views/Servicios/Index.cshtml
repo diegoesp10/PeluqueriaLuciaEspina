@@ -1,0 +1,261 @@
+﻿@using PelqueriaLuciaEspina.Enums
+@using PeluqueriaLuciaEspina.Models
+@model IEnumerable<Servicio>
+
+@{
+    ViewData["Title"] = "Panel de Servicios";
+
+    var fechaSeleccionada = ViewBag.FechaSeleccionada as DateTime?;
+    var fechaMostrada = fechaSeleccionada?.ToString("dd/MM/yyyy") ?? DateTime.Now.ToString("dd/MM/yyyy");
+    var valorFecha = fechaSeleccionada.HasValue
+       ? fechaSeleccionada.Value.ToString("yyyy-MM-dd")
+       : "";
+
+    var cobrados = Model.Count(s => s.Estado == Estado.Cobrado);
+    var noCobrados = Model.Count(s => s.Estado == Estado.NoCobrado);
+    var total = Model.Sum(s => s.Precio);
+    var totalCobrados = Model.Where(s => s.Estado == Estado.Cobrado).Sum(s => s.Precio);
+    var totalPendientes = Model.Where(s => s.Estado == Estado.NoCobrado).Sum(s => s.Precio);
+}
+<!-- Modal de confirmación -->
+<div class="modal fade" id="modalEliminarServicio" tabindex="-1" aria-labelledby="modalEliminarServicioLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="modalEliminarServicioLabel">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Confirmar Borrado
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que quieres borrar el servicio <strong id="nombreServicioEliminar"></strong>?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <a id="btnConfirmarEliminar" class="btn btn-danger">
+                    <i class="fas fa-trash-alt me-1"></i> Borrar
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="container mt-4">
+
+    <div class="row align-items-start align-items-md-center mb-4 g-3">
+        <div class="col-12 col-md-3">
+            <h2 class="fw-bold mb-2">
+                <i class="fas fa-calendar-alt text-primary me-2"></i>Servicios del día
+            </h2>
+            <p class="text-muted mb-3">
+                <i class="fas fa-clock me-1"></i> Día seleccionado: <strong>@fechaMostrada</strong>
+            </p>
+        </div>
+
+        <div class="col-12 col-md-9">
+            <div class="row g-2">
+                <!-- Calendario -->
+                <div class="col-12 col-md-6">
+                    <div class="flatpickr" id="fechaFiltroWrap" data-input data-wrap>
+                        <div class="input-group">
+                            <input type="text"
+                                   id="fechaFiltro"
+                                   class="form-control bg-white"
+                                   placeholder="Seleccionar fecha"
+                                   data-input
+                                   value="@valorFecha" />
+                            <button class="btn btn-outline-secondary"
+                                    type="button"
+                                    title="Abrir calendario"
+                                    data-toggle>
+                                <i class="fas fa-calendar-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+
+
+                </div>
+
+                <!-- Botones -->
+                <div class="col-12 col-md-6 d-flex flex-column flex-md-row justify-content-md-between">
+                    <a class="btn btn-outline-primary w-100 mb-2 mb-md-0 me-md-2"
+                       asp-action="Index"
+                       asp-route-fecha="">
+                        <i class="fas fa-list me-1"></i> Ver todos
+                    </a>
+
+                    <a class="btn btn-success  w-100" asp-action="Create">
+                        <i class="fas fa-plus-circle me-1"></i> Nuevo Servicio
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4 mb-3">
+        <div class="col">
+            <div class="card shadow-sm h-100">
+                <div class="card-body text-center">
+                    <h6 class="card-title text-success">
+                        <i class="fas fa-check-circle me-2"></i> Cobrados
+                    </h6>
+                    <p class="display-6 text-success mb-0">@cobrados</p>
+                    <p class="text-muted small mb-0">Total: @totalCobrados.ToString("F2") €</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col">
+            <div class="card shadow-sm h-100">
+                <div class="card-body text-center">
+                    <h6 class="card-title text-danger">
+                        <i class="fas fa-clock me-2"></i> Pendientes
+                    </h6>
+                    <p class="display-6 text-danger mb-0">@noCobrados</p>
+                    <p class="text-muted small mb-0">Total: @totalPendientes.ToString("F2") €</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col">
+            <div class="card shadow-sm h-100">
+                <div class="card-body text-center">
+                    <h6 class="card-title text-primary">
+                        <i class="fas fa-euro-sign me-2"></i> Total Servicios
+                    </h6>
+                    <p class="display-6 text-primary mb-0">@total.ToString("F2") €</p>
+                    <p class="text-muted small mb-0">(@Model.Count() servicios)</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row pb-3">
+        <div class="col-12 col-md-2 ms-md-auto mt-3 mt-md-0">
+            <a class="btn btn-outline-success w-100" asp-action="ExportarExcel" asp-route-fecha="@ViewBag.FechaSeleccionada">
+                <i class="fas fa-file-excel me-1"></i> Exportar a Excel
+            </a>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover table-bordered">
+            <thead class="table-light">
+                <tr>
+                    <th><i class="fas fa-signature"></i> Nombre</th>
+                    <th><i class="fas fa-euro-sign"></i> Precio</th>
+                    <th><i class="fas fa-receipt"></i> Estado</th>
+                    <th><i class="fas fa-calendar-day"></i> Fecha</th>
+                    <th><i class="fas fa-tools"></i> Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.OrderByDescending(x => x.FechaCreacion))
+                {
+                    <tr>
+                        <td>@item.Nombre</td>
+                        <td>@item.Precio.ToString("F2") €</td>
+                        <td class="fw-bold @(item.Estado == Estado.Cobrado ? "text-success" : "text-danger")">
+                            @item.Estado
+                        </td>
+                        <td>@item.FechaCreacion.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td class="d-flex justify-content-center gap-2 flex-wrap">
+                            @if (item.Estado == Estado.NoCobrado)
+                            {
+                                <a class="btn btn-sm btn-outline-primary" asp-action="Edit" asp-route-id="@item.Id" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a class="btn btn-sm btn-outline-success" asp-action="Cobrar" asp-route-id="@item.Id" title="Cobrar">
+                                    <i class="fas fa-euro-sign me-1"></i> Cobrar
+                                </a>
+                                <a class="btn btn-sm btn-outline-danger btn-eliminar-servicio"
+                                   data-id="@item.Id"
+                                   data-nombre="@item.Nombre"
+                                   href="#"
+                                   title="Borrar">
+                                    <i class="fas fa-trash-alt"></i>
+                                </a>
+                            }
+                            @if (item.Estado == Estado.Cobrado)
+                            {
+                                <a class="btn btn-sm btn-outline-success" asp-action="Ticket" asp-route-id="@item.Id" title="Ver Ticket">
+                                    <i class="fas fa-receipt me-1"></i> Ticket
+                                </a>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        @if (ViewBag.TotalPages > 1)
+        {
+            <nav aria-label="Navegación de páginas">
+                <ul class="pagination justify-content-center mt-4">
+                    <li class="page-item @(ViewBag.CurrentPage == 1 ? "disabled" : "")">
+                        <a class="page-link" asp-action="Index" asp-route-page="@(ViewBag.CurrentPage - 1)" asp-route-fecha="@ViewBag.FechaSeleccionada">
+                            <i class="fas fa-angle-left"></i>
+                        </a>
+                    </li>
+
+                    @for (int i = 1; i <= ViewBag.TotalPages; i++)
+                    {
+                        <li class="page-item @(i == ViewBag.CurrentPage ? "active" : "")">
+                            <a class="page-link" asp-action="Index" asp-route-page="@i" asp-route-fecha="@ViewBag.FechaSeleccionada">
+                                @i
+                            </a>
+                        </li>
+                    }
+
+                    <li class="page-item @(ViewBag.CurrentPage == ViewBag.TotalPages ? "disabled" : "")">
+                        <a class="page-link" asp-action="Index" asp-route-page="@(ViewBag.CurrentPage + 1)" asp-route-fecha="@ViewBag.FechaSeleccionada">
+                            <i class="fas fa-angle-right"></i>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        }
+
+    </div>
+
+</div>
+
+@section Scripts {
+    <!-- Flatpickr con tema moderno -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_blue.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+    <script>
+        $(document).ready(function () {
+            flatpickr("#fechaFiltroWrap", {
+                dateFormat: "Y-m-d",
+                defaultDate: "@(fechaSeleccionada?.ToString("yyyy-MM-dd") ?? DateTime.Now.ToString("yyyy-MM-dd"))",
+                altInput: true,
+                altFormat: "d/m/Y",
+                allowInput: true,
+                wrap: true,
+                onChange: function (selectedDates, dateStr) {
+                    if (dateStr) {
+                        window.location.href = `@Url.Action("Index", "Servicios")?fecha=${dateStr}`;
+                    }
+                }
+            });
+            $('.btn-eliminar-servicio').on('click', function (e) {
+                e.preventDefault();
+
+                const id = $(this).data('id');
+                const nombre = $(this).data('nombre');
+
+                $('#nombreServicioEliminar').text(nombre);
+                $('#btnConfirmarEliminar').attr('href', `/Servicios/Delete/${id}`);
+
+                const modal = new bootstrap.Modal(document.getElementById('modalEliminarServicio'));
+                modal.show();
+            });
+        });
+    </script>
+
+}

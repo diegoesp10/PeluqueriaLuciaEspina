@@ -1,0 +1,141 @@
+﻿@model IEnumerable<PeluqueriaLuciaEspina.Models.CortePelo>
+@using PelqueriaLuciaEspina.Enums
+
+@{
+    ViewData["Title"] = "Cortes de Pelo";
+    Sexo? sexoSeleccionado = ViewBag.SexoSeleccionado as Sexo?;
+}
+
+<script>
+    $(document).ready(function () {
+        $('.js-select2').select2({
+            placeholder: "Filtrar por sexo",
+            allowClear: true,
+            width: 'resolve'
+        });
+    });
+</script>
+
+<!-- Modal de confirmación -->
+<div class="modal fade" id="modalEliminarCorte" tabindex="-1" aria-labelledby="modalEliminarCorteLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="modalEliminarCorteLabel">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Confirmar Borrado
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que quieres borrar el Corte de pelo <strong id="nombreCorteEliminar"></strong>?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <a id="btnConfirmarEliminar" class="btn btn-danger">
+                    <i class="fas fa-trash-alt me-1"></i> Borrar
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container mt-4">
+
+    <div class="row align-items-center mb-4 g-3">
+        <div class="col-12 col-md-6">
+            <h2 class="fw-bold mb-1">
+                <i class="fas fa-user-scissors text-primary me-2"></i>Cortes de Pelo
+            </h2>
+        </div>
+        <div class="col-12 col-md-6 d-flex flex-column flex-md-row justify-content-md-end align-items-stretch gap-2">
+            <form asp-action="Index" method="get" class="d-flex align-items-center gap-2">
+            <select class="form-select js-select2" name="sexo" style="width: 200px;" onchange="this.form.submit()">
+                <option value="">Todos</option>
+                    @foreach (Sexo sexo in Enum.GetValues(typeof(Sexo)))
+                    {
+                        <option value="@sexo" selected="@(sexo == sexoSeleccionado ? "selected" : null)">
+                            @sexo
+                        </option>
+                    }
+            </select>
+        </form>
+
+            <a class="btn btn-success w-100 w-md-auto" asp-action="Create">
+                <i class="fas fa-plus-circle me-1"></i> Nuevo Corte
+            </a>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover table-bordered align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th><i class="fas fa-signature me-1"></i>Nombre</th>
+                    <th><i class="fas fa-euro-sign me-1"></i>Precio</th>
+                    <th><i class="fas fa-venus-mars me-1"></i>Sexo</th>
+                    <th><i class="fas fa-calendar-day me-1"></i>Fecha</th>
+                    <th><i class="fas fa-image me-1"></i>Imagen</th>
+                    <th class="text-center"><i class="fas fa-tools me-1"></i>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>@item.Nombre</td>
+                        <td>@item.PrecioBase.ToString("F2") €</td>
+                        <td>@item.Sexo</td>
+                        <td>@item.FechaCreacion.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td class="text-center">
+                            @if (!string.IsNullOrEmpty(item.ImagenRuta))
+                            {
+                                <a href="@item.ImagenRuta" target="_blank">
+                                    <img src="@item.ImagenRuta" alt="Corte" class="img-thumbnail mx-auto d-block" style="max-height: 80px;" />
+                                </a>
+                            }
+                            else
+                            {
+                                <span class="text-muted">Sin imagen</span>
+                            }
+                        </td>
+
+                        <td class="text-center">
+                            <a class="btn btn-sm btn-outline-primary me-1" asp-action="Edit" asp-route-id="@item.Id" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a class="btn btn-sm btn-outline-danger btn-eliminar-corte"
+                               data-id="@item.Id"
+                               data-nombre="@item.Nombre"
+                               href="#"
+                               title="Borrar">
+                                <i class="fas fa-trash-alt"></i>
+                            </a>
+
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+</div>
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+
+            $('.btn-eliminar-corte').on('click', function (e) {
+                e.preventDefault();
+
+                const id = $(this).data('id');
+                const nombre = $(this).data('nombre');
+
+                $('#nombreCorteEliminar').text(nombre);
+                $('#btnConfirmarEliminar').attr('href', `/CortePelo/Delete/${id}`);
+
+                const modal = new bootstrap.Modal(document.getElementById('modalEliminarCorte'));
+                modal.show();
+            });
+        });
+    </script>
+
+}

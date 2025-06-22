@@ -1,0 +1,62 @@
+/* site.css */
+html {
+    font-size: 14px;
+}
+
+@media (min-width: 768px) {
+    html {
+        font-size: 16px;
+    }
+}
+
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+}
+.bg-Lucia {
+    background-color: #081a26 !important;
+}
+
+.logo-ticket {
+    height: 60px;
+    width: auto;
+    filter: grayscale(100%);
+}
+
+.ticket-header h5 {
+    font-size: 1.1rem;
+}
+
+@media print {
+    body * {
+        visibility: hidden !important;
+    }
+
+    #ticket-servicio, #ticket-servicio * {
+        visibility: visible !important;
+    }
+
+    #ticket-servicio {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        box-shadow: none !important;
+    }
+
+    .no-print {
+        display: none !important;
+    }
+
+    .logo-ticket {
+        height: 50px !important;
+        margin-bottom: 0.5rem;
+    }
+
+    .ticket-header h5 {
+        font-size: 1rem !important;
+    }
+
+    .ticket-header p {
+        font-size: 0.85rem !important;
+    }
+}
