@@ -22,7 +22,75 @@ namespace PelqueriaLuciaEspina.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("PeluqueriaLuciaEspina.Models.CortePelo", b =>
+            modelBuilder.Entity("PeluqueriaLuciaEspina.Models.Cliente", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Apellido")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Email")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("FechaCreacion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("Sexo")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Telefono")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Clientes");
+                });
+
+            modelBuilder.Entity("PeluqueriaLuciaEspina.Models.ServicioCliente", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ClienteId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Estado")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("Fecha")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("OpcionPago")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("TotalEfectivo")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("TotalTarjeta")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClienteId");
+
+                    b.ToTable("ServiciosClientes");
+                });
+
+            modelBuilder.Entity("PeluqueriaLuciaEspina.Models.ServicioGenerico", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -41,7 +109,7 @@ namespace PelqueriaLuciaEspina.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<decimal>("PrecioBase")
+                    b.Property<decimal>("Precio")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("Sexo")
@@ -49,10 +117,10 @@ namespace PelqueriaLuciaEspina.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("CortesPelo");
+                    b.ToTable("ServiciosGenericos");
                 });
 
-            modelBuilder.Entity("PeluqueriaLuciaEspina.Models.Servicio", b =>
+            modelBuilder.Entity("PeluqueriaLuciaEspina.Models.ServicioGenericoRealizado", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -60,40 +128,59 @@ namespace PelqueriaLuciaEspina.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int?>("CortePeloId")
+                    b.Property<int>("ServicioClienteId")
                         .HasColumnType("int");
 
-                    b.Property<int>("Estado")
+                    b.Property<int>("ServicioGenericoId")
                         .HasColumnType("int");
-
-                    b.Property<DateTime>("FechaCreacion")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Nombre")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int?>("OpcionPago")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("Precio")
-                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CortePeloId");
+                    b.HasIndex("ServicioClienteId");
 
-                    b.ToTable("Servicios");
+                    b.HasIndex("ServicioGenericoId");
+
+                    b.ToTable("ServiciosGenericosRealizados");
                 });
 
-            modelBuilder.Entity("PeluqueriaLuciaEspina.Models.Servicio", b =>
+            modelBuilder.Entity("PeluqueriaLuciaEspina.Models.ServicioCliente", b =>
                 {
-                    b.HasOne("PeluqueriaLuciaEspina.Models.CortePelo", "CortePelo")
+                    b.HasOne("PeluqueriaLuciaEspina.Models.Cliente", "Cliente")
                         .WithMany()
-                        .HasForeignKey("CortePeloId");
+                        .HasForeignKey("ClienteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                    b.Navigation("CortePelo");
+                    b.Navigation("Cliente");
+                });
+
+            modelBuilder.Entity("PeluqueriaLuciaEspina.Models.ServicioGenericoRealizado", b =>
+                {
+                    b.HasOne("PeluqueriaLuciaEspina.Models.ServicioCliente", "ServicioCliente")
+                        .WithMany("ServiciosRealizados")
+                        .HasForeignKey("ServicioClienteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PeluqueriaLuciaEspina.Models.ServicioGenerico", "ServicioGenerico")
+                        .WithMany("Realizados")
+                        .HasForeignKey("ServicioGenericoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ServicioCliente");
+
+                    b.Navigation("ServicioGenerico");
+                });
+
+            modelBuilder.Entity("PeluqueriaLuciaEspina.Models.ServicioCliente", b =>
+                {
+                    b.Navigation("ServiciosRealizados");
+                });
+
+            modelBuilder.Entity("PeluqueriaLuciaEspina.Models.ServicioGenerico", b =>
+                {
+                    b.Navigation("Realizados");
                 });
 #pragma warning restore 612, 618
         }

@@ -1,8 +1,8 @@
-﻿@model PeluqueriaLuciaEspina.Models.CortePelo
+﻿@model PeluqueriaLuciaEspina.Models.ServicioGenerico
 @using PelqueriaLuciaEspina.Enums
 
 @{
-    ViewData["Title"] = "Editar Corte de Pelo";
+    ViewData["Title"] = "Editar Servicio Genérico";
 }
 
 <div class="container mt-5">
@@ -10,33 +10,33 @@
         <div class="col-md-8">
             <div class="card shadow-lg border-0">
                 <div class="card-header bg-dark text-white d-flex align-items-center">
-                    <i class="fas fa-user-scissors me-2"></i>
-                    <h5 class="mb-0">Editar corte</h5>
+                    <i class="fas fa-scissors me-2"></i>
+                    <h5 class="mb-0">Editar servicio</h5>
                 </div>
                 <div class="card-body">
                     <form asp-action="Edit" method="post">
                         <input type="hidden" asp-for="Id" />
 
                         <div class="mb-3">
-                            <label asp-for="Nombre" class="form-label">Nombre del corte</label>
+                            <label asp-for="Nombre" class="form-label fw-bolder">Nombre del servicio</label>
                             <input asp-for="Nombre" class="form-control" />
                             <span asp-validation-for="Nombre" class="text-danger"></span>
                         </div>
 
                         <div class="mb-3">
-                            <label asp-for="PrecioBase" class="form-label">Precio base (€)</label>
-                            <input asp-for="PrecioBase" type="number" step="0.01" class="form-control" />
-                            <span asp-validation-for="PrecioBase" class="text-danger"></span>
+                            <label asp-for="Precio" class="form-label fw-bolder">Precio (€)</label>
+                            <input asp-for="Precio" type="number" step="0.01" class="form-control" />
+                            <span asp-validation-for="Precio" class="text-danger"></span>
                         </div>
 
                         <div class="mb-3">
-                            <label asp-for="Sexo" class="form-label">Orientado a</label>
+                            <label asp-for="Sexo" class="form-label fw-bolder">Orientado a</label>
                             <select asp-for="Sexo" class="form-select" asp-items="Html.GetEnumSelectList<Sexo>()"></select>
                             <span asp-validation-for="Sexo" class="text-danger"></span>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">Imagen actual</label><br />
+                            <label class="form-label fw-bolder">Imagen actual</label><br />
                             @if (!string.IsNullOrEmpty(Model.ImagenRuta))
                             {
                                 <img src="@Model.ImagenRuta" class="img-thumbnail" style="max-height: 120px;" />

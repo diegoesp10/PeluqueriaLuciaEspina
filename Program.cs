@@ -1,37 +1,40 @@
 using PeluqueriaLuciaEspina.Models;
+using PeluqueriaLuciaEspina.Repo;
+using PeluqueriaLuciaEspina.Services;
 using Microsoft.EntityFrameworkCore;
-
+using PeluqueriaLuciaEspina.Servicios;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Register the custom service
-
+// Contexto de BD
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Add services to the container.
+// Repositorios y servicios
+builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+builder.Services.AddScoped<IServicioClienteService, ServicioClienteService>();
+builder.Services.AddScoped<IServicioGenericoService, ServicioGenericoService>();
+builder.Services.AddScoped<IClienteService, ClienteService>();
+
+// MVC
 builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Middleware
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-
 app.UseRouting();
-
 app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Servicios}/{action=Index}/{id?}");
-
+    pattern: "{controller=ServicioCliente}/{action=Index}/{id?}");
 
 app.Run();

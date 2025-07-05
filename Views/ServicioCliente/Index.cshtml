@@ -1,21 +1,27 @@
 ﻿@using PelqueriaLuciaEspina.Enums
 @using PeluqueriaLuciaEspina.Models
-@model IEnumerable<Servicio>
+@model IEnumerable<ServicioCliente>
+
 
 @{
     ViewData["Title"] = "Panel de Servicios";
 
     var fechaSeleccionada = ViewBag.FechaSeleccionada as DateTime?;
-    var fechaMostrada = fechaSeleccionada?.ToString("dd/MM/yyyy") ?? DateTime.Now.ToString("dd/MM/yyyy");
-    var valorFecha = fechaSeleccionada.HasValue
-       ? fechaSeleccionada.Value.ToString("yyyy-MM-dd")
-       : "";
 
-    var cobrados = Model.Count(s => s.Estado == Estado.Cobrado);
-    var noCobrados = Model.Count(s => s.Estado == Estado.NoCobrado);
-    var total = Model.Sum(s => s.Precio);
-    var totalCobrados = Model.Where(s => s.Estado == Estado.Cobrado).Sum(s => s.Precio);
-    var totalPendientes = Model.Where(s => s.Estado == Estado.NoCobrado).Sum(s => s.Precio);
+    var total = Model.Sum(s => s.ServiciosRealizados
+        .Where(sr => sr.ServicioGenerico != null)
+        .Sum(sr => sr.ServicioGenerico!.Precio));
+
+    var totalServicios = Model.Sum(s => s.ServiciosRealizados.Count);
+
+    var totalCobrado = Model
+    .Where(s => s.Estado == Estado.Cobrado)
+    .Sum(s => s.ServiciosRealizados
+        .Where(sr => sr.ServicioGenerico != null)
+        .Sum(sr => sr.ServicioGenerico!.Precio));
+
+    var totalVisitas = Model.Count();
+    
 }
 <!-- Modal de confirmación -->
 <div class="modal fade" id="modalEliminarServicio" tabindex="-1" aria-labelledby="modalEliminarServicioLabel" aria-hidden="true">
@@ -48,9 +54,6 @@
             <h2 class="fw-bold mb-2">
                 <i class="fas fa-calendar-alt text-primary me-2"></i>Servicios del día
             </h2>
-            <p class="text-muted mb-3">
-                <i class="fas fa-clock me-1"></i> Día seleccionado: <strong>@fechaMostrada</strong>
-            </p>
         </div>
 
         <div class="col-12 col-md-9">
@@ -63,8 +66,7 @@
                                    id="fechaFiltro"
                                    class="form-control bg-white"
                                    placeholder="Seleccionar fecha"
-                                   data-input
-                                   value="@valorFecha" />
+                                   data-input />
                             <button class="btn btn-outline-secondary"
                                     type="button"
                                     title="Abrir calendario"
@@ -94,44 +96,58 @@
 
     </div>
 
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-4 g-4 mb-3">
 
-    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4 mb-3">
         <div class="col">
-            <div class="card shadow-sm h-100">
+            <div class="card shadow-sm h-100 border-start border-4 border-success">
                 <div class="card-body text-center">
                     <h6 class="card-title text-success">
-                        <i class="fas fa-check-circle me-2"></i> Cobrados
+                        <i class="fas fa-cut me-2"></i> Servicios Realizados
                     </h6>
-                    <p class="display-6 text-success mb-0">@cobrados</p>
-                    <p class="text-muted small mb-0">Total: @totalCobrados.ToString("F2") €</p>
+                    <p class="display-6 text-success mb-0">@totalServicios</p>
+                    <p class="text-muted small mb-0">Aplicados en el día</p>
                 </div>
             </div>
         </div>
 
         <div class="col">
-            <div class="card shadow-sm h-100">
-                <div class="card-body text-center">
-                    <h6 class="card-title text-danger">
-                        <i class="fas fa-clock me-2"></i> Pendientes
-                    </h6>
-                    <p class="display-6 text-danger mb-0">@noCobrados</p>
-                    <p class="text-muted small mb-0">Total: @totalPendientes.ToString("F2") €</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="col">
-            <div class="card shadow-sm h-100">
+            <div class="card shadow-sm h-100 border-start border-4 border-primary">
                 <div class="card-body text-center">
                     <h6 class="card-title text-primary">
-                        <i class="fas fa-euro-sign me-2"></i> Total Servicios
+                        <i class="fas fa-euro-sign me-2"></i> Total Facturado
                     </h6>
                     <p class="display-6 text-primary mb-0">@total.ToString("F2") €</p>
-                    <p class="text-muted small mb-0">(@Model.Count() servicios)</p>
+                    <p class="text-muted small mb-0">Ingresos del día</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col">
+            <div class="card shadow-sm h-100 border-start border-4 border-warning">
+                <div class="card-body text-center">
+                    <h6 class="card-title text-warning">
+                        <i class="fas fa-money-bill-wave me-2"></i> Total Cobrado
+                    </h6>
+                    <p class="display-6 text-warning mb-0">@totalCobrado.ToString("F2") €</p>
+                    <p class="text-muted small mb-0">Pagado por clientes</p>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="col">
+            <div class="card shadow-sm h-100 border-start border-4 border-info">
+                <div class="card-body text-center">
+                    <h6 class="card-title text-info">
+                        <i class="fas fa-users me-2"></i> Total Visitas
+                    </h6>
+                    <p class="display-6 text-info mb-0">@totalVisitas</p>
+                    <p class="text-muted small mb-0">Clientes atendidos</p>
                 </div>
             </div>
         </div>
     </div>
+
 
     <div class="row pb-3">
         <div class="col-12 col-md-2 ms-md-auto mt-3 mt-md-0">
@@ -142,52 +158,68 @@
     </div>
 
     <div class="table-responsive">
-        <table class="table table-hover table-bordered">
+        <table class="table table-sm table-bordered align-middle text-center">
             <thead class="table-light">
                 <tr>
-                    <th><i class="fas fa-signature"></i> Nombre</th>
-                    <th><i class="fas fa-euro-sign"></i> Precio</th>
-                    <th><i class="fas fa-receipt"></i> Estado</th>
+                    <th><i class="fas fa-user"></i> Cliente</th>
+                    <th><i class="fas fa-cut"></i> Servicios</th>
+                    <th><i class="fas fa-euro-sign"></i> Total</th>
                     <th><i class="fas fa-calendar-day"></i> Fecha</th>
                     <th><i class="fas fa-tools"></i> Acciones</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var item in Model.OrderByDescending(x => x.FechaCreacion))
+                @foreach (var item in Model.OrderByDescending(x => x.Fecha))
                 {
+                    var totalPrecio = item.ServiciosRealizados
+                    .Where(sr => sr.ServicioGenerico != null)
+                    .Sum(sr => sr.ServicioGenerico!.Precio);
+                    var serviciosRealizados = item.ServiciosRealizados;
+                    var nombre = item.Cliente?.Nombre ?? "Desconocido";
                     <tr>
-                        <td>@item.Nombre</td>
-                        <td>@item.Precio.ToString("F2") €</td>
-                        <td class="fw-bold @(item.Estado == Estado.Cobrado ? "text-success" : "text-danger")">
-                            @item.Estado
+                        <td class="text-nowrap">@(item.Cliente?.Nombre) @(item.Cliente?.Apellido)</td>
+                        <td class="text-nowrap">
+                            @serviciosRealizados.Count                       
                         </td>
-                        <td>@item.FechaCreacion.ToString("dd/MM/yyyy HH:mm")</td>
-                        <td class="d-flex justify-content-center gap-2 flex-wrap">
-                            @if (item.Estado == Estado.NoCobrado)
-                            {
-                                <a class="btn btn-sm btn-outline-primary" asp-action="Edit" asp-route-id="@item.Id" title="Editar">
-                                    <i class="fas fa-edit"></i>
+                        <td class="fw-bold text-success text-nowrap">
+                            @totalPrecio.ToString("F2") €
+                        </td>
+                        <td class="text-nowrap">@item.Fecha.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td class="text-nowrap">
+                            <div class="d-flex justify-content-center gap-2 flex-wrap">
+                                <a class="btn btn-sm btn-outline-primary" asp-action="Details" asp-route-id="@item.Id">
+                                    <i class="fas fa-eye me-1"></i> Ver
                                 </a>
-                                <a class="btn btn-sm btn-outline-success" asp-action="Cobrar" asp-route-id="@item.Id" title="Cobrar">
-                                    <i class="fas fa-euro-sign me-1"></i> Cobrar
-                                </a>
-                                <a class="btn btn-sm btn-outline-danger btn-eliminar-servicio"
-                                   data-id="@item.Id"
-                                   data-nombre="@item.Nombre"
-                                   href="#"
-                                   title="Borrar">
-                                    <i class="fas fa-trash-alt"></i>
-                                </a>
-                            }
-                            @if (item.Estado == Estado.Cobrado)
-                            {
-                                <a class="btn btn-sm btn-outline-success" asp-action="Ticket" asp-route-id="@item.Id" title="Ver Ticket">
-                                    <i class="fas fa-receipt me-1"></i> Ticket
-                                </a>
-                            }
+
+                                @if (item.Estado != Estado.Cobrado)
+                                {
+                                    <a class="btn btn-sm btn-outline-success btn-cobrar-servicio"
+                                       asp-action="Cobrar" asp-route-id="@item.Id">
+                                        <i class="fas fa-money-bill-wave me-1"></i> Cobrar
+                                    </a>
+                                    <a class="btn btn-sm btn-outline-danger btn-eliminar-servicio"
+                                       data-id="@item.Id"
+                                       data-nombre="@nombre"
+                                       href="#">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </a>
+                                }
+                                else
+                                {
+                                    <a class="btn btn-sm btn-outline-success btn-cobrar-servicio"
+                                       asp-action="Ticket" asp-route-id="@item.Id" title="Ver ticket">
+                                        <i class="fas fa-receipt me-1"></i> Ver Ticket
+                                    </a>
+                                    <span class="badge bg-success d-flex align-items-center">
+                                        <i class="fas fa-check-circle me-1"></i> Cobrado
+                                    </span>
+                                }
+                            </div>
+
                         </td>
                     </tr>
                 }
+
             </tbody>
         </table>
 
@@ -224,22 +256,38 @@
 </div>
 
 @section Scripts {
-    <!-- Flatpickr con tema moderno -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_blue.css">
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-
     <script>
         $(document).ready(function () {
+            const btnVerTodos = document.querySelector('a[href*="asp-route-fecha"]');
+            const inputFecha = document.getElementById('fechaFiltro');
+
+            btnVerTodos?.addEventListener('click', function () {
+                if (inputFecha) console.log("diego");
+            });
             flatpickr("#fechaFiltroWrap", {
+                locale: {
+                    firstDayOfWeek: 1,
+                    weekdays: {
+                        shorthand: ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa'],
+                        longhand: ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'],
+                    },
+                    months: {
+                        shorthand: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Оct', 'Nov', 'Dic'],
+                        longhand: ['Enero', 'Febreo', 'Мarzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
+                    },
+                },
                 dateFormat: "Y-m-d",
-                defaultDate: "@(fechaSeleccionada?.ToString("yyyy-MM-dd") ?? DateTime.Now.ToString("yyyy-MM-dd"))",
+                @if (fechaSeleccionada != null)
+                {
+                    <text>defaultDate: "@fechaSeleccionada.Value.ToString("yyyy-MM-dd")", </text>
+                }
                 altInput: true,
                 altFormat: "d/m/Y",
                 allowInput: true,
                 wrap: true,
                 onChange: function (selectedDates, dateStr) {
                     if (dateStr) {
-                        window.location.href = `@Url.Action("Index", "Servicios")?fecha=${dateStr}`;
+                        window.location.href = `@Url.Action("Index", "ServicioCliente")?fecha=${dateStr}`;
                     }
                 }
             });
@@ -250,7 +298,7 @@
                 const nombre = $(this).data('nombre');
 
                 $('#nombreServicioEliminar').text(nombre);
-                $('#btnConfirmarEliminar').attr('href', `/Servicios/Delete/${id}`);
+                $('#btnConfirmarEliminar').attr('href', `/ServicioCliente/Delete/${id}`);
 
                 const modal = new bootstrap.Modal(document.getElementById('modalEliminarServicio'));
                 modal.show();

@@ -1,0 +1,86 @@
+﻿@model PeluqueriaLuciaEspina.Models.ServicioCliente
+@using PelqueriaLuciaEspina.Enums
+
+@{
+    ViewData["Title"] = "Detalles del Servicio";
+    var servicios = Model.ServiciosRealizados.Where(s => s.ServicioGenerico != null).ToList();
+    var total = servicios.Sum(s => s.ServicioGenerico!.Precio);
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10 col-lg-8">
+            <div class="card shadow border-0">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-receipt me-2"></i>Detalles del Servicio
+                    </h5>
+                </div>
+
+                <div class="card-body">
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bolder">Cliente</label>
+                        <div class="form-control bg-light">@Model.Cliente?.Nombre @Model.Cliente?.Apellido</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bolder">Fecha del Servicio</label>
+                        <div class="form-control bg-light">@Model.Fecha.ToString("dd/MM/yyyy HH:mm")</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bolder">Estado</label>
+                        <div class="form-control bg-light">@Model.Estado</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bolder">Forma de pago</label>
+                        <div class="form-control bg-light">@Model.OpcionPago</div>
+                    </div>
+
+                    @if (Model.OpcionPago == OpcionPago.Mixto)
+                    {
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bolder">Pagado en Efectivo</label>
+                                <div class="form-control bg-light">@Model.TotalEfectivo?.ToString("F2") €</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bolder">Pagado con Tarjeta</label>
+                                <div class="form-control bg-light">@Model.TotalTarjeta?.ToString("F2") €</div>
+                            </div>
+                        </div>
+                    }
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bolder">Servicios Realizados</label>
+                        <ul class="list-group">
+                            @foreach (var s in Model.ServiciosRealizados)
+                            {
+                                <li class="list-group-item d-flex justify-content-between">
+                                    @if(s.ServicioGenerico != null)
+                                    {
+                                        <span>@s.ServicioGenerico.Nombre</span>
+                                        <span>@s.ServicioGenerico.Precio.ToString("F2") €</span>
+                                    }                                  
+                                </li>
+                            }
+                        </ul>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bolder">Total</label>
+                        <div class="form-control bg-light fw-bold text-success">@total.ToString("F2") €</div>
+                    </div>
+
+                    <div class="d-flex justify-content-end mt-4">
+                        <a asp-action="Index" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i> Volver
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

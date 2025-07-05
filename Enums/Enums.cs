@@ -15,7 +15,8 @@
     public enum OpcionPago
     {
         Tarjeta = 1,
-        Efectivo = 2
+        Efectivo = 2,
+        Mixto = 3
     }
 
 

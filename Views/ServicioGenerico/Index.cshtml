@@ -1,8 +1,8 @@
-﻿@model IEnumerable<PeluqueriaLuciaEspina.Models.CortePelo>
+﻿@model IEnumerable<PeluqueriaLuciaEspina.Models.ServicioGenerico>
 @using PelqueriaLuciaEspina.Enums
 
 @{
-    ViewData["Title"] = "Cortes de Pelo";
+    ViewData["Title"] = "Servicios Disponibles";
     Sexo? sexoSeleccionado = ViewBag.SexoSeleccionado as Sexo?;
 }
 
@@ -17,17 +17,17 @@
 </script>
 
 <!-- Modal de confirmación -->
-<div class="modal fade" id="modalEliminarCorte" tabindex="-1" aria-labelledby="modalEliminarCorteLabel" aria-hidden="true">
+<div class="modal fade" id="modalEliminarServicio" tabindex="-1" aria-labelledby="modalEliminarServicioLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content shadow">
             <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title" id="modalEliminarCorteLabel">
+                <h5 class="modal-title" id="modalEliminarServicioLabel">
                     <i class="fas fa-exclamation-triangle me-2"></i>Confirmar Borrado
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
             <div class="modal-body">
-                <p>¿Estás seguro de que quieres borrar el Corte de pelo <strong id="nombreCorteEliminar"></strong>?</p>
+                <p>¿Estás seguro de que quieres borrar el servicio <strong id="nombreServicioEliminar"></strong>?</p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -40,28 +40,27 @@
 </div>
 
 <div class="container mt-4">
-
     <div class="row align-items-center mb-4 g-3">
         <div class="col-12 col-md-6">
             <h2 class="fw-bold mb-1">
-                <i class="fas fa-user-scissors text-primary me-2"></i>Cortes de Pelo
+                <i class="fas fa-tools text-primary me-2"></i>Servicios Disponibles
             </h2>
         </div>
         <div class="col-12 col-md-6 d-flex flex-column flex-md-row justify-content-md-end align-items-stretch gap-2">
             <form asp-action="Index" method="get" class="d-flex align-items-center gap-2">
-            <select class="form-select js-select2" name="sexo" style="width: 200px;" onchange="this.form.submit()">
-                <option value="">Todos</option>
+                <select class="form-select js-select2" name="sexo" style="width: 200px;" onchange="this.form.submit()">
+                    <option value="">Todos</option>
                     @foreach (Sexo sexo in Enum.GetValues(typeof(Sexo)))
                     {
                         <option value="@sexo" selected="@(sexo == sexoSeleccionado ? "selected" : null)">
                             @sexo
                         </option>
                     }
-            </select>
-        </form>
+                </select>
+            </form>
 
             <a class="btn btn-success w-100 w-md-auto" asp-action="Create">
-                <i class="fas fa-plus-circle me-1"></i> Nuevo Corte
+                <i class="fas fa-plus-circle me-1"></i> Nuevo Servicio
             </a>
         </div>
     </div>
@@ -83,14 +82,14 @@
                 {
                     <tr>
                         <td>@item.Nombre</td>
-                        <td>@item.PrecioBase.ToString("F2") €</td>
+                        <td>@item.Precio.ToString("F2") €</td>
                         <td>@item.Sexo</td>
                         <td>@item.FechaCreacion.ToString("dd/MM/yyyy HH:mm")</td>
                         <td class="text-center">
                             @if (!string.IsNullOrEmpty(item.ImagenRuta))
                             {
                                 <a href="@item.ImagenRuta" target="_blank">
-                                    <img src="@item.ImagenRuta" alt="Corte" class="img-thumbnail mx-auto d-block" style="max-height: 80px;" />
+                                    <img src="@item.ImagenRuta" alt="Servicio" class="img-thumbnail mx-auto d-block" style="max-height: 80px;" />
                                 </a>
                             }
                             else
@@ -103,39 +102,34 @@
                             <a class="btn btn-sm btn-outline-primary me-1" asp-action="Edit" asp-route-id="@item.Id" title="Editar">
                                 <i class="fas fa-edit"></i>
                             </a>
-                            <a class="btn btn-sm btn-outline-danger btn-eliminar-corte"
+                            <a class="btn btn-sm btn-outline-danger btn-eliminar-servicio"
                                data-id="@item.Id"
                                data-nombre="@item.Nombre"
                                href="#"
                                title="Borrar">
                                 <i class="fas fa-trash-alt"></i>
                             </a>
-
                         </td>
                     </tr>
                 }
             </tbody>
         </table>
     </div>
-
 </div>
+
 @section Scripts {
     <script>
         $(document).ready(function () {
-
-            $('.btn-eliminar-corte').on('click', function (e) {
+            $('.btn-eliminar-servicio').on('click', function (e) {
                 e.preventDefault();
-
                 const id = $(this).data('id');
                 const nombre = $(this).data('nombre');
-
-                $('#nombreCorteEliminar').text(nombre);
-                $('#btnConfirmarEliminar').attr('href', `/CortePelo/Delete/${id}`);
-
-                const modal = new bootstrap.Modal(document.getElementById('modalEliminarCorte'));
+                $('#nombreServicioEliminar').text(nombre);
+                $('#btnConfirmarEliminar').attr('href', `/ServicioGenerico/Delete/${id}`);
+                const modal = new bootstrap.Modal(document.getElementById('modalEliminarServicio'));
                 modal.show();
-            });
+             });
         });
     </script>
-
 }
+

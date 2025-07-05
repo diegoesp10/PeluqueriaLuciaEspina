@@ -5,24 +5,25 @@
 namespace PelqueriaLuciaEspina.Migrations
 {
     /// <inheritdoc />
-    public partial class AñadidometodoPago : Migration
+    public partial class SexoEnClientes : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<int>(
-                name: "OpcionPago",
-                table: "Servicios",
+                name: "Sexo",
+                table: "Clientes",
                 type: "int",
-                nullable: true);
+                nullable: false,
+                defaultValue: 0);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "OpcionPago",
-                table: "Servicios");
+                name: "Sexo",
+                table: "Clientes");
         }
     }
 }

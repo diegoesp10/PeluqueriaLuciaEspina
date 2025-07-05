@@ -1,0 +1,154 @@
+﻿@model IEnumerable<PeluqueriaLuciaEspina.Models.Cliente>
+@{
+    ViewData["Title"] = "Clientes";
+}
+@if (TempData["Error"] != null)
+{
+    <div class="position-fixed top-0 end-0 p-3" style="z-index: 1055">
+        <div class="toast align-items-center text-white bg-danger border-0 show" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="fas fa-exclamation-triangle me-2"></i> @TempData["Error"]
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+            </div>
+        </div>
+    </div>
+}
+<!-- Modal de confirmación -->
+<div class="modal fade" id="modalEliminarCliente" tabindex="-1" aria-labelledby="modalEliminarClienteLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="modalEliminarClienteLabel">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Confirmar Borrado
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que quieres borrar el cliente <strong id="nombreClienteEliminar"></strong>?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <a id="btnConfirmarEliminar" class="btn btn-danger">
+                    <i class="fas fa-trash-alt me-1"></i> Borrar
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="container mt-4">
+    <div class="row align-items-start align-items-md-center mb-4 g-3">
+        <div class="col-12 col-md-4">
+            <h2 class="fw-bold mb-2">
+                <i class="fas fa-users text-primary me-2"></i>Listado de Clientes
+            </h2>
+        </div>
+        <div class="col-12 col-md-8 d-flex justify-content-end">
+                <div class="col-12 col-md-6 d-flex flex-column flex-md-row justify-content-md-between">
+                    <a asp-action="Create" class="btn btn-success w-100">
+                        <i class="fas fa-plus-circle me-1"></i> Nuevo Cliente
+                    </a>
+                </div>
+        </div>
+    </div>
+    @if (!Model.Any())
+    {
+        <div class="alert alert-warning text-center">
+            No hay clientes registrados.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th><i class="fas fa-user me-1"></i> Nombre</th>
+                        <th><i class="fas fa-user-tag me-1"></i> Apellido</th>
+                        <th><i class="fas fa-phone-alt me-1"></i> Teléfono</th>
+                        <th><i class="fas fa-envelope me-1"></i> Email</th>
+                        <th><i class="fas fa-venus-mars me-1"></i> Sexo</th>
+                        <th class="text-center" style="width:150px;">
+                            <i class="fas fa-cogs me-1"></i> Acciones
+                        </th>
+                    </tr>
+
+                </thead>
+                <tbody>
+                    @foreach (var cliente in Model)
+                    {
+                        <tr>
+                            <td>@cliente.Nombre</td>
+                            <td>@cliente.Apellido</td>
+                            <td>@cliente.Telefono</td>
+                            <td>@cliente.Email</td>
+                            <td class="text-center align-middle">
+                                @if (cliente.Sexo == PelqueriaLuciaEspina.Enums.Sexo.Mujer)
+                                {
+                                    <span class="badge bg-pink text-white d-inline-flex align-items-center" style="background-color:#e83e8c;">
+                                        <i class="fas fa-venus me-1"></i> Mujer
+                                    </span>
+                                }
+                                else if (cliente.Sexo == PelqueriaLuciaEspina.Enums.Sexo.Hombre)
+                                {
+                                    <span class="badge bg-primary text-white d-inline-flex align-items-center">
+                                        <i class="fas fa-mars me-1"></i> Hombre
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary text-white d-inline-flex align-items-center">
+                                        <i class="fas fa-genderless me-1"></i> Otro
+                                    </span>
+                                }                                 
+                            </td>
+
+
+                            <td class="text-center">
+                                <a asp-action="Edit" asp-route-id="@cliente.Id" class="btn btn-sm btn-warning me-1">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a class="btn btn-sm btn-outline-danger btn-eliminar-cliente"
+                                   data-id="@cliente.Id"
+                                   data-nombre="@cliente.Nombre"
+                                   href="#"
+                                   title="Borrar">
+                                    <i class="fas fa-trash-alt"></i>
+                                </a>
+
+
+
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Modal confirmación
+            $('.btn-eliminar-cliente').on('click', function (e) {
+                e.preventDefault();
+                const id = $(this).data('id');
+                const nombre = $(this).data('nombre');
+                $('#nombreClienteEliminar').text(nombre);
+                $('#btnConfirmarEliminar').attr('href', `/Clientes/Delete/${id}`);
+                const modal = new bootstrap.Modal(document.getElementById('modalEliminarCliente'));
+                modal.show();
+            });
+
+            // Mostrar toast si existe
+            const toastElement = document.querySelector('.toast');
+            if (toastElement) {
+                const toastInstance = bootstrap.Toast.getOrCreateInstance(toastElement);
+                toastInstance.show();
+                setTimeout(() => toastInstance.hide(), 4000);
+            }
+        });
+    </script>
+
+}

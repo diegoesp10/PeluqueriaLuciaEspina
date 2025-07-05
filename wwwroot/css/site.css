@@ -26,6 +26,34 @@ html {
     font-size: 1.1rem;
 }
 
+
+.select2-container--bootstrap-5 .select2-selection--single {
+    display: flex;
+    align-items: center;
+    height: calc(2.5rem + 2px);
+    padding: 0.375rem 0.75rem;
+    font-size: 1rem;
+    border-radius: 0.375rem;
+    border: 1px solid #ced4da;
+    background-color: #fff;
+}
+
+.select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+    text-align: left;
+    flex: 1; /* ocupa todo el espacio disponible */
+    padding: 0 !important;
+    margin: 0 !important;
+    line-height: 1.5;
+}
+
+.select2-container--bootstrap-5 .select2-selection__clear {
+    order: 2;
+    margin-left: 0.5rem;
+    margin-right: 0;
+    font-size: 1rem;
+    color: #dc3545;
+}
+
 @media print {
     body * {
         visibility: hidden !important;
