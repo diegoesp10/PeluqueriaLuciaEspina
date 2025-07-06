@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using DocumentFormat.OpenXml.InkML;
+using DocumentFormat.OpenXml.Office2010.Excel;
+using Microsoft.EntityFrameworkCore;
 using PeluqueriaLuciaEspina.Models;
 using System.Linq.Expressions;
 
@@ -34,6 +36,7 @@ namespace PeluqueriaLuciaEspina.Repo
         public async Task<List<T>> GetAllListAsync() => await _dbSet.ToListAsync();
 
         public async Task<T?> GetByIdAsync(int id) => await _dbSet.FindAsync(id);
+
 
         public async Task AddAsync(T entity)
         {

@@ -2,7 +2,7 @@
 @using PelqueriaLuciaEspina.Enums
 
 @{
-    ViewData["Title"] = "Servicios Disponibles";
+    ViewData["Title"] = "Servicios Genéricos";
     Sexo? sexoSeleccionado = ViewBag.SexoSeleccionado as Sexo?;
 }
 
@@ -15,6 +15,20 @@
         });
     });
 </script>
+
+@if (TempData["Error"] != null)
+{
+    <div class="position-fixed top-0 end-0 p-3" style="z-index: 1055">
+        <div class="toast align-items-center text-white bg-danger border-0 show" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="fas fa-exclamation-triangle me-2"></i> @TempData["Error"]
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+            </div>
+        </div>
+    </div>
+}
 
 <!-- Modal de confirmación -->
 <div class="modal fade" id="modalEliminarServicio" tabindex="-1" aria-labelledby="modalEliminarServicioLabel" aria-hidden="true">
@@ -129,6 +143,13 @@
                 const modal = new bootstrap.Modal(document.getElementById('modalEliminarServicio'));
                 modal.show();
              });
+            // Mostrar toast si existe
+            const toastElement = document.querySelector('.toast');
+            if (toastElement) {
+                const toastInstance = bootstrap.Toast.getOrCreateInstance(toastElement);
+                toastInstance.show();
+                setTimeout(() => toastInstance.hide(), 4000);
+            }
         });
     </script>
 }

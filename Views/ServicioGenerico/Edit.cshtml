@@ -14,7 +14,7 @@
                     <h5 class="mb-0">Editar servicio</h5>
                 </div>
                 <div class="card-body">
-                    <form asp-action="Edit" method="post">
+                    <form asp-action="Edit" method="post" enctype="multipart/form-data">
                         <input type="hidden" asp-for="Id" />
 
                         <div class="mb-3">
@@ -46,6 +46,17 @@
                                 <span class="text-muted">No hay imagen</span>
                             }
                         </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bolder">Cambiar imagen</label>
+                            <input type="file" name="imagen" id="imagenInput" accept="image/*" class="form-control" />
+                            <div class="form-text">Formatos aceptados: JPG, PNG. Tamaño máximo recomendado: 2MB.</div>
+                        </div>
+
+                        <!-- 🖼️ Previsualización de imagen nueva -->
+                        <div class="mt-2" id="previewContainer" style="display:none;">
+                            <label class="form-label fw-bolder">Previsualización:</label><br />
+                            <img id="previewImagen" src="#" class="img-thumbnail" style="max-height: 120px;" />
+                        </div>
 
                         <div class="d-flex justify-content-end mt-4">
                             <button type="submit" class="btn btn-success me-2">
@@ -61,3 +72,24 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        document.getElementById('imagenInput').addEventListener('change', function (event) {
+            const input = event.target;
+            const file = input.files[0];
+
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const previewImg = document.getElementById('previewImagen');
+                    previewImg.src = e.target.result;
+                    document.getElementById('previewContainer').style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                document.getElementById('previewContainer').style.display = 'none';
+            }
+        });
+    </script>
+}

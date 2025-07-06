@@ -3,6 +3,8 @@ using PeluqueriaLuciaEspina.Repo;
 using PeluqueriaLuciaEspina.Services;
 using Microsoft.EntityFrameworkCore;
 using PeluqueriaLuciaEspina.Servicios;
+using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
+using PeluqueriaLuciaEspina.RepoServicio;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,6 +17,10 @@ builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepositor
 builder.Services.AddScoped<IServicioClienteService, ServicioClienteService>();
 builder.Services.AddScoped<IServicioGenericoService, ServicioGenericoService>();
 builder.Services.AddScoped<IClienteService, ClienteService>();
+builder.Services.AddScoped<IServicioGenericoRepository, ServicioGenericoRepository>();
+
+
+
 
 // MVC
 builder.Services.AddControllersWithViews();
