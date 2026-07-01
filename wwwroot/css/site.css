@@ -54,37 +54,81 @@ html {
     color: #dc3545;
 }
 
-@media print {
-    body * {
-        visibility: hidden !important;
-    }
+/* ── Ticket recibo térmico ─────────────────────────────── */
+.ticket-page-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-bottom: 2rem;
+}
 
-    #ticket-servicio, #ticket-servicio * {
-        visibility: visible !important;
-    }
+.ticket-receipt {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 13px;
+    line-height: 1.65;
+    width: 100%;
+    max-width: 360px;
+    background: #fff;
+    padding: 22px 26px;
+    border: 1px dashed #bbb;
+}
+
+.ticket-sep {
+    border: 0;
+    border-top: 1px dashed #888;
+    margin: 6px 0;
+}
+
+.ticket-meta-row {
+    display: flex;
+    justify-content: space-between;
+}
+
+.ticket-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: inherit;
+    font-size: inherit;
+}
+
+.ticket-table th,
+.ticket-table td {
+    padding: 1px 0;
+    border: none;
+    vertical-align: middle;
+}
+
+.ticket-total-row td {
+    padding-top: 5px;
+    border-top: 1px dashed #888;
+}
+
+.tc-uds  { width: 28px; text-align: center; }
+.tc-name { padding-left: 4px; }
+.tc-price { text-align: right; white-space: nowrap; padding-left: 8px; }
+
+.ticket-side-panel {
+    width: 100%;
+    max-width: 360px;
+}
+
+/* ── Print ─────────────────────────────────────────────── */
+@media print {
+    body * { visibility: hidden !important; }
+
+    #ticket-servicio,
+    #ticket-servicio * { visibility: visible !important; }
 
     #ticket-servicio {
         position: absolute;
         left: 0;
         top: 0;
-        width: 100%;
+        border: none !important;
         box-shadow: none !important;
+        padding: 0 !important;
     }
 
-    .no-print {
-        display: none !important;
-    }
+    .no-print { display: none !important; }
 
-    .logo-ticket {
-        height: 50px !important;
-        margin-bottom: 0.5rem;
-    }
-
-    .ticket-header h5 {
-        font-size: 1rem !important;
-    }
-
-    .ticket-header p {
-        font-size: 0.85rem !important;
-    }
+    .logo-ticket { height: 50px !important; }
 }
