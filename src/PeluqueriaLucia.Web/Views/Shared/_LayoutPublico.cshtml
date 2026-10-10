@@ -19,6 +19,7 @@
     <link rel="stylesheet" href="~/css/base.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/componentes.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/publico.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/agenda.css" asp-append-version="true" />
 </head>
 <body class="sitio-publico">
     <a class="saltar" href="#contenido">Saltar al contenido</a>
@@ -33,8 +34,9 @@
             <a href="@Url.Action("Index", "Inicio", new { area = "" })#contacto">Contacto</a>
             <a class="enlace-admin" asp-area="Admin" asp-controller="Panel" asp-action="Index">Administración <span aria-hidden="true">↗</span></a>
             <a asp-area="" asp-controller="Opiniones" asp-action="Index">Opiniones</a>
+            <a href="/citas">Citas</a>
         </nav>
-        <a class="btn btn-primary" href="@n.Reservas" target="_blank" rel="noopener noreferrer">Reservar cita <span aria-hidden="true">↗</span></a>
+        <a class="btn btn-primary" href="/citas">Reservar cita <span aria-hidden="true">↗</span></a>
     </header>
     <main class="fondo-identidad" id="contenido">@RenderBody()</main>
     <footer class="pie-publico">
@@ -44,6 +46,7 @@
         <div class="pie-nota"><p>© @DateTime.Now.Year @n.Nombre. Hecho para cuidar de ti.</p><partial name="_SelectorTema" /></div>
     </footer>
     <script src="~/js/app.js" asp-append-version="true"></script>
+    <script src="~/js/fechas.js" asp-append-version="true"></script>
     @if (ViewData["ControlSesion"] is true) { <partial name="_ControlSesion" /> }
 </body>
 </html>

@@ -25,6 +25,8 @@ public static class CanalDePeticionesExtensions
                     .LogError(fallo?.Error, "Fallo de petición. Referencia {Referencia}", contexto.TraceIdentifier);
                 contexto.Response.StatusCode = 500;
                 contexto.Response.Headers.CacheControl = "no-store";
+                contexto.Response.Headers.XContentTypeOptions = "nosniff";
+                contexto.Response.Headers.ContentSecurityPolicy = "default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; frame-ancestors 'none'";
                 contexto.Response.ContentType = "text/html; charset=utf-8";
                 // Independiente de SQL, cookies, TempData y vistas: funciona incluso si falla Data Protection.
                 await contexto.Response.WriteAsync("<!doctype html><html lang=\"es\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width\"><title>Algo ha fallado · Lucía</title><link rel=\"stylesheet\" href=\"/css/error.css\"></head><body><main><img src=\"/Img/Icono.jpg\" width=\"100\" height=\"100\" alt=\"Lucía Peluquería Ecológica\"><h1>Algo ha fallado</h1><p>No hemos podido completar esta operación. Vuelve a intentarlo en unos minutos.</p><a href=\"/\">Volver al inicio</a><p class=\"referencia\">Referencia: " + System.Net.WebUtility.HtmlEncode(contexto.TraceIdentifier) + "</p></main></body></html>");
@@ -42,6 +44,12 @@ public static class CanalDePeticionesExtensions
         app.UseCacheDeRecursosVersionados();
         app.UseFiltroIpPanel();
         app.UseMonitorPeticiones();
+
+        // Los recursos públicos funcionan también al ejecutar la publicación bajo Development.
+        // No servir por este canal las fotos internas /imagenes: pasan por su controlador protegido.
+        app.UseWhen(c => c.Request.Path.StartsWithSegments("/css") || c.Request.Path.StartsWithSegments("/js") ||
+            c.Request.Path.StartsWithSegments("/Img") || c.Request.Path.StartsWithSegments("/publico") || c.Request.Path == "/favicon.ico",
+            recursos => recursos.UseStaticFiles());
 
         app.UseRouting();
         app.UseRateLimiter();

@@ -22,6 +22,7 @@
     <link rel="stylesheet" href="~/css/componentes.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/paginas.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/ticket.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/agenda.css" asp-append-version="true" />
 </head>
 <body class="sitio-admin" data-sesion-id="@User.FindFirst(Autenticacion.ClaimSesion)?.Value" data-sesion-estado="@Url.Content(Autenticacion.RutaEstado)" data-sesion-acceso="@Url.Content("/admin/acceso")">
     <a class="skip-link" href="#contenido">Saltar al contenido</a>
@@ -42,6 +43,7 @@
 
             <nav class="nav">
                 <p class="nav-label">Espacio profesional</p>
+                <a class="nav-item @Activo("Agenda")" href="/admin/agenda" title="Agenda y solicitudes de cita"><span class="nav-tile"><icono nombre="calendario" tamano="17" /></span> Agenda <span class="agenda-contador" data-agenda-contador aria-label="Solicitudes pendientes"></span></a>
                 <a class="nav-item @Activo("Panel")" asp-controller="Panel" asp-action="Index" title="Panel"><span class="nav-tile"><icono nombre="casa" tamano="17" /></span> Panel</a>
                 <a class="nav-item tint-blue @Activo("Visitas")" asp-controller="Visitas" asp-action="Index" title="Visitas">
                     <span class="nav-tile"><icono nombre="calendario" tamano="17" /></span> Visitas
@@ -77,6 +79,7 @@
                 <div class="cuenta-menu glass">
                     <p class="cuenta-actual">Sesión de <strong>@User.Identity?.Name</strong></p>
                     <a class="btn btn-gray" asp-controller="Seguridad" asp-action="Index">Seguridad y sesiones</a>
+                    <a class="btn btn-gray" href="/admin/agenda">Agenda de citas</a>
                     <a class="btn btn-gray" asp-controller="Tratamientos" asp-action="Index">Servicios de la web</a>
                     <a class="btn btn-gray" asp-controller="Resenas" asp-action="Index">Reseñas</a>
                     <a class="btn btn-gray" asp-controller="Seguridad" asp-action="Contrasena">Cambiar contraseña</a>
@@ -132,6 +135,7 @@
     <partial name="_ControlSesion" />
     <script src="~/js/app.js" asp-append-version="true"></script>
     <script src="~/js/fechas.js" asp-append-version="true"></script>
+    <script src="~/js/agenda-avisos.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

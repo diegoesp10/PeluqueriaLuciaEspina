@@ -63,6 +63,9 @@ internal sealed class FabricaWeb(string cadena, Dictionary<string, string?>? aju
                 .Concat(ajustes ?? []).GroupBy(p => p.Key).ToDictionary(g => g.Key, g => g.Last().Value)));
         builder.ConfigureServices(services =>
         {
+            // Ninguna prueba web puede enviar SMS, aunque el equipo tenga un proveedor real activado.
+            services.RemoveAll<PeluqueriaLucia.Application.Agenda.ISmsCitas>();
+            services.AddScoped<PeluqueriaLucia.Application.Agenda.ISmsCitas, SmsPrueba>();
             if (reloj is not null) { services.RemoveAll<TimeProvider>(); services.AddSingleton(reloj); }
             services.RemoveAll<DbContextOptions<PeluqueriaDbContext>>();
             services.RemoveAll<Microsoft.EntityFrameworkCore.Infrastructure.IDbContextOptionsConfiguration<PeluqueriaDbContext>>();
@@ -72,6 +75,15 @@ internal sealed class FabricaWeb(string cadena, Dictionary<string, string?>? aju
 
     internal HttpClient Cliente(bool cookies = true) => CreateClient(new WebApplicationFactoryClientOptions
     { AllowAutoRedirect = false, HandleCookies = cookies, BaseAddress = new Uri("https://localhost") });
+}
+
+internal sealed class SmsPrueba : PeluqueriaLucia.Application.Agenda.ISmsCitas
+{
+    public bool Activo => false;
+    public bool ValidarFirma(string ruta,string firma,IReadOnlyDictionary<string,string> campos) => false;
+    public Task ProcesarWebhookAsync(IReadOnlyDictionary<string,string> campos,bool entrada,CancellationToken ct) => Task.CompletedTask;
+    public Task<IReadOnlyList<PeluqueriaLucia.Domain.Agenda.SmsEntrante>> EntrantesAsync(CancellationToken ct) => Task.FromResult<IReadOnlyList<PeluqueriaLucia.Domain.Agenda.SmsEntrante>>([]);
+    public Task ProcesarColaAsync(CancellationToken ct) => Task.CompletedTask;
 }
 
 public sealed class SeguridadWebTests(SeguridadWebFixture fixture) : IClassFixture<SeguridadWebFixture>

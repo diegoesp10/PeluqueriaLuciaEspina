@@ -9,6 +9,21 @@ namespace PeluqueriaLucia.Tests.Integracion;
 public sealed class SeguridadTests
 {
     [Fact]
+    public async Task Crear_solo_no_reemplaza_la_contrasena_de_una_cuenta_existente()
+    {
+        await using var bd=await BaseDeDatosPrueba.CrearAsync();
+        var servicios=new ServiceCollection(); servicios.AddLogging(); servicios.AddAplicacion();
+        servicios.AddInfraestructura(new ConfigurationBuilder().Build(),bd.Cadena);
+        await using var proveedor=servicios.BuildServiceProvider(); await using var scope=proveedor.CreateAsyncScope();
+        var acceso=scope.ServiceProvider.GetRequiredService<AccesoService>();
+        Assert.True((await acceso.EstablecerAdministradorAsync("original","Una contraseña de prueba 123!")).Exito);
+        await using var db=bd.Contexto(); var original=await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.SingleAsync(db.Administradores);
+        var hash=original.HashContrasena;
+        Assert.False((await acceso.EstablecerAdministradorAsync("original","Otra contraseña distinta 456!",soloCrear:true)).Exito);
+        await db.Entry(original).ReloadAsync(); Assert.Equal(hash,original.HashContrasena);
+    }
+
+    [Fact]
     public async Task Bloqueo_caducidad_revocacion_y_cambio_de_contrasena_se_validan_en_servidor()
     {
         await using var bd = await BaseDeDatosPrueba.CrearAsync();

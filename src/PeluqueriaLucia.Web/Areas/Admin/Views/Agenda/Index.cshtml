@@ -1,0 +1,26 @@
+@model PeluqueriaLucia.Web.Models.AgendaPanel
+@using PeluqueriaLucia.Domain.Agenda
+@{ViewData["Title"]="Agenda de citas";}
+<header class="page-header"><div><p class="eyebrow">ESPACIO PROFESIONAL</p><h1>Agenda de citas</h1><p>Solicitudes, tiempos de cuidado y conversaciones con tus clientes.</p></div><a class="btn btn-gray" href="/admin/agenda/horarios">Horarios y días de cierre</a></header>
+<div class="agenda-avisos" role="status"><strong>@Model.Avisos.Pendientes solicitudes pendientes</strong><p>Se muestran las citas de la semana y todas las solicitudes pendientes, aunque sean de otra semana. Verifica el teléfono antes de confirmar.</p></div>
+<form method="get" class="agenda-filtro"><label for="agenda-fecha">Semana desde</label><input id="agenda-fecha" type="date" name="dia" value="@Model.Dia.ToString("yyyy-MM-dd")" /><button class="btn btn-gray">Buscar</button><a class="btn btn-gray" href="/admin/agenda?dia=@Model.Dia.AddDays(7).ToString("yyyy-MM-dd")">Semana siguiente →</a></form>
+<div class="agenda-lista">
+@foreach(var grupo in Model.Citas.GroupBy(x=>DateOnly.FromDateTime(x.Inicio))){
+    <section class="agenda-jornada"><h2>@grupo.Key.ToString("dddd d 'de' MMMM")</h2>
+    @foreach(var c in grupo){var caducada=c.Estado==EstadoCita.Pendiente&&c.CaducaUtc<=DateTime.UtcNow;
+        <article class="card agenda-cita"><div class="agenda-cita-hora"><strong>@c.Inicio.ToString("HH:mm")</strong><span>hasta @c.Fin.ToString("HH:mm")</span><span class="badge">@(caducada?"Caducada":c.Estado.ToString())</span></div><div class="agenda-cita-datos"><h3>@(string.IsNullOrEmpty(c.Nombre)?"Solicitud de cita":c.Nombre)</h3><p>@c.ServicioNombre</p><a class="agenda-telefono" href="tel:@c.Telefono">@c.Telefono ↗</a>
+        @if(c.Estado is EstadoCita.Pendiente or EstadoCita.Confirmada && !caducada){
+            <form method="post" action="/admin/agenda/gestionar">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@c.Id" /><input type="hidden" name="version" value="@Convert.ToBase64String(c.Version)" /><input type="hidden" name="dia" value="@Model.Dia.ToString("yyyy-MM-dd")" />
+                <div class="agenda-gestion"><label>Duración (min)<input type="number" name="minutos" min="15" max="600" step="15" value="@((int)Math.Ceiling((c.Fin-c.Inicio).TotalMinutes/15)*15)" required /></label><label>Nota interna<input name="nota" maxlength="500" value="@c.NotaInterna" /></label></div>
+                <label class="agenda-consentimiento"><input type="checkbox" name="telefonoValidado" value="true" checked="@c.TelefonoValidado" /> He contactado con este teléfono y validado la cita.</label><div class="agenda-botones"><button class="btn btn-primary" name="estado" value="Confirmada">@(c.Estado==EstadoCita.Confirmada?"Actualizar duración":"Confirmar cita")</button><button class="btn btn-gray" name="estado" value="@(c.Estado==EstadoCita.Pendiente?"Rechazada":"Cancelada")">@(c.Estado==EstadoCita.Pendiente?"Rechazar":"Cancelar cita")</button>@if(c.Estado==EstadoCita.Confirmada){<button class="btn btn-gray" name="estado" value="Completada">Completar</button>}</div>
+            </form>
+        }else if(!string.IsNullOrEmpty(c.NotaInterna)){<p>@c.NotaInterna</p>}
+        </div></article>
+    }</section>
+}
+@if(Model.Citas.Count==0){<div class="card agenda-sin-huecos">La agenda de esta semana está libre.</div>}
+</div>
+<section id="comunicaciones" class="agenda-comunicaciones"><h2>Comunicaciones</h2><p>@(Model.SmsActivo?"SMS automático configurado. Un envío aceptado por el proveedor todavía puede estar pendiente de entrega.":"SMS automático pendiente de configurar. Puedes llamar o enviar el mensaje desde tu móvil y marcarlo como comunicado.")</p>
+@foreach(var m in Model.Mensajes){<article class="card"><div class="agenda-botones"><strong>@m.Telefono</strong><span class="badge">@m.Estado</span></div><p>@m.Texto</p>@if(m.Estado is EstadoSms.Pendiente or EstadoSms.Error or EstadoSms.Incierto){<div class="agenda-botones"><a class="btn btn-gray" href="tel:@m.Telefono">Llamar</a><a class="btn btn-gray" href="sms:@m.Telefono?body=@Uri.EscapeDataString(m.Texto)">Abrir SMS en el móvil</a><form method="post" action="/admin/agenda/sms-manual">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@m.Id" /><button class="btn btn-gray">Ya he avisado al cliente</button></form></div>}</article>}
+@if(Model.Entrantes.Count>0){<h3>Respuestas recibidas</h3>@foreach(var e in Model.Entrantes){<article class="card"><strong>@e.Telefono</strong><small> · @e.RecibidoUtc.ToLocalTime().ToString("dd/MM HH:mm")</small><p>@e.Texto</p><a href="tel:@e.Telefono">Contactar</a></article>}}
+</section>

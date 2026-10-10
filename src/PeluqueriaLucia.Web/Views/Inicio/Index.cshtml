@@ -5,7 +5,7 @@
         <p class="etiqueta"><span aria-hidden="true">✳</span> BELLEZA CON RAÍCES · OVIEDO</p>
         <h1>Tu cabello.<br />Tu esencia.<br /><em>Al natural.</em></h1>
         <p class="intro">Un espacio para ti y para el cuidado de tu cabello. Descubre la peluquería ecológica de Lucía, en el corazón de Oviedo.</p>
-        <div class="botones"><a class="btn btn-primary" href="@Model.Reservas" target="_blank" rel="noopener noreferrer">Encuentra tu momento <span aria-hidden="true">↗</span></a><a class="enlace-flecha" asp-action="Servicios">Nuestros servicios →</a></div>
+        <div class="botones"><a class="btn btn-primary" href="/citas">Encuentra tu momento <span aria-hidden="true">↗</span></a><a class="enlace-flecha" asp-action="Servicios">Nuestros servicios →</a></div>
         <p class="detalle-hero">COLORACIÓN VEGETAL <span>·</span> CUIDADO CAPILAR <span>·</span> TRATO CERCANO</p>
     </div>
     <div class="hero-foto">
@@ -27,8 +27,8 @@
         <a asp-action="Servicios" asp-fragment="peluqueria"><span class="numero">03</span><span class="simbolo" aria-hidden="true">✂</span><h3>Tu estilo, tu forma</h3><p>Cortes, rizos en seco, peinados y recogidos. Para el día a día y tus momentos especiales.</p><span class="enlace-flecha">Descubrir →</span></a>
     </div>
 </section>
-<section class="cita-publica"><p class="etiqueta">UN MOMENTO PARA CUIDARTE</p><h2>Ven como eres.<br /><em>Sal sintiéndote tú.</em></h2><a class="btn btn-light" href="@Model.Reservas" target="_blank" rel="noopener noreferrer">Reserva tu próxima cita ↗</a></section>
+<section class="cita-publica"><p class="etiqueta">UN MOMENTO PARA CUIDARTE</p><h2>Ven como eres.<br /><em>Sal sintiéndote tú.</em></h2><a class="btn btn-light" href="/citas">Reserva tu próxima cita ↗</a></section>
 <section class="seccion-publica contacto-publico" id="contacto">
     <div><p class="etiqueta">03 / NOS VEMOS EN OVIEDO</p><h2>Muy cerca.<br /><em>Muy tuyo.</em></h2><p>Te esperamos en @Model.Direccion,<br />@Model.CodigoPostal @Model.Ciudad.</p><a class="enlace-flecha" href="@Model.Mapa" target="_blank" rel="noopener noreferrer">Cómo llegar →</a></div>
-    <div class="contacto-tarjeta"><p class="etiqueta">HABLEMOS</p><a class="telefono-grande" href="@Model.TelefonoEnlace">@Model.Telefono</a><p>Llámanos para consultar un servicio o preparar tu visita.</p><a class="btn btn-primary" href="@Model.Reservas" target="_blank" rel="noopener noreferrer">Reservar en Booksy ↗</a><p class="nota">Consulta horarios y disponibilidad actualizados en Booksy.</p><div class="comodidades">@foreach (var comodidad in Model.Comodidades) { <span>@comodidad</span> }</div></div>
+    <div class="contacto-tarjeta"><p class="etiqueta">HABLEMOS</p><a class="telefono-grande" href="@Model.TelefonoEnlace">@Model.Telefono</a><p>Llámanos para consultar un servicio o preparar tu visita.</p><a class="btn btn-primary" href="/citas">Solicitar mi cita →</a><p class="nota">Elige día y hora. Lucía validará tu solicitud por teléfono.</p><div class="comodidades">@foreach (var comodidad in Model.Comodidades) { <span>@comodidad</span> }</div></div>
 </section>

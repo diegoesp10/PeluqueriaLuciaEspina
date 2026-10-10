@@ -1,0 +1,45 @@
+@model ReservaPagina
+@{
+    ViewData["Title"]="Tu próxima cita";
+    var seleccion=Model.Disponibilidad.Dia;
+    var inicio=new DateOnly(seleccion.Year,seleccion.Month,1);
+    var desplazamiento=((int)inicio.DayOfWeek+6)%7;
+    var anterior=inicio.AddMonths(-1); var siguiente=inicio.AddMonths(1);
+}
+<section class="seccion-publica agenda-intro"><div><p class="etiqueta">UN MOMENTO PARA TI</p><h1>Tu próximo cuidado,<br /><em>a un paso.</em></h1><p class="intro">Elige un día y una hora. Lucía te contactará para revisar el servicio y confirmar tu cita.</p></div><div class="agenda-sello"><img src="~/Img/Icono.jpg" alt="Lucía Peluquería Ecológica" width="150" height="150" /><p>Tiempo para escucharte.<br />Cuidado para tu cabello.</p></div></section>
+<section class="seccion-publica agenda-publica">
+    <div class="agenda-calendario card">
+        <form method="get" action="/citas" class="agenda-servicio">
+            <label for="dia-agenda">Día de tu cita</label><input id="dia-agenda" type="date" name="dia" value="@seleccion.ToString("yyyy-MM-dd")" min="@Model.Hoy.ToString("yyyy-MM-dd")" max="@Model.Hoy.AddDays(90).ToString("yyyy-MM-dd")" />
+            <label for="servicio-agenda">¿Qué cuidado te apetece?</label>
+            <select id="servicio-agenda" name="servicioId"><option value="">Prefiero consultar con Lucía</option>@foreach(var s in Model.Servicios){<option value="@s.Id" selected="@(Model.Formulario.ServicioId==s.Id)">@s.Nombre · @s.Minutos min</option>}</select>
+            <button class="btn btn-gray" type="submit">Ver disponibilidad</button>
+        </form>
+        <div class="agenda-mes"><a class="btn btn-gray" href="/citas?dia=@(anterior<Model.Hoy?Model.Hoy.ToString("yyyy-MM-dd"):anterior.ToString("yyyy-MM-dd"))&amp;servicioId=@Model.Formulario.ServicioId" aria-label="Mes anterior">←</a><h2>@inicio.ToString("MMMM yyyy")</h2><a class="btn btn-gray" href="/citas?dia=@siguiente.ToString("yyyy-MM-dd")&amp;servicioId=@Model.Formulario.ServicioId" aria-label="Mes siguiente">→</a></div>
+        <div class="agenda-dias" aria-label="Calendario de citas">
+            @foreach(var nombre in new[]{"L","M","X","J","V","S","D"}){<span class="agenda-semana" aria-hidden="true">@nombre</span>}
+            @for(var i=0;i<desplazamiento;i++){<span></span>}
+            @for(var i=1;i<=DateTime.DaysInMonth(inicio.Year,inicio.Month);i++){
+                var d=inicio.AddDays(i-1); var disponible=d>=Model.Hoy&&d<=Model.Hoy.AddDays(90);
+                if(disponible){<a class="agenda-dia @(d==seleccion?"seleccionado":"")" href="/citas?dia=@d.ToString("yyyy-MM-dd")&amp;servicioId=@Model.Formulario.ServicioId" aria-current="@(d==seleccion?"date":null)" aria-label="@d.ToString("dddd d MMMM yyyy")">@i</a>}
+                else{<span class="agenda-dia deshabilitado">@i</span>}
+            }
+        </div>
+        <p class="nota">Horario del salón · Oviedo. La disponibilidad se comprueba de nuevo al enviar.</p>
+    </div>
+    <form method="post" action="/citas" class="card agenda-formulario">
+        @Html.AntiForgeryToken()
+        <h2>@seleccion.ToString("dddd, d 'de' MMMM")</h2>
+        <p>Tu cuidado empieza aquí.</p>
+        <div asp-validation-summary="All" role="alert"></div>
+        <input asp-for="Formulario.SolicitudId" type="hidden" /><input type="hidden" name="Formulario.Dia" value="@seleccion.ToString("yyyy-MM-dd")" /><input asp-for="Formulario.ServicioId" type="hidden" />
+        <div class="agenda-trampa" aria-hidden="true"><label>Web<input name="Formulario.Web" tabindex="-1" autocomplete="off" /></label></div>
+        <fieldset class="agenda-horas"><legend>Elige una hora</legend>@foreach(var h in Model.Disponibilidad.Horas){<label><input type="radio" name="Formulario.Hora" value="@h.ToString("HH:mm")" checked="@(Model.Formulario.Hora==h)" required /><span>@h.ToString("HH:mm")</span></label>}</fieldset>
+        @if(Model.Disponibilidad.Horas.Count==0){<div class="agenda-sin-huecos">Este día no tiene huecos disponibles para el cuidado elegido. Prueba otro día.</div>}
+        <div class="form-field"><label asp-for="Formulario.Nombre">Tu nombre <small>(opcional)</small></label><input asp-for="Formulario.Nombre" autocomplete="given-name" maxlength="80" /></div>
+        <div class="form-field"><label asp-for="Formulario.Telefono">Móvil de contacto</label><input asp-for="Formulario.Telefono" type="tel" autocomplete="tel" inputmode="tel" maxlength="30" placeholder="612 345 678" required /><small>Móvil español, con o sin +34. Te llamaremos para validar la reserva.</small></div>
+        <label class="agenda-consentimiento"><input asp-for="Formulario.Consentimiento" required /> Acepto que el salón use mi teléfono para gestionar esta cita y avisarme por llamada o SMS.</label>
+        <button class="btn btn-primary btn-block" type="submit" disabled="@(Model.Disponibilidad.Horas.Count==0)">Solicitar mi cita →</button>
+        <p class="nota">La solicitud está pendiente hasta que Lucía la confirme. Si no se revisa en 24 horas, el hueco se libera. Tus datos de contacto nunca se muestran al público.</p>
+    </form>
+</section>

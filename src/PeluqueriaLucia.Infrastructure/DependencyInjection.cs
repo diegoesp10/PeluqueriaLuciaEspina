@@ -12,8 +12,6 @@ namespace PeluqueriaLucia.Infrastructure;
 
 public static class DependencyInjection
 {
-    public const string NombreCadenaConexion = "DefaultConnection";
-
     public static IServiceCollection AddInfraestructura(this IServiceCollection services, IConfiguration configuracion, string? conexionPrueba = null)
     {
         // Resolver al abrir el contexto permite mostrar un error genérico si el servicio conectado falla.
@@ -29,6 +27,9 @@ public static class DependencyInjection
         services.AddScoped<IMfaRepositorio, MfaRepositorio>();
         services.AddSingleton<IProtectorSecretos, ProtectorSecretos>();
         services.AddScoped<IContenidoRepositorio, ContenidoRepositorio>();
+        services.AddScoped<PeluqueriaLucia.Application.Agenda.IAgendaService, AgendaService>();
+        services.AddScoped<PeluqueriaLucia.Application.Agenda.ISmsCitas, SmsCitas>();
+        services.AddHttpClient("sms-citas", c => c.Timeout = TimeSpan.FromSeconds(20));
         services.AddSingleton<IFotosResenas, FotosResenas>();
         services.AddOptions<OpcionesFotosResenas>().Bind(configuracion.GetSection("FotosResenas"));
 

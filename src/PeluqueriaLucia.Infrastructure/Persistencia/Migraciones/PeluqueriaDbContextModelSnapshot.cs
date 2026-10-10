@@ -41,6 +41,228 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
                     b.ToTable("DataProtectionKeys");
                 });
 
+            modelBuilder.Entity("PeluqueriaLucia.Domain.Agenda.CierreAgenda", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateOnly>("Dia")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Motivo")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Dia")
+                        .IsUnique();
+
+                    b.ToTable("CierresAgenda", (string)null);
+                });
+
+            modelBuilder.Entity("PeluqueriaLucia.Domain.Agenda.MensajeCita", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreadoUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Estado")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ProcesadoUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ProveedorId")
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<Guid>("ReservaId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Telefono")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(16)");
+
+                    b.Property<string>("Texto")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReservaId");
+
+                    b.HasIndex("Estado", "CreadoUtc");
+
+                    b.ToTable("MensajesCitas", (string)null);
+                });
+
+            modelBuilder.Entity("PeluqueriaLucia.Domain.Agenda.ReservaCita", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("ActualizadaUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("AdministradorId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CaducaUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreadaUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Estado")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("Fin")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("Inicio")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("IpHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<string>("NotaInterna")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int?>("ServicioId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ServicioNombre")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("SolicitudId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Telefono")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(16)");
+
+                    b.Property<bool>("TelefonoValidado")
+                        .HasColumnType("bit");
+
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AdministradorId");
+
+                    b.HasIndex("ServicioId");
+
+                    b.HasIndex("SolicitudId")
+                        .IsUnique();
+
+                    b.HasIndex("Inicio", "Estado");
+
+                    b.HasIndex("IpHash", "CreadaUtc");
+
+                    b.HasIndex("Telefono", "CreadaUtc");
+
+                    b.ToTable("ReservasCitas", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ReservasCitas_Intervalo", "[Fin] > [Inicio]");
+                        });
+                });
+
+            modelBuilder.Entity("PeluqueriaLucia.Domain.Agenda.SmsEntrante", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ProveedorId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<DateTime>("RecibidoUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Telefono")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(16)");
+
+                    b.Property<string>("Texto")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProveedorId")
+                        .IsUnique();
+
+                    b.ToTable("SmsEntrantes", (string)null);
+                });
+
+            modelBuilder.Entity("PeluqueriaLucia.Domain.Agenda.TramoAgenda", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<TimeOnly>("Desde")
+                        .HasColumnType("time");
+
+                    b.Property<int>("Dia")
+                        .HasColumnType("int");
+
+                    b.Property<TimeOnly>("Hasta")
+                        .HasColumnType("time");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Dia", "Desde")
+                        .IsUnique();
+
+                    b.ToTable("TramosAgenda", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_TramosAgenda_Intervalo", "[Hasta] > [Desde]");
+                        });
+                });
+
             modelBuilder.Entity("PeluqueriaLucia.Domain.Catalogo.Servicio", b =>
                 {
                     b.Property<int>("Id")
@@ -549,6 +771,28 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
                     b.HasIndex("Fecha");
 
                     b.ToTable("ServiciosClientes", (string)null);
+                });
+
+            modelBuilder.Entity("PeluqueriaLucia.Domain.Agenda.MensajeCita", b =>
+                {
+                    b.HasOne("PeluqueriaLucia.Domain.Agenda.ReservaCita", null)
+                        .WithMany()
+                        .HasForeignKey("ReservaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PeluqueriaLucia.Domain.Agenda.ReservaCita", b =>
+                {
+                    b.HasOne("PeluqueriaLucia.Domain.Seguridad.Administrador", null)
+                        .WithMany()
+                        .HasForeignKey("AdministradorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("PeluqueriaLucia.Domain.Catalogo.Servicio", null)
+                        .WithMany()
+                        .HasForeignKey("ServicioId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("PeluqueriaLucia.Domain.Catalogo.Servicio", b =>
