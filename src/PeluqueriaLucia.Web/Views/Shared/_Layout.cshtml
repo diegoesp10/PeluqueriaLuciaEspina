@@ -12,6 +12,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
+    @* Aplica el tema elegido antes de pintar nada, para que la página no parpadee al cargar *@
+    <script>try{var t=localStorage.getItem('tema');if(t==='dia'||t==='noche')document.documentElement.dataset.theme=t}catch(e){}</script>
     <title>@ViewData["Title"] · Peluquería Lucía</title>
     <link rel="icon" href="~/favicon.ico" />
     <link rel="stylesheet" href="~/css/tokens.css" asp-append-version="true" />
@@ -20,6 +22,10 @@
     <link rel="stylesheet" href="~/css/componentes.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/paginas.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/ticket.css" asp-append-version="true" />
+    @* Precarga la página de un enlace al pasar el ratón por encima: al hacer clic se abre al instante *@
+    <script type="speculationrules">
+        { "prefetch": [{ "where": { "and": [{ "href_matches": "/*" }, { "not": { "href_matches": "/Visitas/Exportar*" } }] }, "eagerness": "moderate" }] }
+    </script>
 </head>
 <body>
     <a class="skip-link" href="#contenido">Saltar al contenido</a>
@@ -34,24 +40,35 @@
                 </span>
             </a>
 
-            <a class="btn btn-primary btn-block @(enNuevaVisita ? "is-current" : "")" asp-controller="Visitas" asp-action="Nueva">
+            <a class="btn btn-primary btn-block @(enNuevaVisita ? "is-current" : "")" asp-controller="Visitas" asp-action="Nueva" title="Nueva visita">
                 <icono nombre="mas" tamano="18" /> Nueva visita
             </a>
 
             <nav class="nav">
-                <a class="nav-item tint-blue @Activo("Visitas")" asp-controller="Visitas" asp-action="Index">
+                <a class="nav-item tint-blue @Activo("Visitas")" asp-controller="Visitas" asp-action="Index" title="Visitas">
                     <span class="nav-tile"><icono nombre="calendario" tamano="17" /></span> Visitas
                 </a>
-                <a class="nav-item tint-green @Activo("Clientes")" asp-controller="Clientes" asp-action="Index">
+                <a class="nav-item tint-green @Activo("Clientes")" asp-controller="Clientes" asp-action="Index" title="Clientes">
                     <span class="nav-tile"><icono nombre="clientes" tamano="17" /></span> Clientes
                 </a>
-                <a class="nav-item tint-orange @Activo("Catalogo")" asp-controller="Catalogo" asp-action="Index">
+                <a class="nav-item tint-orange @Activo("Catalogo")" asp-controller="Catalogo" asp-action="Index" title="Catálogo">
                     <span class="nav-tile"><icono nombre="tijeras" tamano="17" /></span> Catálogo
                 </a>
             </nav>
 
-            <p class="sidebar-foot">© @DateTime.Now.Year Peluquería Ecológica Lucía Espina</p>
+            <div class="sidebar-foot">
+                <partial name="_SelectorTema" />
+                <p>© @DateTime.Now.Year Peluquería Ecológica Lucía Espina</p>
+            </div>
         </aside>
+
+        <header class="topbar glass">
+            <a class="brand" asp-controller="Visitas" asp-action="Index">
+                <img class="brand-logo" src="~/Img/Icono.jpg" alt="" width="32" height="32" />
+                <span class="brand-text"><strong>Lucía</strong></span>
+            </a>
+            <partial name="_SelectorTema" />
+        </header>
 
         <main class="main" id="contenido" tabindex="-1">
             @RenderBody()
@@ -85,7 +102,8 @@
     </div>
 
     <dialog class="alerta" id="dialogo-confirmar" aria-labelledby="dialogo-titulo">
-        <form method="dialog">
+        @* Formulario solo del navegador (cierra el diálogo): sin token, que marcaría todas las páginas como no cacheables *@
+        <form method="dialog" asp-antiforgery="false">
             <h2 id="dialogo-titulo">¿Seguro?</h2>
             <p id="dialogo-texto"></p>
             <div class="alerta-botones">

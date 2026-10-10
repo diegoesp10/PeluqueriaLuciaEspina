@@ -2,6 +2,39 @@
 'use strict';
 
 (() => {
+  // ── Apariencia: automática, día o noche. Se recuerda en este navegador; el <head> la aplica antes de pintar ──
+  const selectores = document.querySelectorAll('[data-selector-tema]');
+  const leerTema = () => {
+    try {
+      return localStorage.getItem('tema') ?? 'auto';
+    } catch {
+      return 'auto';
+    }
+  };
+  const aplicarTema = (tema) => {
+    if (tema === 'dia' || tema === 'noche') document.documentElement.dataset.theme = tema;
+    else delete document.documentElement.dataset.theme;
+    selectores.forEach((selector) =>
+      selector.querySelectorAll('[data-tema]').forEach((boton) =>
+        boton.setAttribute('aria-checked', String(boton.dataset.tema === tema)),
+      ),
+    );
+  };
+  selectores.forEach((selector) =>
+    selector.querySelectorAll('[data-tema]').forEach((boton) =>
+      boton.addEventListener('click', () => {
+        try {
+          if (boton.dataset.tema === 'auto') localStorage.removeItem('tema');
+          else localStorage.setItem('tema', boton.dataset.tema);
+        } catch {
+          // Sin almacenamiento (modo privado…): el cambio vale hasta recargar
+        }
+        aplicarTema(boton.dataset.tema);
+      }),
+    ),
+  );
+  aplicarTema(leerTema());
+
   // ── Notificaciones: las de éxito se ocultan solas; las de error se quedan hasta cerrarlas ──
   const cerrarToast = (toast) => {
     toast.classList.add('is-leaving');

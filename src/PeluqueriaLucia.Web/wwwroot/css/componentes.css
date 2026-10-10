@@ -378,8 +378,42 @@ label.row:hover {
 }
 
 @media (max-width: 420px) {
+  .stats {
+    gap: 10px;
+  }
+
+  .stat {
+    padding: 14px;
+  }
+
   .stat-value {
-    font-size: 23px;
+    font-size: 22px;
+  }
+}
+
+/* Pantallas estrechas: en las filas, la etiqueta de estado baja bajo el importe para dejar sitio al nombre */
+@media (max-width: 560px) {
+  .row {
+    gap: 12px;
+    padding-inline: 14px;
+  }
+
+  .row-end:has(.pill) {
+    flex-direction: column-reverse;
+    align-items: flex-end;
+    gap: 4px;
+  }
+
+  .row-end:has(.pill) .row-chevron {
+    display: none;
+  }
+
+  .list-avatars {
+    --row-inset: 66px;
+  }
+
+  .btn {
+    padding-inline: 16px;
   }
 }
 

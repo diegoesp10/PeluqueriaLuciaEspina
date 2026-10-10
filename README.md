@@ -24,6 +24,7 @@ src/
                                    necesitan (repositorios, almacén de imágenes, exportador). Devuelven Resultado, no excepciones.
   PeluqueriaLucia.Infrastructure/  EF Core + SQL Server, migraciones, fotos en disco y Excel (ClosedXML).
   PeluqueriaLucia.Web/             ASP.NET Core MVC: controladores, vistas Razor, CSS y JS propios (sin librerías externas).
+                                   Program.cs solo arranca; Startup.cs registra las capas y Configuracion/ tiene el detalle.
 tests/
   PeluqueriaLucia.Tests/           Dominio, formato web e integración contra SQL Server (incluida la migración con datos).
 ```
@@ -32,15 +33,16 @@ Decisiones importantes:
 
 - **Base de datos con datos reales.** Las tablas conservan sus nombres de la versión 1 (`ServiciosClientes`, `ServiciosGenericos`…) y las entidades se mapean a ellas. Las migraciones solo añaden. Ver [docs/DESPLIEGUE.md](docs/DESPLIEGUE.md).
 - **Sin dependencias de internet.** La versión 1 cargaba Bootstrap, jQuery, Select2, Flatpickr y Font Awesome desde CDN: si se caía la conexión de la peluquería, la aplicación se rompía. Ahora todo (estilos, iconos y scripts) va dentro de la aplicación.
+- **Carga rápida.** CSS y JS se sirven comprimidos (Brotli) y con caché de un año gracias a la huella en la URL; las páginas se precargan al pasar el ratón por un enlace; al arrancar se prepara la conexión con la base de datos, y la publicación va compilada con ReadyToRun.
 - **Importes independientes del idioma de Windows.** Los formularios aceptan `12,50` y `12.50`. La aplicación fija la cultura `es-ES` para fechas e importes.
 
 ## Diseño
 
-Sistema de diseño propio inspirado en las pautas públicas de interfaz de Apple: superficies agrupadas sobre fondo neutro, colores del sistema, tipografía del sistema, controles segmentados, interruptores y vidrio translúcido solo en la navegación. Admite modo claro y oscuro (sigue al sistema) y se adapta al móvil (barra de pestañas inferior). Los tokens están en `wwwroot/css/tokens.css`. Avisos legales en [NOTICE.md](NOTICE.md).
+Sistema de diseño propio inspirado en las pautas públicas de interfaz de Apple: superficies agrupadas sobre fondo neutro, colores del sistema, tipografía del sistema, controles segmentados, interruptores y vidrio translúcido solo en la navegación. Modo día, noche o automático (como el sistema), elegible desde la barra lateral o la superior en el móvil. Se adapta a ordenador, tablet (barra lateral solo con iconos) y móvil (barra de pestañas inferior). Los tokens están en `wwwroot/css/tokens.css`. Avisos legales en [NOTICE.md](NOTICE.md).
 
 ## Desarrollo
 
-Requisitos: SDK de .NET 8 o posterior y SQL Server local (la cadena de desarrollo está en `appsettings.Development.json`: `localhost`, base de datos `PeluqueriaLuciaDb`, autenticación de Windows).
+Requisitos: SDK de .NET 10 y SQL Server local (la cadena de desarrollo está en `appsettings.Development.json`: `localhost`, base de datos `PeluqueriaLuciaDb`, autenticación de Windows).
 
 ```powershell
 dotnet tool restore

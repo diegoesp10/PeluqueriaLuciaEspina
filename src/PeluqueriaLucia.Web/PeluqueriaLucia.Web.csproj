@@ -2,11 +2,17 @@
   <PropertyGroup>
     <RootNamespace>PeluqueriaLucia.Web</RootNamespace>
   </PropertyGroup>
+  <!-- Al publicar para Windows (-r win-x64) el código va ya compilado a nativo (ReadyToRun): la aplicación arranca
+       antes porque no tiene que compilarlo en la primera petición. Sigue usando el .NET instalado en el equipo. -->
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' != ''">
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <SelfContained>false</SelfContained>
+  </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\PeluqueriaLucia.Infrastructure\PeluqueriaLucia.Infrastructure.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.6">
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.12">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>

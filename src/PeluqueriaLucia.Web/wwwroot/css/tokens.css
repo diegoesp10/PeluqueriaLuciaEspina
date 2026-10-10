@@ -65,4 +65,14 @@
   --sidebar-w: 264px;
   --content-max: 1080px;
   --tabbar-h: 64px;
+  --topbar-h: 56px;
+}
+
+/* Apariencia elegida a mano en el selector (sin atributo: la del sistema) */
+:root[data-theme='dia'] {
+  color-scheme: light;
+}
+
+:root[data-theme='noche'] {
+  color-scheme: dark;
 }

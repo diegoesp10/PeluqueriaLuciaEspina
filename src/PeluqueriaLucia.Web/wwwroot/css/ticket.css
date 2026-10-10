@@ -106,6 +106,7 @@
   }
 
   .sidebar,
+  .topbar,
   .tabbar,
   .toasts,
   .skip-link,
@@ -116,10 +117,6 @@
   .main {
     margin: 0;
     padding: 0;
-  }
-
-  .main > * {
-    animation: none;
   }
 
   .ticket-pagina {

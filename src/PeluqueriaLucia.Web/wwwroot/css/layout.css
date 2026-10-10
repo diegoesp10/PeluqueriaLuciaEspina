@@ -86,11 +86,43 @@
 }
 
 .sidebar-foot {
+  display: grid;
+  gap: 12px;
   margin-top: auto;
-  padding: 0 8px;
+  padding: 0 6px;
   color: var(--label-3);
   font-size: 11.5px;
   line-height: 1.4;
+}
+
+/* ── Selector de apariencia ───────────────────────────────────────────────── */
+
+.selector-tema {
+  display: inline-flex;
+  justify-self: start;
+  padding: 2px;
+  border-radius: 10px;
+  background: var(--fill);
+}
+
+.selector-tema button {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 30px;
+  border-radius: 8px;
+  color: var(--label-2);
+  transition: background 0.2s, color 0.2s;
+}
+
+.selector-tema button:hover {
+  color: var(--label);
+}
+
+.selector-tema button[aria-checked='true'] {
+  background: light-dark(#ffffff, #636366);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.12);
+  color: var(--label);
 }
 
 /* ── Contenido ────────────────────────────────────────────────────────────── */
@@ -104,9 +136,6 @@
 .main > * {
   max-width: var(--content-max);
   margin-inline: auto;
-  /* Sin «fill-mode»: al terminar no deja un transform aplicado, que convertiría la vista en el contenedor de las
-     barras fijas (la del total en «Nueva visita») y las sacaría de la pantalla */
-  animation: view-in 0.35s var(--ease);
 }
 
 /* Cabecera de página: título grande y acciones a la derecha */
@@ -153,8 +182,58 @@
   gap: 10px;
 }
 
-/* ── Barra de pestañas (pantallas estrechas) ──────────────────────────────── */
+/* ── Tablet apaisada y portátiles pequeños: barra lateral solo con iconos ── */
 
+@media (min-width: 901px) and (max-width: 1180px) {
+  :root {
+    --sidebar-w: 84px;
+  }
+
+  .sidebar {
+    align-items: center;
+    padding-inline: 12px;
+  }
+
+  .brand {
+    padding: 0;
+  }
+
+  .brand-text,
+  .sidebar-foot p {
+    display: none;
+  }
+
+  .sidebar > .btn {
+    width: 48px;
+    min-height: 48px;
+    padding: 0;
+    border-radius: 50%;
+    font-size: 0;
+  }
+
+  .nav-item {
+    justify-content: center;
+    width: 52px;
+    padding: 6px;
+    font-size: 0;
+  }
+
+  .sidebar-foot {
+    padding: 0;
+  }
+
+  .selector-tema {
+    flex-direction: column;
+  }
+
+  .main {
+    padding-inline: 28px;
+  }
+}
+
+/* ── Móvil y tablet vertical: barra superior y barra de pestañas ───────────── */
+
+.topbar,
 .tabbar {
   display: none;
 }
@@ -164,9 +243,31 @@
     display: none;
   }
 
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: calc(var(--topbar-h) + env(safe-area-inset-top));
+    padding: env(safe-area-inset-top) 16px 0;
+    border-bottom: 0.5px solid var(--separator);
+  }
+
+  .topbar .brand-logo {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+  }
+
+  .topbar .brand-text strong {
+    font-size: 17px;
+  }
+
   .main {
     margin-left: 0;
-    padding: 22px 16px calc(var(--tabbar-h) + 40px + env(safe-area-inset-bottom));
+    padding: 20px 16px calc(var(--tabbar-h) + 40px + env(safe-area-inset-bottom));
   }
 
   .page-head h1 {
@@ -258,7 +359,7 @@
 
 @media (max-width: 900px) {
   .toasts {
-    top: 12px;
+    top: calc(var(--topbar-h) + env(safe-area-inset-top) + 8px);
     right: 16px;
   }
 }

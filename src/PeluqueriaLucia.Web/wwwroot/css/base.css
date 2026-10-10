@@ -176,13 +176,6 @@ svg {
   }
 }
 
-@keyframes view-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-}
-
 @keyframes pop-in {
   from {
     opacity: 0;
