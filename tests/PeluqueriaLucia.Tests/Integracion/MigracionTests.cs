@@ -64,42 +64,6 @@ public sealed class MigracionTests
         }
     }
 
-    /// <summary>
-    /// En el equipo de la peluquería la base de datos se actualiza con el script idempotente (docs/DESPLIEGUE.md).
-    /// El script es un único lote de SQL: se comprueba que se puede ejecutar sobre la versión anterior, y dos veces.
-    /// </summary>
-    [Fact]
-    public async Task El_script_idempotente_actualiza_la_version_anterior_y_se_puede_repetir()
-    {
-        await using var bd = await BaseDeDatosPrueba.CrearAsync(UltimaMigracionDeLaVersionAnterior);
-        await bd.EjecutarAsync(
-            """
-            INSERT INTO Clientes (Nombre, Apellido, FechaCreacion, Sexo) VALUES (N'Ana', N'García', '2025-07-01', 1);
-            INSERT INTO ServiciosGenericos (Nombre, Precio, Sexo, FechaCreacion) VALUES (N'Corte', 18.50, 1, '2025-07-01');
-            INSERT INTO ServiciosClientes (Fecha, ClienteId, OpcionPago, Estado) VALUES ('2025-07-10', 1, 2, 2);
-            INSERT INTO ServiciosGenericosRealizados (ServicioClienteId, ServicioGenericoId) VALUES (1, 1);
-            """);
-
-        string script;
-        await using (var db = bd.Contexto())
-            script = db.GetService<IMigrator>().GenerateScript(options: MigrationsSqlGenerationOptions.Idempotent);
-
-        for (var vez = 0; vez < 2; vez++)
-        {
-            foreach (var lote in System.Text.RegularExpressions.Regex.Split(script, @"^\s*GO\s*$", System.Text.RegularExpressions.RegexOptions.Multiline))
-            {
-                if (!string.IsNullOrWhiteSpace(lote))
-                    await bd.EjecutarAsync(lote);
-            }
-        }
-
-        Assert.Equal(18.50m, await bd.EscalarAsync<decimal>("SELECT PrecioAplicado FROM ServiciosGenericosRealizados"));
-        Assert.Equal("Corte", await bd.EscalarAsync<string>("SELECT NombreAplicado FROM ServiciosGenericosRealizados"));
-        Assert.Equal(1, await bd.EscalarAsync<int>("SELECT COUNT(*) FROM ServiciosClientes"));
-        await using var final = bd.Contexto();
-        Assert.Empty(await final.Database.GetPendingMigrationsAsync());
-    }
-
     [Fact]
     public async Task El_modelo_coincide_con_las_migraciones()
     {

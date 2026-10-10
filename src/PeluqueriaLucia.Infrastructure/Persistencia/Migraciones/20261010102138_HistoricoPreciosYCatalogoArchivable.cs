@@ -52,8 +52,7 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
                 defaultValue: true);
 
             // Las visitas existentes se quedan con el nombre y el precio actuales del catálogo.
-            // Va dentro de EXEC para que SQL Server lo compile al ejecutarlo: en el script idempotente todo es un único
-            // lote y, sin EXEC, fallaría porque las columnas aún no existen cuando se compila.
+            // Dentro de EXEC para que SQL Server lo compile al ejecutarlo, cuando las columnas nuevas ya existen
             migrationBuilder.Sql(
                 """
                 EXEC(N'

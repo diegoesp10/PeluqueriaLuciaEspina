@@ -8,21 +8,17 @@ La aplicación corre en el propio ordenador de la peluquería, en IIS, contra un
 
 - IIS con el **ASP.NET Core Hosting Bundle 8** (ya estaba instalado para la primera versión).
 - SQL Server con la base de datos `PeluqueriaLuciaDb`.
-- SQL Server Management Studio (SSMS) o `sqlcmd`, para la copia de seguridad y el script de migraciones.
+- SQL Server Management Studio (SSMS) o `sqlcmd`, para la copia de seguridad.
 
 ## Paso a paso
 
-### 1. En tu equipo: generar la publicación y el script de la base de datos
+### 1. En tu equipo: generar la publicación
 
 ```powershell
 dotnet publish src/PeluqueriaLucia.Web -c Release -o artifacts/publicacion
-./scripts/generar-script-migraciones.ps1
 ```
 
-Quedan en `artifacts/`:
-
-- `publicacion/`: la aplicación lista para copiar. **No** incluye `wwwroot/imagenes` (las fotos del catálogo) ni `appsettings.Production.json`, para no pisar nunca los del equipo de la peluquería.
-- `migraciones.sql`: script **idempotente**. Aplica solo las migraciones que falten y se puede ejecutar varias veces sin efecto.
+`artifacts/publicacion` es la aplicación lista para copiar. **No** incluye `wwwroot/imagenes` (las fotos del catálogo) ni `appsettings.Production.json`, para no pisar nunca los del equipo de la peluquería.
 
 ### 2. En el equipo de la peluquería: copia de seguridad
 
@@ -53,13 +49,18 @@ IIS arranca la aplicación en entorno *Production*, que lee este fichero automá
 
 ### 4. Actualizar la base de datos
 
-En SSMS abre `migraciones.sql` y ejecútalo sobre `PeluqueriaLuciaDb`, o con `sqlcmd`:
+Desde la carpeta del repositorio, con `dotnet ef database update` apuntando a la base de datos de la peluquería (la misma cadena de conexión del paso 3):
 
 ```powershell
-sqlcmd -S localhost -E -C -d PeluqueriaLuciaDb -b -i migraciones.sql
+dotnet tool restore
+dotnet ef database update --project src/PeluqueriaLucia.Infrastructure --startup-project src/PeluqueriaLucia.Web --connection "Server=localhost;Database=PeluqueriaLuciaDb;User Id=…;Password=…;TrustServerCertificate=True;"
 ```
 
-Todo va dentro de una transacción: si algo fallara, no se aplica nada y la base de datos queda como estaba.
+Se ejecuta en el equipo de la peluquería (necesita el SDK de .NET), o desde el tuyo si llegas a su SQL Server por la red (cambiando `localhost` por el nombre de su equipo). Solo aplica las migraciones que falten: si ya está al día, no hace nada. Para ver antes cuáles faltan:
+
+```powershell
+dotnet ef migrations list --project src/PeluqueriaLucia.Infrastructure --startup-project src/PeluqueriaLucia.Web --connection "…"
+```
 
 Qué hace la migración `HistoricoPreciosYCatalogoArchivable` (versión 2):
 
@@ -72,7 +73,7 @@ Qué hace la migración `HistoricoPreciosYCatalogoArchivable` (versión 2):
 
 > Si un servicio cambió de precio **antes** de esta actualización, sus visitas antiguas toman el precio actual, igual que hacía la versión 1. Los cobros guardados (`TotalEfectivo` y `TotalTarjeta`) no se tocan.
 
-Como alternativa al script, se puede poner `"BaseDeDatos": { "AplicarMigracionesAlArrancar": true }` en `appsettings.Production.json`: la aplicación aplicará las migraciones pendientes al arrancar. Es más cómodo, pero con el script se ve y se controla lo que se ejecuta.
+Como alternativa, se puede poner `"BaseDeDatos": { "AplicarMigracionesAlArrancar": true }` en `appsettings.Production.json` y la aplicación aplicará las migraciones pendientes al arrancar. Con `dotnet ef database update` se controla mejor cuándo se ejecutan.
 
 ### 5. Copiar la aplicación
 

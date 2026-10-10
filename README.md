@@ -63,5 +63,5 @@ dotnet test
    dotnet ef migrations add NombreDelCambio --project src/PeluqueriaLucia.Infrastructure --startup-project src/PeluqueriaLucia.Web --output-dir Persistencia/Migraciones
    ```
 
-3. **Revisa el código generado.** Nada de `DropTable`, `DropColumn` ni `RenameColumn` sobre datos existentes. Una columna nueva obligatoria lleva valor por defecto o un `UPDATE` que la rellene. Ese `UPDATE` va dentro de `EXEC(N'…')`, porque el script idempotente es un único lote de SQL.
+3. **Revisa el código generado.** Nada de `DropTable`, `DropColumn` ni `RenameColumn` sobre datos existentes. Una columna nueva obligatoria lleva valor por defecto o un `UPDATE` que la rellene. Ese `UPDATE` va dentro de `EXEC(N'…')`, para que se compile cuando las columnas nuevas ya existen.
 4. `dotnet test`: la prueba `El_modelo_coincide_con_las_migraciones` falla si se te olvida el paso 2, y las de `MigracionTests` comprueban la actualización desde la versión anterior.
