@@ -8,8 +8,9 @@ Web pública del salón y gestión privada con contraseña y Authenticator oblig
 - `/servicios`: servicios y precios publicados, almacenados en SQL y editables desde administración.
 - `/opiniones`: reseñas con estrellas y fotos opcionales, verificadas mediante un código de ticket cobrado.
 - `/admin`: dashboard, visitas, clientes, catálogo, cobros y exportaciones. Requiere una sesión válida.
+- Las visitas y sus exportaciones se pueden filtrar por día, mes, año o todas las fechas. El calendario permite cambiar directamente de mes y año.
 - `/admin/Seguridad`: sesiones, contraseña con MFA, cambio de Authenticator, intentos de acceso y llamadas por IP.
-- `/admin/Tratamientos`: categorías, precios, duración, orden y publicación del catálogo público.
+- `/admin/Tratamientos`: categorías, duración, orden y publicación de servicios elegidos del catálogo común.
 - `/admin/Resenas`: revisión, publicación, retirada y respuesta a las opiniones.
 
 La separación de capas existente se conserva; la gestión se ha trasladado al área MVC `Areas/Admin`. Ver [docs/SEGURIDAD.md](docs/SEGURIDAD.md) para activar o recuperar el acceso.
@@ -70,7 +71,7 @@ Pruebas (crean y borran bases temporales aisladas en SQL Server; otro servidor c
 dotnet test
 ```
 
-El contacto y las reservas se editan en `src/PeluqueriaLucia.Web/contenido-publico.json`. Los precios se inicializan una sola vez con la migración y después se editan en **Servicios de la web**. Las reseñas proceden de tickets reales y se moderan desde **Reseñas**. El catálogo público es independiente del catálogo de facturación; cambiarlo no altera visitas ni cobros anteriores. Logo y foto se sirven desde archivos locales.
+El contacto y las reservas se editan en `src/PeluqueriaLucia.Web/contenido-publico.json`. **Catálogo** es la fuente común de nombres y precios: todos los servicios de la web se pueden seleccionar al registrar visitas, y se pueden crear servicios internos sin publicarlos. La ficha del catálogo permite publicar, categorizar y describir cada servicio; **Servicios de la web** permite elegir uno ya existente. Cambiar un precio no altera visitas ni cobros anteriores. Para precios por definir, se introduce el importe acordado en la visita. Las reseñas proceden de tickets reales y se moderan desde **Reseñas**. Logo y foto se sirven desde archivos locales.
 
 En el primer acceso, escanea el QR con Microsoft Authenticator (**Añadir cuenta → Otra cuenta**) y confirma el código de seis dígitos. Guarda los diez códigos de recuperación que se muestran una sola vez. En accesos posteriores se exigen contraseña y código. Para recuperar un móvil perdido utiliza un código de reserva y **Seguridad → Vincular otro Authenticator**. La recuperación excepcional desde el servidor es `dotnet run --project src/PeluqueriaLucia.Web -- recuperar-mfa`; pide la contraseña y revoca todas las sesiones, sin abrir acceso sin MFA. Detalles y endpoints en [docs/CONTENIDO-Y-MFA.md](docs/CONTENIDO-Y-MFA.md).
 

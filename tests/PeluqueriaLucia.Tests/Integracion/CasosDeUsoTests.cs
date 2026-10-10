@@ -119,7 +119,7 @@ public sealed class CasosDeUsoTests : IAsyncLifetime
         Assert.Equal(Eliminacion.Eliminado, (await Servicios().Catalogo.EliminarAsync(suelto)).Valor);
 
         var activos = await Servicios().Catalogo.ListarAsync(null, incluirArchivados: false);
-        Assert.Empty(activos);
+        Assert.DoesNotContain(activos,s => s.Id == corte || s.Id == suelto);
         Assert.Equal(1, await _bd.EscalarAsync<int>("SELECT COUNT(*) FROM ServiciosGenericosRealizados"));
     }
 

@@ -33,7 +33,7 @@ internal sealed class ArranqueBaseDeDatos(
 
         try
         {
-            await db.Visitas.AsNoTracking().Include(v => v.Cliente).Include(v => v.Lineas).Take(1).ToListAsync(cancellationToken);
+            await db.Visitas.AsNoTracking().Include(v => v.Cliente).Include(v => v.Lineas).OrderBy(v => v.Id).Take(1).ToListAsync(cancellationToken);
             logger.LogInformation("Base de datos preparada en {Milisegundos} ms", cronometro.ElapsedMilliseconds);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)

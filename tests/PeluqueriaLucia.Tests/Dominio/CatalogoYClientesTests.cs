@@ -9,7 +9,6 @@ public sealed class CatalogoYClientesTests
     private static readonly DateTime Alta = new(2025, 7, 1);
 
     [Theory]
-    [InlineData(0)]
     [InlineData(-1)]
     [InlineData(10000)]
     public void Un_servicio_no_admite_precios_fuera_de_rango(decimal precio)

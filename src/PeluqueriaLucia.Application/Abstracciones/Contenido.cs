@@ -7,12 +7,8 @@ public interface IContenidoRepositorio
 {
     Task<IReadOnlyList<CategoriaTratamiento>> CategoriasAsync(CancellationToken ct);
     Task<CategoriaTratamiento?> CategoriaAsync(int id, CancellationToken ct);
-    Task<IReadOnlyList<TratamientoPublico>> TratamientosAsync(bool soloPublicados, CancellationToken ct);
-    Task<TratamientoPublico?> TratamientoAsync(int id, CancellationToken ct);
     void Agregar(CategoriaTratamiento categoria);
-    void Agregar(TratamientoPublico tratamiento);
     void Eliminar(CategoriaTratamiento categoria);
-    void Eliminar(TratamientoPublico tratamiento);
     Task<PermisoResena?> PermisoVisitaAsync(int visitaId, CancellationToken ct);
     Task<PermisoResena?> PermisoCodigoAsync(string hash, CancellationToken ct);
     Task<PermisoResena> GuardarPermisoTicketAsync(PermisoResena permiso, CancellationToken ct);

@@ -22,6 +22,7 @@ public sealed class AccesoService(
     IIntentoAccesoRepositorio intentos,
     IHasherContrasenas hasher,
     IProtectorSecretos secretos,
+    IMfaRepositorio mfa,
     IUnidadDeTrabajo unidadDeTrabajo,
     TimeProvider reloj)
 {
@@ -38,6 +39,35 @@ public sealed class AccesoService(
 
     public Task<bool> HayAdministradorAsync(CancellationToken ct = default) => administradores.HayAlgunoAsync(ct);
 
+    public async Task<Resultado<SesionIniciada>> IniciarSesionAsync(string usuario, string contrasena, Origen origen, CancellationToken ct = default, string? codigo = null)
+    {
+        var comprobacion = await VerificarContrasenaAsync(usuario, contrasena, origen, ct);
+        if (!comprobacion.Exito)
+            return comprobacion.Error!;
+
+        var administrador = comprobacion.Valor!;
+        if (administrador.MfaActivo)
+        {
+            if (string.IsNullOrWhiteSpace(codigo))
+                return new Error("Introduce el código de tu aplicación de autenticación.", "Codigo");
+            if (!await EsCodigoMfaValidoAsync(administrador, codigo, ct))
+            {
+                administrador.RegistrarFallo(Ahora);
+                await unidadDeTrabajo.GuardarCambiosAsync(ct);
+                return new Error("El código de verificación no es correcto o ya se ha usado.", "Codigo");
+            }
+        }
+
+        var sesion = await AbrirSesionAsync(administrador, origen, ct);
+        await AnotarAsync(administrador.Usuario, origen, exito: true, "Acceso correcto", ct);
+
+        return Resultado.Ok(sesion);
+    }
+
+    /// <summary>
+    /// Comprueba usuario y contraseña sin abrir sesión. Lo usa el segundo factor (MFA) como primer paso:
+    /// solo si la contraseña es correcta se genera el desafío. Anota los intentos fallidos igual que el acceso normal.
+    /// </summary>
     public async Task<Resultado<Administrador>> VerificarContrasenaAsync(string usuario, string contrasena, Origen origen, CancellationToken ct = default)
     {
         var nombre = Administrador.NormalizarUsuario(usuario);
@@ -68,23 +98,17 @@ public sealed class AccesoService(
         if (verificacion == ResultadoVerificacion.CorrectaRecalcular)
             administrador.ActualizarHash(hasher.Calcular(contrasena!));
 
-        await unidadDeTrabajo.GuardarCambiosAsync(ct);
         return Resultado.Ok(administrador);
     }
 
-    public async Task<Resultado<SesionIniciada>> IniciarSesionAsync(string usuario, string contrasena, Origen origen, CancellationToken ct = default, string? codigo = null)
-    {
-        var comprobacion = await VerificarContrasenaAsync(usuario, contrasena, origen, ct);
-        if (!comprobacion.Exito) return comprobacion.Error!;
-        var administrador = comprobacion.Valor!;
-        var secreto = administrador.SecretoMfaProtegido is { } protegido ? secretos.Leer(protegido, "totp") : null;
-        var paso = secreto is not null ? secretos.VerificarTotp(secreto, codigo ?? "", Ahora) : null;
-        if (paso is null || !administrador.ConsumirPasoMfa(paso.Value))
-            return new Error("Completa la verificación de Authenticator.");
-        return Resultado.Ok(await AbrirSesionMfaAsync(administrador, origen, ct));
-    }
+    /// <summary>
+    /// Abre una sesión cuando el segundo factor (MFA) ya se ha superado. Marca el acceso y limita las sesiones abiertas.
+    /// </summary>
+    public Task<SesionIniciada> AbrirSesionMfaAsync(Administrador administrador, Origen origen, CancellationToken ct = default) =>
+        AbrirSesionAsync(administrador, origen, ct);
 
-    internal async Task<SesionIniciada> AbrirSesionMfaAsync(Administrador administrador, Origen origen, CancellationToken ct)
+    /// <summary>Registra el acceso, cierra las sesiones más antiguas por encima del límite y crea una sesión nueva.</summary>
+    private async Task<SesionIniciada> AbrirSesionAsync(Administrador administrador, Origen origen, CancellationToken ct)
     {
         administrador.RegistrarAcceso(Ahora);
         var abiertas = await sesiones.ListarAbiertasAsync(administrador.Id, Ahora, ct);
@@ -92,7 +116,7 @@ public sealed class AccesoService(
         var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
         var sesion = SesionAdministrador.Abrir(administrador.Id, HashToken(token), origen.Ip, origen.Agente, Ahora);
         sesiones.Agregar(sesion);
-        await AnotarAsync(administrador.Usuario, origen, exito: true, "Acceso correcto con MFA", ct);
+        await unidadDeTrabajo.GuardarCambiosAsync(ct);
 
         return new SesionIniciada(sesion.Id, token, administrador.Id, administrador.Usuario, sesion.ExpiraEn);
     }
@@ -110,7 +134,7 @@ public sealed class AccesoService(
             return null;
 
         var administrador = await administradores.ObtenerAsync(sesion.AdministradorId, ct);
-        if (administrador is null || !administrador.MfaActivo)
+        if (administrador is null)
             return null;
 
         if (registrarUso && sesion.RegistrarUso(Ahora, ip))
@@ -146,10 +170,11 @@ public sealed class AccesoService(
         return otras.Count;
     }
 
+    /// <summary>Cierra todas las sesiones abiertas de un administrador, incluida la actual.</summary>
     public async Task CerrarTodasSesionesAsync(int administradorId, CancellationToken ct = default)
     {
-        foreach (var sesion in await sesiones.ListarAbiertasAsync(administradorId, Ahora, ct))
-            sesion.Cerrar(Ahora);
+        var abiertas = await sesiones.ListarAbiertasAsync(administradorId, Ahora, ct);
+        foreach (var sesion in abiertas) sesion.Cerrar(Ahora);
         await unidadDeTrabajo.GuardarCambiosAsync(ct);
     }
 
@@ -176,14 +201,16 @@ public sealed class AccesoService(
         }
         if (ValidarContrasena(administrador.Usuario, nueva) is { } error)
             return error;
-
-        var secreto = administrador.SecretoMfaProtegido is { } protegido ? secretos.Leer(protegido, "totp") : null;
-        var paso = secreto is not null ? secretos.VerificarTotp(secreto, codigo ?? "", Ahora) : null;
-        if (paso is null || !administrador.ConsumirPasoMfa(paso.Value))
+        if (administrador.MfaActivo)
         {
-            administrador.RegistrarFallo(Ahora);
-            await unidadDeTrabajo.GuardarCambiosAsync(ct);
-            return new Error("El código de Authenticator no es válido o ya se utilizó. Espera al siguiente código.", "Codigo");
+            if (string.IsNullOrWhiteSpace(codigo))
+                return new Error("Introduce el código de tu aplicación de autenticación.", "Codigo");
+            if (!await EsCodigoMfaValidoAsync(administrador, codigo, ct))
+            {
+                administrador.RegistrarFallo(Ahora);
+                await unidadDeTrabajo.GuardarCambiosAsync(ct);
+                return new Error("El código de verificación no es correcto o ya se ha usado.", "Codigo");
+            }
         }
 
         administrador.CambiarContrasena(hasher.Calcular(nueva), Ahora);
@@ -195,6 +222,24 @@ public sealed class AccesoService(
 
         await unidadDeTrabajo.GuardarCambiosAsync(ct);
         return Resultado.Ok();
+    }
+
+    private async Task<bool> EsCodigoMfaValidoAsync(Administrador administrador, string codigo, CancellationToken ct)
+    {
+        var secreto = administrador.SecretoMfaProtegido is { } protegido ? secretos.Leer(protegido, "totp") : null;
+        var paso = secreto is not null ? secretos.VerificarTotp(secreto, codigo, Ahora) : null;
+        if (paso is not null && administrador.ConsumirPasoMfa(paso.Value))
+            return true;
+
+        var hash = MfaService.Hash(MfaService.NormalizarRecuperacion(codigo));
+        var recuperacion = (await mfa.CodigosAsync(administrador.Id, ct))
+            .FirstOrDefault(c => CryptographicOperations.FixedTimeEquals(
+                Encoding.ASCII.GetBytes(c.Hash), Encoding.ASCII.GetBytes(hash)));
+        if (recuperacion is null)
+            return false;
+
+        recuperacion.Consumir(Ahora);
+        return true;
     }
 
     /// <summary>

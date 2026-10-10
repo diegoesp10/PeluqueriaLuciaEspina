@@ -27,33 +27,44 @@
         <nav class="segmented" aria-label="Periodo">
             <a class="@(Model.Periodo == Periodo.Dia ? "is-active" : "")" asp-action="Index" asp-route-periodo="Dia" asp-route-fecha="@fecha">Día</a>
             <a class="@(Model.Periodo == Periodo.Mes ? "is-active" : "")" asp-action="Index" asp-route-periodo="Mes" asp-route-fecha="@fecha">Mes</a>
+            <a class="@(Model.Periodo == Periodo.Anio ? "is-active" : "")" asp-action="Index" asp-route-periodo="Anio" asp-route-fecha="@fecha">Año</a>
             <a class="@(Model.Periodo == Periodo.Todo ? "is-active" : "")" asp-action="Index" asp-route-periodo="Todo" asp-route-fecha="@fecha">Todo</a>
         </nav>
 
         @if (Model.Periodo != Periodo.Todo)
         {
             <div class="date-nav">
-                <a class="btn btn-gray btn-icon btn-sm" asp-action="Index" asp-route-periodo="@Model.Periodo" asp-route-fecha="@Model.Anterior?.ToString("yyyy-MM-dd")" aria-label="Anterior">
+                @if (Model.Anterior is { } anterior)
+                {
+                <a class="btn btn-gray btn-icon btn-sm" asp-action="Index" asp-route-periodo="@Model.Periodo" asp-route-fecha="@anterior.ToString("yyyy-MM-dd")" aria-label="Anterior">
                     <icono nombre="anterior" tamano="18" />
                 </a>
+                }
                 <form method="get" asp-action="Index" class="date-picker">
                     <input type="hidden" name="periodo" value="@Model.Periodo" />
                     @if (Model.Periodo == Periodo.Dia)
                     {
                         <input class="input" type="date" name="fecha" value="@fecha" aria-label="Elegir día" data-enviar-al-cambiar />
                     }
-                    else
+                    else if (Model.Periodo == Periodo.Mes)
                     {
                         <input class="input" type="month" value="@Model.Fecha.ToString("yyyy-MM")" aria-label="Elegir mes" data-mes-a-fecha />
                         <input type="hidden" name="fecha" value="@fecha" />
                     }
+                    else
+                    {
+                        <input class="input" type="date" name="fecha" value="@fecha" aria-label="Elegir año" data-fecha-anual data-enviar-al-cambiar />
+                    }
                 </form>
-                <a class="btn btn-gray btn-icon btn-sm" asp-action="Index" asp-route-periodo="@Model.Periodo" asp-route-fecha="@Model.Siguiente?.ToString("yyyy-MM-dd")" aria-label="Siguiente">
+                @if (Model.Siguiente is { } siguiente)
+                {
+                <a class="btn btn-gray btn-icon btn-sm" asp-action="Index" asp-route-periodo="@Model.Periodo" asp-route-fecha="@siguiente.ToString("yyyy-MM-dd")" aria-label="Siguiente">
                     <icono nombre="siguiente" tamano="18" />
                 </a>
+                }
                 @if (!Model.MuestraHoy)
                 {
-                    <a class="btn btn-gray btn-sm" asp-action="Index" asp-route-periodo="@Model.Periodo">@(Model.Periodo == Periodo.Dia ? "Hoy" : "Este mes")</a>
+                    <a class="btn btn-gray btn-sm" asp-action="Index" asp-route-periodo="@Model.Periodo">@(Model.Periodo == Periodo.Dia ? "Hoy" : Model.Periodo == Periodo.Mes ? "Este mes" : "Este año")</a>
                 }
             </div>
         }

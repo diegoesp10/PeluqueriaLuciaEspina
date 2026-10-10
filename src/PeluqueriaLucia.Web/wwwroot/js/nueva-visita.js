@@ -146,7 +146,7 @@
     const filtro = form.querySelector('[data-filtro-servicios]:checked')?.value ?? 'Todos';
     let visibles = 0;
     opciones.forEach((opcion) => {
-      const marcado = opcion.querySelector('input').checked;
+      const marcado = opcion.querySelector('input[type=checkbox]').checked;
       const visible = filtro === 'Todos' || opcion.dataset.sexo === filtro || marcado;
       opcion.hidden = !visible;
       if (visible) visibles++;
@@ -155,14 +155,23 @@
   }
 
   const recalcular = () => {
-    const marcados = opciones.map((o) => o.querySelector('input')).filter((i) => i.checked);
-    const centimos = marcados.reduce((suma, i) => suma + Math.round(Number(i.dataset.precio) * 100), 0);
+    const marcados = opciones.map((o) => o.querySelector('input[type=checkbox]')).filter((i) => i.checked);
+    const centimos = marcados.reduce((suma, i) => suma + Math.round((Number(form.querySelector(`[data-importe-servicio="${i.value}"]`).value.replace(",",".")) || 0) * 100), 0);
     textoTotal.textContent = euros.format(centimos / 100);
     textoNumero.textContent = marcados.length === 1 ? '1 servicio' : `${marcados.length} servicios`;
   };
 
   form.querySelectorAll('[data-filtro-servicios]').forEach((r) => r.addEventListener('change', filtrarServicios));
-  opciones.forEach((o) => o.querySelector('input').addEventListener('change', recalcular));
+  opciones.forEach((o) => {
+    const check = o.querySelector('input[type=checkbox]'), precio = o.querySelector('[data-importe-servicio]');
+    check.addEventListener('change',() => {
+      precio.disabled = !check.checked;
+      o.querySelector('.importe-visita').hidden = !check.checked;
+      o.querySelector('[data-importe-base]').hidden = check.checked;
+      recalcular();
+    });
+    precio.addEventListener('input',recalcular);
+  });
   filtrarServicios();
   recalcular();
 

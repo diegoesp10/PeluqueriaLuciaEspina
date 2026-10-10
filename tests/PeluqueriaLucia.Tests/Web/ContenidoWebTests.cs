@@ -22,29 +22,48 @@ public sealed class ContenidoWebTests(SeguridadWebFixture fixture) : IClassFixtu
         var r = await cliente.PostAsync("/admin/acceso/verificar", new FormUrlEncodedContent(new Dictionary<string,string> { ["Codigo"]=codigo,["__RequestVerificationToken"]=await Token(cliente,"/admin/acceso/verificar") }));
         Assert.Equal(HttpStatusCode.Redirect,r.StatusCode);
     }
-    private async Task<int> Visita(bool cobrada)
+    private async Task<int> Visita(bool cobrada, DateTime? fecha = null)
     {
         await using var db = fixture.Bd.Contexto();
         var cliente = Cliente.Crear("Nombre privado","Apellido privado", "persona@example.test", "600123456", Sexo.Mujer,DateTime.UtcNow);
         var servicio = Servicio.Crear("Servicio interno privado",18.50m,Sexo.Mujer,DateTime.UtcNow);
         db.Add(cliente); db.Add(servicio); await db.SaveChangesAsync();
-        var visita = Domain.Visitas.Visita.Registrar(cliente,DateTime.Now,FormaPago.Efectivo,[servicio]);
+        var visita = Domain.Visitas.Visita.Registrar(cliente,fecha ?? DateTime.Now,FormaPago.Efectivo,[servicio]);
         if(cobrada) visita.Cobrar(FormaPago.Efectivo,null,null);
         db.Add(visita); await db.SaveChangesAsync(); return visita.Id;
     }
 
     [Fact]
-    public async Task Editar_precios_en_administracion_persiste_y_actualiza_la_web_sin_alterar_catalogo_interno()
+    public async Task Buscar_por_anio_incluye_enero_bisiesto_y_diciembre_y_exporta_solo_ese_anio()
+    {
+        var previo = await Visita(true,new DateTime(2023,12,31,23,59,59));
+        int[] incluidos = [await Visita(true,new DateTime(2024,1,1)),await Visita(true,new DateTime(2024,2,29,12,0,0)),await Visita(true,new DateTime(2024,12,31,23,59,59))];
+        var siguiente = await Visita(true,new DateTime(2025,1,1));
+        using var fabrica = new FabricaWeb(fixture.Bd.Cadena); using var admin = fabrica.Cliente(); await Entrar(admin);
+        var html = WebUtility.HtmlDecode(await admin.GetStringAsync("/admin/Visitas?periodo=Anio&fecha=2024-02-29"));
+        Assert.Contains("Año 2024",html); Assert.Contains("55,50",html); Assert.Contains("Elegir año",html);
+        foreach(var id in incluidos) Assert.Contains($"href=\"/admin/Visitas/Detalle/{id}\"",html);
+        foreach(var id in new[]{previo,siguiente}) Assert.DoesNotContain($"href=\"/admin/Visitas/Detalle/{id}\"",html);
+        var exportado = await admin.GetAsync("/admin/Visitas/Exportar?periodo=Anio&fecha=2024-12-31"); Assert.Equal(HttpStatusCode.OK,exportado.StatusCode);
+        using var memoria = new MemoryStream(await exportado.Content.ReadAsByteArrayAsync()); using var libro = new ClosedXML.Excel.XLWorkbook(memoria);
+        var filas = libro.Worksheet("Visitas").Table("Visitas").DataRange.Rows().ToArray(); Assert.Equal(3,filas.Length);
+        Assert.All(filas,fila => Assert.Equal(2024,fila.Cell(1).GetDateTime().Year));
+        Assert.Equal(HttpStatusCode.OK,(await admin.GetAsync("/admin/Visitas?periodo=Anio&fecha=9999-12-31")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Editar_catalogo_actualiza_la_web_con_el_mismo_servicio_y_precio()
     {
         using var fabrica = new FabricaWeb(fixture.Bd.Cadena); using var admin = fabrica.Cliente(); using var publico = fabrica.Cliente();
         Assert.Equal(HttpStatusCode.Redirect,(await publico.GetAsync("/admin/Tratamientos")).StatusCode);
         Assert.Equal(HttpStatusCode.Redirect,(await publico.GetAsync("/admin/Resenas")).StatusCode);
         await Entrar(admin);
         await using var db = fixture.Bd.Contexto();
-        var tratamiento = await db.TratamientosPublicos.FirstAsync(x => x.Nombre=="Oxigenación");
+        var tratamiento = await db.Servicios.FirstAsync(x => x.Nombre=="Oxigenación");
         var internos = await db.Servicios.CountAsync();
-        var ruta = $"/admin/Tratamientos/Editar/{tratamiento.Id}";
-        var campos = new Dictionary<string,string> { ["Nombre"]="Oxigenación actualizada",["CategoriaId"]=tratamiento.CategoriaId.ToString(),["Precio"]="49,90",["TipoPrecio"]="Desde",["DuracionMinutos"]="40",["Orden"]="10",["Publicado"]="true" };
+        var ruta = $"/admin/Catalogo/Editar/{tratamiento.Id}";
+        Assert.Equal(ruta,(await admin.GetAsync($"/admin/Tratamientos/Editar/{tratamiento.Id}")).Headers.Location!.ToString());
+        var campos = new Dictionary<string,string> { ["Nombre"]="Oxigenación actualizada",["CategoriaPublicaId"]=tratamiento.CategoriaPublicaId!.Value.ToString(),["Sexo"]="Mujer",["Precio"]="49,90",["TipoPrecioPublico"]="Desde",["DuracionMinutos"]="40",["OrdenPublico"]="10",["Publicado"]="true" };
         Assert.Equal(HttpStatusCode.BadRequest,(await admin.PostAsync(ruta,new FormUrlEncodedContent(campos))).StatusCode);
         campos["__RequestVerificationToken"] = await Token(admin,ruta);
         Assert.Equal(HttpStatusCode.Redirect,(await admin.PostAsync(ruta,new FormUrlEncodedContent(campos))).StatusCode);
@@ -52,11 +71,44 @@ public sealed class ContenidoWebTests(SeguridadWebFixture fixture) : IClassFixtu
         var html = WebUtility.HtmlDecode(await otraCarga.GetStringAsync("/servicios"));
         Assert.Contains("Oxigenación actualizada",html); Assert.Contains("49,90",html); Assert.Contains("id=\"tratamientos\"",html);
         db.ChangeTracker.Clear();
-        Assert.Equal(49.90m,(await db.TratamientosPublicos.FindAsync(tratamiento.Id))!.Precio);
+        Assert.Equal(49.90m,(await db.Servicios.FindAsync(tratamiento.Id))!.Precio);
         Assert.Equal(internos,await db.Servicios.CountAsync());
         campos.Remove("Publicado"); campos["__RequestVerificationToken"] = await Token(admin,ruta);
         await admin.PostAsync(ruta,new FormUrlEncodedContent(campos));
         Assert.DoesNotContain("Oxigenación actualizada",await publico.GetStringAsync("/api/tratamientos"));
+    }
+
+    [Fact]
+    public async Task Publicar_un_servicio_interno_reutiliza_la_ficha_y_retirarlo_conserva_el_catalogo()
+    {
+        using var fabrica=new FabricaWeb(fixture.Bd.Cadena);using var admin=fabrica.Cliente();using var publico=fabrica.Cliente();await Entrar(admin);
+        var datos=new Dictionary<string,string> { ["Nombre"]="Extra solo interno",["Precio"]="9,50",["Sexo"]="Otro",["DuracionMinutos"]="30",["__RequestVerificationToken"]=await Token(admin,"/admin/Catalogo/Nuevo") };
+        Assert.Equal(HttpStatusCode.Redirect,(await admin.PostAsync("/admin/Catalogo/Nuevo",new FormUrlEncodedContent(datos))).StatusCode);
+        await using var db=fixture.Bd.Contexto();var servicio=await db.Servicios.SingleAsync(x=>x.Nombre==datos["Nombre"]);var total=await db.Servicios.CountAsync();
+        Assert.DoesNotContain(datos["Nombre"],await publico.GetStringAsync("/servicios"));
+        var campos=new Dictionary<string,string> { ["ServicioId"]=servicio.Id.ToString(),["CategoriaId"]=(await db.CategoriasPublicas.FirstAsync()).Id.ToString(),["TipoPrecio"]="Fijo",["DuracionMinutos"]="30",["Publicado"]="true",["__RequestVerificationToken"]=await Token(admin,"/admin/Tratamientos/Nuevo") };
+        Assert.Equal(HttpStatusCode.Redirect,(await admin.PostAsync("/admin/Tratamientos/Nuevo",new FormUrlEncodedContent(campos))).StatusCode);
+        Assert.Equal(total,await db.Servicios.CountAsync());Assert.Contains(datos["Nombre"],await publico.GetStringAsync("/servicios"));
+        Assert.Contains(datos["Nombre"],await admin.GetStringAsync("/admin/Visitas/Nueva"));
+        Assert.Equal(HttpStatusCode.Redirect,(await admin.PostAsync($"/admin/Tratamientos/Eliminar/{servicio.Id}",new FormUrlEncodedContent(new Dictionary<string,string> { ["__RequestVerificationToken"]=await Token(admin,"/admin/Tratamientos") }))).StatusCode);
+        Assert.DoesNotContain(datos["Nombre"],await publico.GetStringAsync("/servicios"));db.ChangeTracker.Clear();Assert.True((await db.Servicios.FindAsync(servicio.Id))!.Activo);
+    }
+
+    [Fact]
+    public async Task Servicio_consultar_exige_importe_al_registrar_y_conserva_el_precio_de_la_visita()
+    {
+        using var fabrica=new FabricaWeb(fixture.Bd.Cadena);using var admin=fabrica.Cliente();await Entrar(admin);
+        var datos=new Dictionary<string,string> { ["Nombre"]="Peinado a medida prueba",["Precio"]="0",["Sexo"]="Mujer",["Publicado"]="true",["TipoPrecioPublico"]="Consultar",["CategoriaPublicaId"]="1",["DuracionMinutos"]="60",["__RequestVerificationToken"]=await Token(admin,"/admin/Catalogo/Nuevo") };
+        Assert.Equal(HttpStatusCode.Redirect,(await admin.PostAsync("/admin/Catalogo/Nuevo",new FormUrlEncodedContent(datos))).StatusCode);
+        var anterior=await Visita(true);await using var db=fixture.Bd.Contexto();var cliente=(await db.Visitas.FindAsync(anterior))!.ClienteId;
+        var servicio=await db.Servicios.SingleAsync(x=>x.Nombre==datos["Nombre"]);
+        var registro=new Dictionary<string,string> { ["ClienteId"]=cliente.ToString(),["Fecha"]=DateTime.Now.ToString("yyyy-MM-ddTHH:mm"),["Servicios"]=servicio.Id.ToString(),["FormaPago"]="Efectivo",["__RequestVerificationToken"]=await Token(admin,"/admin/Visitas/Nueva") };
+        var sinPrecio=await admin.PostAsync("/admin/Visitas/Nueva",new FormUrlEncodedContent(registro));Assert.Equal(HttpStatusCode.OK,sinPrecio.StatusCode);Assert.Contains("Indica un precio",await sinPrecio.Content.ReadAsStringAsync());
+        registro[$"Precios[{servicio.Id}]"]="67,50";
+        Assert.Equal(HttpStatusCode.Redirect,(await admin.PostAsync("/admin/Visitas/Nueva",new FormUrlEncodedContent(registro))).StatusCode);
+        var linea=await db.Set<LineaVisita>().SingleAsync(x=>x.ServicioId==servicio.Id);Assert.Equal(67.50m,linea.Precio);
+        servicio.Actualizar(servicio.Nombre,80,servicio.Sexo);await db.SaveChangesAsync();db.ChangeTracker.Clear();
+        Assert.Equal(67.50m,(await db.Set<LineaVisita>().FindAsync(linea.Id))!.Precio);
     }
 
     [Fact]

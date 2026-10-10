@@ -12,7 +12,7 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia;
 /// <summary>
 /// Contexto de la base de datos. Los nombres de tablas y columnas son los de la primera versión de la aplicación
 /// (ServiciosClientes, ServiciosGenericos…) y no se cambian: así la base de datos de producción se actualiza solo con
-/// migraciones que añaden, nunca con renombrados ni borrados.
+/// migraciones que conservan el historial. Las tablas públicas antiguas se retiran después de unificar sus datos.
 /// También guarda las claves con las que se cifran las cookies de sesión, para que sobrevivan a reinicios de IIS.
 /// </summary>
 public sealed class PeluqueriaDbContext(DbContextOptions<PeluqueriaDbContext> options) : DbContext(options), IUnidadDeTrabajo, IDataProtectionKeyContext
@@ -33,7 +33,6 @@ public sealed class PeluqueriaDbContext(DbContextOptions<PeluqueriaDbContext> op
     public DbSet<DesafioMfa> DesafiosMfa => Set<DesafioMfa>();
     public DbSet<RecuperacionMfa> RecuperacionesMfa => Set<RecuperacionMfa>();
     public DbSet<CategoriaTratamiento> CategoriasPublicas => Set<CategoriaTratamiento>();
-    public DbSet<TratamientoPublico> TratamientosPublicos => Set<TratamientoPublico>();
     public DbSet<PermisoResena> PermisosResenas => Set<PermisoResena>();
     public DbSet<Resena> Resenas => Set<Resena>();
 

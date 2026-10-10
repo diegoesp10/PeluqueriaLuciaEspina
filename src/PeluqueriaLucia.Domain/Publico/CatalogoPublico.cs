@@ -25,28 +25,3 @@ public sealed class CategoriaTratamiento
         Nombre = nombre; Orden = orden;
     }
 }
-public sealed class TratamientoPublico
-{
-    private TratamientoPublico() { }
-    public int Id { get; private set; }
-    public int CategoriaId { get; private set; }
-    public string Nombre { get; private set; } = "";
-    public string? Descripcion { get; private set; }
-    public decimal? Precio { get; private set; }
-    public TipoPrecioPublico TipoPrecio { get; private set; }
-    public int DuracionMinutos { get; private set; }
-    public int Orden { get; private set; }
-    public bool Publicado { get; private set; }
-    public bool Destacado { get; private set; }
-    public static TratamientoPublico Crear(int categoria, string nombre, string? descripcion, decimal? precio, TipoPrecioPublico tipo, int minutos, int orden, bool publicado, bool destacado)
-    { var t = new TratamientoPublico(); t.Editar(categoria, nombre, descripcion, precio, tipo, minutos, orden, publicado, destacado); return t; }
-    public void Editar(int categoria, string nombre, string? descripcion, decimal? precio, TipoPrecioPublico tipo, int minutos, int orden, bool publicado, bool destacado)
-    {
-        if (categoria <= 0 || nombre.Trim().Length is < 2 or > 100 || descripcion?.Length > 1000 ||
-            !Enum.IsDefined(tipo) || (tipo != TipoPrecioPublico.Consultar && (precio is null || precio < 0 || precio > 99999)) || minutos is < 5 or > 600 || orden is < 0 or > 10000)
-            throw new ReglaDeNegocioException("Revisa los datos del tratamiento, su precio y duración.");
-        CategoriaId = categoria; Nombre = nombre.Trim(); Descripcion = string.IsNullOrWhiteSpace(descripcion) ? null : descripcion.Trim();
-        TipoPrecio = tipo; Precio = tipo == TipoPrecioPublico.Consultar ? null : decimal.Round(precio!.Value, 2);
-        DuracionMinutos = minutos; Orden = orden; Publicado = publicado; Destacado = destacado;
-    }
-}

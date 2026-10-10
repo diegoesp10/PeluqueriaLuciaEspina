@@ -2,7 +2,7 @@
 
 ## Rutas y capas
 
-La presentación pública está en `Controllers/InicioController`, `Views/Inicio` y `wwwroot/css/publico.css`. El contacto se lee de `contenido-publico.json`; los tratamientos publicados y las opiniones aprobadas se leen de tablas propias en SQL. Sus respuestas públicas no incluyen datos de clientes, visitas, tickets ni catálogo de facturación.
+La presentación pública está en `Controllers/InicioController`, `Views/Inicio` y `wwwroot/css/publico.css`. El contacto se lee de `contenido-publico.json`; los tratamientos son una proyección de los servicios activos y publicados del catálogo común en SQL, y las opiniones proceden de reseñas aprobadas. Las respuestas públicas solo incluyen los campos públicos del servicio y de la opinión; no incluyen servicios internos, fotos internas, clientes, visitas ni tickets.
 
 La gestión está en `Areas/Admin`: todos sus controladores heredan de `AdminController`, que exige la política `Administrador` y aplica el límite de llamadas del panel. Además, la política de autorización por defecto exige autenticación, incluso si se añade un controlador nuevo. Solo portada, servicios, acceso, errores y recursos estáticos propios permiten visitas anónimas.
 

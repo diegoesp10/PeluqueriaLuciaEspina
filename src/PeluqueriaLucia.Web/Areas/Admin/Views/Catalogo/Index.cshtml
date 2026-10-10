@@ -47,10 +47,10 @@
                         }
                     </span>
                     <span class="servicio-cuerpo">
-                        <span class="row-title">@s.Nombre</span>
+                        <span class="row-title">@s.Nombre</span><span class="row-sub">@(s.Publicado ? "Publicado en la web" : "Solo catálogo interno")</span>
                         <span class="servicio-pie">
                             <span class="pill @Formato.Tinte(s.Sexo)">@Formato.Texto(s.Sexo)</span>
-                            <span class="servicio-precio num">@Formato.Euros(s.Precio)</span>
+                            <span class="servicio-precio num">@(s.Precio > 0 ? Formato.Euros(s.Precio) : "Por definir")</span>
                         </span>
                     </span>
                 </a>
@@ -70,7 +70,7 @@
                         <div class="row">
                             <span class="row-main">
                                 <a class="row-title" asp-action="Editar" asp-route-id="@s.Id">@s.Nombre</a>
-                                <span class="row-sub">@Formato.Texto(s.Sexo) · @Formato.Euros(s.Precio)</span>
+                                <span class="row-sub">@Formato.Texto(s.Sexo) · @(s.Precio > 0 ? Formato.Euros(s.Precio) : "Por definir")</span>
                             </span>
                             <form method="post" asp-action="Reactivar" asp-route-id="@s.Id">
                                 <button class="btn btn-gray btn-sm"><icono nombre="recuperar" tamano="15" /> Recuperar</button>

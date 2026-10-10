@@ -36,7 +36,7 @@ public sealed class Visita
 
     public bool EstaCobrada => Estado == EstadoVisita.Cobrada;
 
-    public static Visita Registrar(Cliente cliente, DateTime fecha, FormaPago formaPago, IReadOnlyCollection<Servicio> servicios)
+    public static Visita Registrar(Cliente cliente, DateTime fecha, FormaPago formaPago, IReadOnlyCollection<Servicio> servicios, IReadOnlyDictionary<int,decimal>? precios = null)
     {
         ArgumentNullException.ThrowIfNull(cliente);
         if (servicios.Count == 0)
@@ -53,7 +53,7 @@ public sealed class Visita
             FormaPago = formaPago,
             Estado = EstadoVisita.Pendiente,
         };
-        visita._lineas.AddRange(servicios.Select(LineaVisita.Desde));
+        visita._lineas.AddRange(servicios.Select(s => LineaVisita.Desde(s, precios is not null && precios.TryGetValue(s.Id,out var precio) ? precio : null)));
         return visita;
     }
 

@@ -36,9 +36,9 @@
         </nav>
         <a class="btn btn-primary" href="@n.Reservas" target="_blank" rel="noopener noreferrer">Reservar cita <span aria-hidden="true">↗</span></a>
     </header>
-    <main id="contenido">@RenderBody()</main>
+    <main class="fondo-identidad" id="contenido">@RenderBody()</main>
     <footer class="pie-publico">
-        <div><strong>Lucía</strong><p>Peluquería ecológica · @n.Ciudad</p></div>
+        <div class="firma-pie"><img src="~/Img/Icono.jpg" alt="" width="76" height="76" /><div><strong>Lucía</strong><p>Peluquería ecológica · @n.Ciudad</p></div></div>
         <div><a href="@n.TelefonoEnlace">@n.Telefono</a><p>@n.Direccion · @n.CodigoPostal @n.Ciudad</p></div>
         <div><a href="@n.Reservas" target="_blank" rel="noopener noreferrer">Reservar en Booksy ↗</a><p><a asp-area="Admin" asp-controller="Panel" asp-action="Index">Panel de administración ↗</a></p></div>
         <div class="pie-nota"><p>© @DateTime.Now.Year @n.Nombre. Hecho para cuidar de ti.</p><partial name="_SelectorTema" /></div>

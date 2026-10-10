@@ -53,6 +53,19 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
                         .HasColumnType("bit")
                         .HasColumnName("Activo");
 
+                    b.Property<int?>("CategoriaPublicaId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DescripcionPublica")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<bool>("Destacado")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("DuracionMinutos")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("FechaCreacion")
                         .HasColumnType("datetime2");
 
@@ -64,13 +77,24 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<int>("OrdenPublico")
+                        .HasColumnType("int");
+
                     b.Property<decimal>("Precio")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("Publicado")
+                        .HasColumnType("bit");
 
                     b.Property<int>("Sexo")
                         .HasColumnType("int");
 
+                    b.Property<int>("TipoPrecioPublico")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("CategoriaPublicaId");
 
                     b.ToTable("ServiciosGenericos", (string)null);
                 });
@@ -573,6 +597,14 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
                     b.ToTable("ServiciosClientes", (string)null);
                 });
 
+            modelBuilder.Entity("PeluqueriaLucia.Domain.Catalogo.Servicio", b =>
+                {
+                    b.HasOne("PeluqueriaLucia.Domain.Publico.CategoriaTratamiento", null)
+                        .WithMany()
+                        .HasForeignKey("CategoriaPublicaId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
             modelBuilder.Entity("PeluqueriaLucia.Domain.Publico.PermisoResena", b =>
                 {
                     b.HasOne("PeluqueriaLucia.Domain.Visitas.Visita", null)
@@ -587,15 +619,6 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
                     b.HasOne("PeluqueriaLucia.Domain.Publico.PermisoResena", null)
                         .WithMany()
                         .HasForeignKey("PermisoId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("PeluqueriaLucia.Domain.Publico.TratamientoPublico", b =>
-                {
-                    b.HasOne("PeluqueriaLucia.Domain.Publico.CategoriaTratamiento", null)
-                        .WithMany()
-                        .HasForeignKey("CategoriaId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

@@ -38,10 +38,12 @@ public sealed class MigracionTests
         }
 
         Assert.Equal(2, await bd.EscalarAsync<int>("SELECT COUNT(*) FROM Clientes"));
-        Assert.Equal(3, await bd.EscalarAsync<int>("SELECT COUNT(*) FROM ServiciosGenericos"));
+        Assert.Equal(3, await bd.EscalarAsync<int>("SELECT COUNT(*) FROM ServiciosGenericos WHERE Id <= 3"));
         Assert.Equal(2, await bd.EscalarAsync<int>("SELECT COUNT(*) FROM ServiciosClientes"));
         Assert.Equal(3, await bd.EscalarAsync<int>("SELECT COUNT(*) FROM ServiciosGenericosRealizados"));
 
+        Assert.Equal(41, await bd.EscalarAsync<int>("SELECT COUNT(*) FROM ServiciosGenericos WHERE Publicado = 1"));
+        Assert.Equal(1, await bd.EscalarAsync<int>("SELECT COUNT(*) FROM ServiciosGenericos WHERE Nombre=N'Tinte'"));
         // Cada línea antigua recibe el nombre y el precio del catálogo
         Assert.Equal(0, await bd.EscalarAsync<int>(
             """
@@ -52,7 +54,7 @@ public sealed class MigracionTests
         Assert.Equal(53.50m, await bd.EscalarAsync<decimal>("SELECT SUM(PrecioAplicado) FROM ServiciosGenericosRealizados WHERE ServicioClienteId = 1"));
 
         // Todo el catálogo existente queda activo y los cobros antiguos intactos
-        Assert.Equal(3, await bd.EscalarAsync<int>("SELECT COUNT(*) FROM ServiciosGenericos WHERE Activo = 1"));
+        Assert.Equal(3, await bd.EscalarAsync<int>("SELECT COUNT(*) FROM ServiciosGenericos WHERE Activo = 1 AND Id <= 3"));
         Assert.Equal(33.50m, await bd.EscalarAsync<decimal>("SELECT TotalTarjeta FROM ServiciosClientes WHERE Id = 1"));
 
         await using (var db = bd.Contexto())

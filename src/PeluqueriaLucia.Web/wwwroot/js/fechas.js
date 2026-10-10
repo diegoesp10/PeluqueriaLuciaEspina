@@ -2,11 +2,12 @@
 // Calendario propio, progresivo: sin JavaScript sigue disponible el control nativo.
 (() => {
   let numero = 0;
-  const iso = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const iso = (d) => `${String(d.getFullYear()).padStart(4,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const fechaEn = (anio, mes, dia = 1) => { const d = new Date(0); d.setFullYear(anio,mes,dia); d.setHours(12,0,0,0); return d; };
   const hoy = () => new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
   document.querySelectorAll('input[type="date"], input[type="month"], input[type="datetime-local"]').forEach((input) => {
     if (input.disabled || input.readOnly) return;
-    const mensual = input.type === 'month', conHora = input.type === 'datetime-local';
+    const mensual = input.type === 'month', conHora = input.type === 'datetime-local', anual = input.hasAttribute('data-fecha-anual');
     const contenedor = document.createElement('div'); contenedor.className = 'fecha-control';
     input.before(contenedor); contenedor.append(input); input.classList.add('fecha-original');
     input.tabIndex = -1;
@@ -24,32 +25,56 @@
       panel.style.left = `${Math.max(20,Math.min(r.left,innerWidth-panel.offsetWidth-20))}px`;
       panel.style.top = `${r.bottom+10+alto <= innerHeight-20 ? r.bottom+10 : r.top-alto-10 >= 20 ? r.top-alto-10 : 20}px`;
     };
-    const rotular = () => { const d = seleccion(); boton.textContent = (input.value ? new Intl.DateTimeFormat('es-ES', mensual ? { month:'long',year:'numeric' } : { day:'numeric',month:'long',year:'numeric' }).format(d) : 'Elegir fecha') + (conHora && input.value ? ` · ${input.value.slice(11,16)}` : '') + ' ▾'; };
+    const rotular = () => { const d = seleccion(); boton.textContent = (input.value ? anual ? `Año ${d.getFullYear()}` : new Intl.DateTimeFormat('es-ES', mensual ? { month:'long',year:'numeric' } : { day:'numeric',month:'long',year:'numeric' }).format(d) : 'Elegir fecha') + (conHora && input.value ? ` · ${input.value.slice(11,16)}` : '') + ' ▾'; };
     const aplicar = (valor) => { input.value = valor; input.dispatchEvent(new Event('change',{bubbles:true})); rotular(); };
     const crearBoton = (texto, nombre, accion) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = texto; b.setAttribute('aria-label',nombre); b.addEventListener('click',accion); return b; };
     const pintar = () => {
       panel.replaceChildren();
       const cabecera = document.createElement('div'); cabecera.className = 'fecha-cabecera';
-      const titulo = document.createElement('strong'); titulo.textContent = mensual ? String(vista.getFullYear()) : new Intl.DateTimeFormat('es-ES',{month:'long',year:'numeric'}).format(vista);
-      titulo.setAttribute('aria-live','polite');
-      cabecera.append(crearBoton('‹','Periodo anterior',() => { vista = new Date(vista.getFullYear()-(mensual ? 1 : 0),vista.getMonth()-(mensual ? 0 : 1),1); pintar(); }),titulo,
-        crearBoton('›','Periodo siguiente',() => { vista = new Date(vista.getFullYear()+(mensual ? 1 : 0),vista.getMonth()+(mensual ? 0 : 1),1); pintar(); }));
+      const controles = document.createElement('div'); controles.className = 'fecha-selectores';
+      const etiquetaAnio = document.createElement('label'); etiquetaAnio.textContent = 'Año'; etiquetaAnio.className = 'fecha-selector';
+      const anio = document.createElement('input'); anio.type = 'number'; anio.className = 'input'; anio.min = '1'; anio.max = '9999'; anio.step = '1'; anio.value = vista.getFullYear();
+      anio.addEventListener('change',() => {
+        if (!anio.checkValidity() || !anio.value) return;
+        vista = fechaEn(Number(anio.value),vista.getMonth());
+        if (anual) { aplicar(`${iso(vista).slice(0,4)}-01-01`); cerrar(); boton.focus(); }
+        else { pintar(); panel.querySelector('input[type=number]').focus({preventScroll:true}); }
+      });
+      if (!mensual && !anual) {
+        const etiquetaMes = document.createElement('label'); etiquetaMes.textContent = 'Mes'; etiquetaMes.className = 'fecha-selector';
+        const mes = document.createElement('select'); mes.className = 'input';
+        for(let m=0;m<12;m++) { const opcion = document.createElement('option'); opcion.value = m; opcion.textContent = new Intl.DateTimeFormat('es-ES',{month:'long'}).format(fechaEn(2026,m)); mes.append(opcion); }
+        mes.value = vista.getMonth();
+        mes.addEventListener('change',() => { vista = fechaEn(vista.getFullYear(),Number(mes.value)); pintar(); panel.querySelector('select').focus({preventScroll:true}); });
+        etiquetaMes.append(mes); controles.append(etiquetaMes);
+      }
+      etiquetaAnio.append(anio); controles.append(etiquetaAnio);
+      const desplazar = (direccion) => {
+        const nueva = fechaEn(vista.getFullYear()+direccion*(anual ? 12 : mensual ? 1 : 0), vista.getMonth()+direccion*(anual || mensual ? 0 : 1));
+        vista = nueva.getFullYear() < 1 ? fechaEn(1,0) : nueva.getFullYear() > 9999 ? fechaEn(9999,11) : nueva;
+        pintar();
+      };
+      const anterior = crearBoton('‹','Periodo anterior',() => desplazar(-1)), siguiente = crearBoton('›','Periodo siguiente',() => desplazar(1));
+      anterior.disabled = vista.getFullYear() === 1 && (anual || mensual || vista.getMonth() === 0);
+      siguiente.disabled = vista.getFullYear() === 9999 && (anual || mensual || vista.getMonth() === 11);
+      cabecera.append(anterior,controles,siguiente);
       panel.append(cabecera);
-      const rejilla = document.createElement('div'); rejilla.className = mensual ? 'fecha-meses' : 'fecha-dias';
-      if (!mensual) ['L','M','X','J','V','S','D'].forEach((n) => { const e = document.createElement('span'); e.textContent = n; e.className = 'fecha-semana'; rejilla.append(e); });
-      const inicio = (new Date(vista.getFullYear(),vista.getMonth(),1).getDay()+6)%7;
-      if (!mensual) for(let i=0;i<inicio;i++) rejilla.append(document.createElement('span'));
-      const total = mensual ? 12 : new Date(vista.getFullYear(),vista.getMonth()+1,0).getDate();
+      const rejilla = document.createElement('div'); rejilla.className = mensual || anual ? 'fecha-meses' : 'fecha-dias';
+      if (!mensual && !anual) ['L','M','X','J','V','S','D'].forEach((n) => { const e = document.createElement('span'); e.textContent = n; e.className = 'fecha-semana'; rejilla.append(e); });
+      const inicio = (fechaEn(vista.getFullYear(),vista.getMonth()).getDay()+6)%7;
+      if (!mensual && !anual) for(let i=0;i<inicio;i++) rejilla.append(document.createElement('span'));
+      const primeroAnio = Math.min(9988,Math.floor((vista.getFullYear()-1)/12)*12+1);
+      const total = mensual || anual ? 12 : fechaEn(vista.getFullYear(),vista.getMonth()+1,0).getDate();
       for(let i=0;i<total;i++) {
-        const fecha = new Date(vista.getFullYear(),mensual ? i : vista.getMonth(),mensual ? 1 : i+1);
+        const fecha = fechaEn(anual ? primeroAnio+i : vista.getFullYear(),anual ? 0 : mensual ? i : vista.getMonth(),anual || mensual ? 1 : i+1);
         const valor = mensual ? iso(fecha).slice(0,7) : iso(fecha);
-        const texto = mensual ? new Intl.DateTimeFormat('es-ES',{month:'short'}).format(fecha) : String(i+1);
-        const b = crearBoton(texto,new Intl.DateTimeFormat('es-ES',{day:'numeric',month:'long',year:'numeric'}).format(fecha),() => {
+        const texto = anual ? String(fecha.getFullYear()) : mensual ? new Intl.DateTimeFormat('es-ES',{month:'short'}).format(fecha) : String(i+1);
+        const b = crearBoton(texto,anual ? `Año ${texto}` : new Intl.DateTimeFormat('es-ES',{day:'numeric',month:'long',year:'numeric'}).format(fecha),() => {
           aplicar(conHora ? `${valor}T${input.value.slice(11,16) || '12:00'}` : valor);
           if (!conHora) { cerrar(); boton.focus(); } else pintar();
         });
-        if (input.value.startsWith(valor)) { b.classList.add('is-active'); b.setAttribute('aria-pressed','true'); }
-        if (valor === (mensual ? iso(hoy()).slice(0,7) : iso(hoy()))) b.classList.add('es-hoy');
+        if (anual ? input.value.slice(0,4) === valor.slice(0,4) : input.value.startsWith(valor)) { b.classList.add('is-active'); b.setAttribute('aria-pressed','true'); }
+        if (anual ? fecha.getFullYear() === hoy().getFullYear() : valor === (mensual ? iso(hoy()).slice(0,7) : iso(hoy()))) b.classList.add('es-hoy');
         b.disabled = (input.min && valor < input.min.slice(0,valor.length)) || (input.max && valor > input.max.slice(0,valor.length));
         rejilla.append(b);
       }
@@ -59,7 +84,8 @@
         const hora = document.createElement('input'); hora.type = 'time'; hora.className = 'input'; hora.value = input.value.slice(11,16) || '12:00';
         hora.addEventListener('change',() => { if(hora.value) aplicar(`${iso(seleccion())}T${hora.value}`); }); label.append(hora); panel.append(label);
       }
-      const pie = document.createElement('div'); pie.className = 'fecha-pie'; pie.append(crearBoton('Hoy','Seleccionar hoy',() => { aplicar(conHora ? `${iso(hoy())}T${input.value.slice(11,16) || '12:00'}` : mensual ? iso(hoy()).slice(0,7) : iso(hoy())); cerrar(); boton.focus(); }),crearBoton('Listo','Cerrar calendario',() => { cerrar(); boton.focus(); })); panel.append(pie);
+      const pie = document.createElement('div'); pie.className = 'fecha-pie'; pie.append(crearBoton(anual ? 'Este año' : mensual ? 'Este mes' : 'Hoy','Seleccionar periodo actual',() => { aplicar(conHora ? `${iso(hoy())}T${input.value.slice(11,16) || '12:00'}` : anual ? `${hoy().getFullYear()}-01-01` : mensual ? iso(hoy()).slice(0,7) : iso(hoy())); cerrar(); boton.focus(); }),crearBoton('Listo','Cerrar calendario',() => { cerrar(); boton.focus(); })); panel.append(pie);
+      if (!panel.hidden) colocar();
     };
     boton.addEventListener('click',() => { if (!panel.hidden) { cerrar(); return; } vista = seleccion(); pintar(); panel.hidden = false; colocar(); boton.setAttribute('aria-expanded','true'); panel.querySelector('.is-active')?.focus({preventScroll:true}); });
     input.addEventListener('invalid',() => { boton.focus(); });

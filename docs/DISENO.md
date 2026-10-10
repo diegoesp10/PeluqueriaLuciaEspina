@@ -25,6 +25,7 @@ Los colores se definen exclusivamente en `wwwroot/css/tokens.css`, que cargan am
 - En pantallas anchas, las secciones ocupan el ancho disponible con márgenes interiores fluidos. Distribuir el contenido en columnas útiles, sin encerrar toda la página en una columna central.
 - Los formularios de gestión mantienen un ancho de lectura cómodo y se alinean con el contenido. El login es la excepción deliberada: una única tarjeta centrada, de hasta 480 px.
 - En móvil, apilar las columnas; conservar botones, navegación y etiquetas completas sin desplazamiento horizontal.
+- Dar presencia al logo original: emblema mayor en la navegación, sello sobre la foto del salón y firma en el pie. Usar una marca de fondo tenue detrás del contenido, sin capturar clics ni aparecer en tickets impresos.
 
 ## Componentes comunes
 
@@ -33,6 +34,8 @@ Los colores se definen exclusivamente en `wwwroot/css/tokens.css`, que cargan am
 Las tarjetas tienen esquinas de 24 px, campos de 14 px y botones de forma ovalada. Las líneas son sutiles y las sombras suaves. Los controles principales tienen al menos 44 px de alto. El vidrio translúcido se limita a navegación y elementos flotantes; los datos y los formularios reposan en superficies sólidas.
 
 Los errores se muestran junto al formulario, con mensajes en español. El foco de teclado permanece visible. Se respeta la preferencia de movimiento reducido. El selector Automática/Día/Noche y el script inicial son compartidos y mantienen la misma elección al pasar de la web al panel.
+
+El calendario comparte los campos y colores del resto de la aplicación. Permite elegir mes y año directamente, además del día. El listado y la exportación de visitas ofrecen **Día, Mes, Año y Todo**; el periodo anual incluye del 1 de enero al 31 de diciembre. Los formularios de clientes, visitas y servicios se centran dentro del espacio disponible del panel.
 
 ## Pantallas
 

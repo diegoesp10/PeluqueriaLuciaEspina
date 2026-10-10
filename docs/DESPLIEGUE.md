@@ -84,7 +84,7 @@ Como alternativa, se puede poner `"BaseDeDatos": { "AplicarMigracionesAlArrancar
 3. Desde la carpeta publicada ejecuta `dotnet PeluqueriaLucia.Web.dll administrador` para crear el usuario o restablecer su contraseña, sin mostrarla ni pasarla como argumento.
 4. Arranca el sitio y abre la aplicación. La raíz muestra el salón; `/admin` abre el acceso al panel.
 
-La migración `SeguridadAdministrador` solo crea `Administradores`, `SesionesAdministrador`, `IntentosAcceso` y `DataProtectionKeys`; no modifica las tablas de clientes, servicios, visitas o cobros. Aplícala antes de arrancar esta versión. Las claves de cookies se guardan en SQL y, en Windows, se cifran con DPAPI para el equipo; la herramienta de consola y el grupo de IIS deben ejecutarse en el mismo equipo.
+La migración `SeguridadAdministrador` crea `Administradores`, `SesionesAdministrador`, `IntentosAcceso` y `DataProtectionKeys`. Aplica también las migraciones posteriores de MFA, reseñas y catálogo común antes de arrancar esta versión, como explica [CONTENIDO-Y-MFA.md](CONTENIDO-Y-MFA.md). Los servicios públicos se incorporan al catálogo sin modificar los importes de visitas anteriores. Las claves de cookies se guardan en SQL y, en Windows, se cifran con DPAPI para el equipo; la herramienta de consola y el grupo de IIS deben ejecutarse en el mismo equipo. En el primer acceso, el administrador debe vincular su Authenticator y guardar sus códigos de recuperación.
 
 Los ficheros de la versión 1 que ya no se usan (`PelqueriaLuciaEspina.dll` y similares) no molestan; se pueden borrar más adelante.
 

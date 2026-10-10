@@ -6,7 +6,7 @@ using PeluqueriaLucia.Web.Areas.Admin.Models;
 
 namespace PeluqueriaLucia.Web.Areas.Admin.Controllers;
 
-public sealed class CatalogoController(CatalogoService catalogo) : AdminController
+public sealed class CatalogoController(CatalogoService catalogo, PeluqueriaLucia.Application.Publico.ContenidoService contenido) : AdminController
 {
     [HttpGet]
     public async Task<IActionResult> Index(Sexo? sexo, CancellationToken ct)
@@ -16,7 +16,7 @@ public sealed class CatalogoController(CatalogoService catalogo) : AdminControll
     }
 
     [HttpGet]
-    public IActionResult Nuevo() => View("Edicion", new ServicioEdicionModelo(null, new ServicioFormulario(), null));
+    public async Task<IActionResult> Nuevo(CancellationToken ct) => View("Edicion", new ServicioEdicionModelo(null, new ServicioFormulario(), null, Categorias: await contenido.CategoriasAsync(ct)));
 
     [HttpPost]
     public async Task<IActionResult> Nuevo(ServicioFormulario formulario, CancellationToken ct)
@@ -33,7 +33,7 @@ public sealed class CatalogoController(CatalogoService catalogo) : AdminControll
             ModelState.AgregarError(resultado.Error!);
         }
 
-        return View("Edicion", new ServicioEdicionModelo(null, formulario, null));
+        return View("Edicion", new ServicioEdicionModelo(null, formulario, null, Categorias: await contenido.CategoriasAsync(ct)));
     }
 
     [HttpGet]
@@ -42,7 +42,7 @@ public sealed class CatalogoController(CatalogoService catalogo) : AdminControll
         var servicio = await catalogo.ObtenerAsync(id, ct);
         return servicio is null
             ? NotFound()
-            : View("Edicion", new ServicioEdicionModelo(id, ServicioFormulario.Desde(servicio), servicio.ImagenRuta, servicio.Activo));
+            : View("Edicion", new ServicioEdicionModelo(id, ServicioFormulario.Desde(servicio), servicio.ImagenRuta, servicio.Activo, await contenido.CategoriasAsync(ct)));
     }
 
     [HttpPost]
@@ -63,7 +63,7 @@ public sealed class CatalogoController(CatalogoService catalogo) : AdminControll
         var servicio = await catalogo.ObtenerAsync(id, ct);
         return servicio is null
             ? NotFound()
-            : View("Edicion", new ServicioEdicionModelo(id, formulario, servicio.ImagenRuta, servicio.Activo));
+            : View("Edicion", new ServicioEdicionModelo(id, formulario, servicio.ImagenRuta, servicio.Activo, await contenido.CategoriasAsync(ct)));
     }
 
     [HttpPost]

@@ -1,4 +1,5 @@
 using PeluqueriaLucia.Domain.Comun;
+using PeluqueriaLucia.Domain.Publico;
 
 namespace PeluqueriaLucia.Domain.Catalogo;
 
@@ -6,7 +7,7 @@ namespace PeluqueriaLucia.Domain.Catalogo;
 public sealed class Servicio
 {
     public const int LongitudNombre = 100;
-    public const decimal PrecioMinimo = 0.01m;
+    public const decimal PrecioMinimo = 0m;
     public const decimal PrecioMaximo = 9999.99m;
 
     private Servicio()
@@ -27,6 +28,22 @@ public sealed class Servicio
     public bool Activo { get; private set; } = true;
 
     public DateTime FechaCreacion { get; private set; }
+    public int? CategoriaPublicaId { get; private set; }
+    public string? DescripcionPublica { get; private set; }
+    public TipoPrecioPublico TipoPrecioPublico { get; private set; }
+    public int DuracionMinutos { get; private set; } = 30;
+    public int OrdenPublico { get; private set; }
+    public bool Publicado { get; private set; }
+    public bool Destacado { get; private set; }
+
+    public void ConfigurarPublicacion(int? categoria, string? descripcion, TipoPrecioPublico tipo, int minutos, int orden, bool publicado, bool destacado)
+    {
+        if ((publicado && (categoria is null or <= 0 || (tipo != TipoPrecioPublico.Consultar && Precio <= 0))) ||
+            descripcion?.Length > 1000 || !Enum.IsDefined(tipo) || minutos is < 5 or > 600 || orden is < 0 or > 10000)
+            throw new ReglaDeNegocioException("Revisa la categoría, el precio y los datos de publicación.");
+        CategoriaPublicaId = categoria; DescripcionPublica = string.IsNullOrWhiteSpace(descripcion) ? null : descripcion.Trim();
+        TipoPrecioPublico = tipo; DuracionMinutos = minutos; OrdenPublico = orden; Publicado = publicado; Destacado = destacado;
+    }
 
     public static Servicio Crear(string nombre, decimal precio, Sexo sexo, DateTime ahora)
     {

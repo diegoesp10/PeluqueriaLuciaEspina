@@ -22,9 +22,11 @@ Pide usuario y contraseña actual sin mostrarlos. Revoca MFA y sesiones; el sigu
 
 ## Servicios y precios de la web
 
-**Servicios de la web** administra categorías, tratamientos, descripciones, duración, precio fijo, desde o consultar, destacados, orden y visibilidad. Las categorías conservan su identificador de enlace al renombrarlas; no se puede borrar una con tratamientos. Los precios se guardan en SQL y se reflejan en `/servicios` y `/api/tratamientos`. La migración inicial importa 41 tratamientos en 6 categorías; las siguientes cargas no sobreescriben lo editado.
+**Catálogo** contiene todos los servicios para visitas y cobros. En su ficha se editan el nombre y el precio compartidos, y se decide si se publica en la web, con categoría, descripción, duración, precio fijo, desde o consultar, destacado y orden. Se pueden crear servicios internos sin publicarlos. **Servicios de la web → Publicar del catálogo** permite elegir un servicio existente sin duplicarlo; editarlo abre su ficha común. Retirarlo de la web conserva el servicio para cobrarlo.
 
-El catálogo público es independiente del usado al registrar visitas. Modificarlo no cambia ningún ticket ni precio histórico.
+Las categorías conservan su identificador de enlace al renombrarlas; no se puede borrar una asignada a servicios. Los cambios se guardan en SQL y se reflejan en `/servicios` y `/api/tratamientos`. La migración incorpora los 41 servicios públicos al catálogo, reutilizando los existentes con el mismo nombre sin sustituir su precio ni su foto. Las siguientes cargas no sobreescriben lo editado.
+
+Al seleccionar un servicio en **Nueva visita**, aparece el importe aplicable a esa visita. Puede ajustarse sin cambiar el precio del catálogo. Un servicio por definir puede tener precio de catálogo cero, pero requiere un importe positivo para registrar la visita. Cada línea guarda su nombre y precio históricos; editar, retirar o archivar el servicio no cambia tickets anteriores. Archivar un servicio lo oculta también de la web.
 
 ## Opiniones con ticket
 
@@ -43,9 +45,12 @@ Las fotos admiten JPG, PNG y WebP, hasta 5 MB y 20 megapíxeles. Se decodifican 
 | GET/POST `/admin/Seguridad/Contrasena` | Sesión MFA; cambio con contraseña actual y TOTP |
 | GET/POST `/admin/Seguridad/Authenticator` | Sesión MFA; cambio de app |
 | GET `/api/tratamientos` | Solo categorías y tratamientos publicados |
-| GET `/admin/Tratamientos` | Gestión protegida del catálogo público |
-| GET/POST `/admin/Tratamientos/Nuevo`, `/Editar/{id}` | Creación/edición; POST con CSRF |
-| POST `/admin/Tratamientos/Eliminar/{id}` | Eliminación; sesión MFA y CSRF |
+| GET/POST `/admin/Catalogo/Nuevo`, `/admin/Catalogo/Editar/{id}` | Ficha común de nombre, precio y publicación; sesión MFA y POST con CSRF |
+| GET `/admin/Tratamientos` | Gestión protegida de publicaciones del catálogo |
+| GET/POST `/admin/Tratamientos/Nuevo` | Publicar un servicio existente; sesión MFA y POST con CSRF |
+| GET `/admin/Tratamientos/Editar/{id}` | Redirige a la ficha común del catálogo |
+| POST `/admin/Tratamientos/Editar/{id}` | Actualiza configuración pública del servicio existente; sesión MFA y CSRF |
+| POST `/admin/Tratamientos/Eliminar/{id}` | Retira la publicación conservando el servicio; sesión MFA y CSRF |
 | GET `/admin/Tratamientos/Categorias`, GET/POST `/Categoria/{id?}` | Gestión de categorías protegida |
 | POST `/admin/Tratamientos/EliminarCategoria/{id}` | Categoría vacía; sesión MFA y CSRF |
 | GET/POST `/opiniones` | Listado/formulario; POST con CSRF, ticket y 6 intentos/hora/IP |
@@ -55,6 +60,6 @@ Las fotos admiten JPG, PNG y WebP, hasta 5 MB y 20 megapíxeles. Se decodifican 
 
 ## Copias y despliegue
 
-Aplica `20261010130205_MfaTratamientosYResenas` tras copiar y verificar SQL. Añade tablas y columnas de MFA, inicializa el catálogo público y cierra las sesiones existentes. No modifica clientes, visitas, cobros ni precios históricos.
+Aplica `20261010130205_MfaTratamientosYResenas` y `20261010135843_CatalogoUnificadoConWeb` tras copiar y verificar SQL. La primera añade MFA y reseñas, inicializa los servicios públicos y cierra las sesiones existentes. La segunda incorpora esos servicios al catálogo común con sus campos públicos. Conserva clientes, visitas, cobros y precios históricos; al reutilizar un servicio existente, conserva su precio de catálogo y su foto.
 
 Conserva SQL, sus claves Data Protection, las fotos internas y **AlmacenResenas**. `FotosResenas:Carpeta` elige un directorio persistente, con escritura solo para el proceso del sitio. La publicación excluye estos archivos. Las claves SQL cifradas con DPAPI necesitan el mismo equipo o un plan explícito de migración de claves; perderlas impide recuperar secretos TOTP y códigos imprimibles. En producción exige HTTPS y configura límites y proxies según [SEGURIDAD.md](SEGURIDAD.md).

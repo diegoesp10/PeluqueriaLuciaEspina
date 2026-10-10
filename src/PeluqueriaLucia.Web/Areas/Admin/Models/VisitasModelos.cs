@@ -13,6 +13,7 @@ public enum Periodo
     Dia,
     Mes,
     Todo,
+    Anio,
 }
 
 public sealed record VisitasIndiceModelo(Periodo Periodo, DateOnly Fecha, DateOnly Hoy, Pagina<Visita> Pagina, ResumenVisitas Resumen)
@@ -21,6 +22,7 @@ public sealed record VisitasIndiceModelo(Periodo Periodo, DateOnly Fecha, DateOn
     {
         Periodo.Dia => FiltroVisitas.Dia(fecha),
         Periodo.Mes => FiltroVisitas.Mes(fecha.Year, fecha.Month),
+        Periodo.Anio => FiltroVisitas.Anio(fecha.Year),
         _ => FiltroVisitas.Todo,
     };
 
@@ -28,6 +30,7 @@ public sealed record VisitasIndiceModelo(Periodo Periodo, DateOnly Fecha, DateOn
     {
         Periodo.Dia => Formato.Dia(Fecha, Hoy),
         Periodo.Mes => Formato.Mes(Fecha),
+        Periodo.Anio => $"Año {Fecha.Year}",
         _ => "Todas las visitas",
     };
 
@@ -36,15 +39,17 @@ public sealed record VisitasIndiceModelo(Periodo Periodo, DateOnly Fecha, DateOn
 
     public DateOnly? Anterior => Periodo switch
     {
-        Periodo.Dia => Fecha.AddDays(-1),
-        Periodo.Mes => Fecha.AddMonths(-1),
+        Periodo.Dia when Fecha > DateOnly.MinValue => Fecha.AddDays(-1),
+        Periodo.Mes when Fecha.Year > 1 || Fecha.Month > 1 => new DateOnly(Fecha.Year, Fecha.Month, 1).AddMonths(-1),
+        Periodo.Anio when Fecha.Year > 1 => new DateOnly(Fecha.Year - 1, 1, 1),
         _ => null,
     };
 
     public DateOnly? Siguiente => Periodo switch
     {
-        Periodo.Dia => Fecha.AddDays(1),
-        Periodo.Mes => Fecha.AddMonths(1),
+        Periodo.Dia when Fecha < DateOnly.MaxValue => Fecha.AddDays(1),
+        Periodo.Mes when Fecha.Year < 9999 || Fecha.Month < 12 => new DateOnly(Fecha.Year, Fecha.Month, 1).AddMonths(1),
+        Periodo.Anio when Fecha.Year < 9999 => new DateOnly(Fecha.Year + 1, 1, 1),
         _ => null,
     };
 
@@ -52,6 +57,7 @@ public sealed record VisitasIndiceModelo(Periodo Periodo, DateOnly Fecha, DateOn
     {
         Periodo.Dia => Fecha == Hoy,
         Periodo.Mes => Fecha.Year == Hoy.Year && Fecha.Month == Hoy.Month,
+        Periodo.Anio => Fecha.Year == Hoy.Year,
         _ => true,
     };
 
@@ -63,6 +69,7 @@ public sealed record VisitasIndiceModelo(Periodo Periodo, DateOnly Fecha, DateOn
         Periodo.Dia when Fecha == Hoy => "Todavía no hay visitas hoy",
         Periodo.Dia => "No hubo visitas este día",
         Periodo.Mes => "No hay visitas este mes",
+        Periodo.Anio => "No hay visitas este año",
         _ => "Aún no hay visitas registradas",
     };
 }
@@ -78,6 +85,7 @@ public sealed class NuevaVisitaFormulario
     public FormaPago FormaPago { get; set; } = FormaPago.Efectivo;
 
     public List<int> Servicios { get; set; } = [];
+    public Dictionary<int,decimal> Precios { get; set; } = [];
 
     /// <summary>«cobrar» lleva directamente a la pantalla de cobro después de guardar.</summary>
     public string? Accion { get; set; }

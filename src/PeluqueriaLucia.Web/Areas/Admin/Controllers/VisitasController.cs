@@ -66,7 +66,7 @@ public sealed class VisitasController(
 
         if (ModelState.IsValid)
         {
-            var datos = new NuevaVisita(formulario.ClienteId!.Value, formulario.Fecha!.Value, formulario.FormaPago, formulario.Servicios);
+            var datos = new NuevaVisita(formulario.ClienteId!.Value, formulario.Fecha!.Value, formulario.FormaPago, formulario.Servicios, formulario.Precios);
             var resultado = await visitas.RegistrarAsync(datos, ct);
             if (resultado.Exito)
             {

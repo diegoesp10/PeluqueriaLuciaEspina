@@ -11,10 +11,6 @@ internal sealed class CategoriaTratamientoConfiguracion : IEntityTypeConfigurati
 {
     public void Configure(EntityTypeBuilder<CategoriaTratamiento> b) { b.ToTable("CategoriasPublicas"); b.Property(x => x.Nombre).HasMaxLength(80); b.Property(x => x.Slug).HasMaxLength(80).IsUnicode(false); b.HasIndex(x => x.Slug).IsUnique(); }
 }
-internal sealed class TratamientoPublicoConfiguracion : IEntityTypeConfiguration<TratamientoPublico>
-{
-    public void Configure(EntityTypeBuilder<TratamientoPublico> b) { b.ToTable("TratamientosPublicos"); b.Property(x => x.Nombre).HasMaxLength(100); b.Property(x => x.Descripcion).HasMaxLength(1000); b.Property(x => x.Precio).HasPrecision(18,2); b.HasOne<CategoriaTratamiento>().WithMany().HasForeignKey(x => x.CategoriaId).OnDelete(DeleteBehavior.Restrict); }
-}
 internal sealed class PermisoResenaConfiguracion : IEntityTypeConfiguration<PermisoResena>
 {
     public void Configure(EntityTypeBuilder<PermisoResena> b) { b.ToTable("PermisosResenas"); b.Property(x => x.Id).ValueGeneratedNever(); b.Property(x => x.CodigoHash).HasMaxLength(64).IsUnicode(false); b.Property(x => x.CodigoProtegido).HasMaxLength(1000); b.HasIndex(x => x.CodigoHash).IsUnique(); b.HasIndex(x => x.VisitaId).IsUnique(); b.HasOne<Visita>().WithMany().HasForeignKey(x => x.VisitaId).OnDelete(DeleteBehavior.Restrict); b.Property<byte[]>("Version").IsRowVersion(); }
@@ -27,12 +23,8 @@ internal sealed class ContenidoRepositorio(PeluqueriaDbContext db) : IContenidoR
 {
     public async Task<IReadOnlyList<CategoriaTratamiento>> CategoriasAsync(CancellationToken ct) => await db.CategoriasPublicas.OrderBy(x => x.Orden).ThenBy(x => x.Id).ToListAsync(ct);
     public Task<CategoriaTratamiento?> CategoriaAsync(int id, CancellationToken ct) => db.CategoriasPublicas.FirstOrDefaultAsync(x => x.Id == id, ct);
-    public async Task<IReadOnlyList<TratamientoPublico>> TratamientosAsync(bool soloPublicados, CancellationToken ct) => await db.TratamientosPublicos.Where(x => !soloPublicados || x.Publicado).OrderBy(x => x.Orden).ThenBy(x => x.Id).ToListAsync(ct);
-    public Task<TratamientoPublico?> TratamientoAsync(int id, CancellationToken ct) => db.TratamientosPublicos.FirstOrDefaultAsync(x => x.Id == id, ct);
     public void Agregar(CategoriaTratamiento x) => db.CategoriasPublicas.Add(x);
-    public void Agregar(TratamientoPublico x) => db.TratamientosPublicos.Add(x);
     public void Eliminar(CategoriaTratamiento x) => db.CategoriasPublicas.Remove(x);
-    public void Eliminar(TratamientoPublico x) => db.TratamientosPublicos.Remove(x);
     public Task<PermisoResena?> PermisoVisitaAsync(int id, CancellationToken ct) => db.PermisosResenas.FirstOrDefaultAsync(x => x.VisitaId == id, ct);
     public Task<PermisoResena?> PermisoCodigoAsync(string hash, CancellationToken ct) => db.PermisosResenas.FirstOrDefaultAsync(x => x.CodigoHash == hash, ct);
     public async Task<PermisoResena> GuardarPermisoTicketAsync(PermisoResena permiso, CancellationToken ct)

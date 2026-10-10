@@ -5,7 +5,8 @@ using PeluqueriaLucia.Domain.Comun;
 
 namespace PeluqueriaLucia.Application.Catalogo;
 
-public sealed record DatosServicio(string Nombre, decimal Precio, Sexo Sexo);
+public sealed record DatosPublicacion(int? CategoriaId, string? Descripcion, Domain.Publico.TipoPrecioPublico TipoPrecio, int DuracionMinutos, int Orden, bool Publicado, bool Destacado);
+public sealed record DatosServicio(string Nombre, decimal Precio, Sexo Sexo, DatosPublicacion? Publicacion = null);
 
 /// <summary>Qué se hizo al pedir eliminar un servicio.</summary>
 public enum Eliminacion
@@ -20,7 +21,7 @@ public sealed class CatalogoService(
     IServicioRepositorio servicios,
     IAlmacenImagenes imagenes,
     IUnidadDeTrabajo unidadDeTrabajo,
-    TimeProvider reloj)
+    TimeProvider reloj, IContenidoRepositorio? contenido = null)
 {
     public const long TamanoMaximoImagen = 5 * 1024 * 1024;
 
@@ -37,8 +38,10 @@ public sealed class CatalogoService(
         {
             if (ValidarImagen(imagen) is { } error)
                 return error;
+            if (await ValidarPublicacionAsync(datos.Publicacion, ct) is { } errorWeb) return errorWeb;
 
             var servicio = Servicio.Crear(datos.Nombre, datos.Precio, datos.Sexo, reloj.GetLocalNow().DateTime);
+            ConfigurarWeb(servicio, datos.Publicacion);
             var nuevaRuta = imagen is null ? null : await GuardarImagenAsync(imagen, ct);
             servicio.CambiarImagen(nuevaRuta);
             servicios.Agregar(servicio);
@@ -55,8 +58,10 @@ public sealed class CatalogoService(
                 return Error.NoEncontrado("El servicio");
             if (ValidarImagen(imagen) is { } error)
                 return error;
+            if (await ValidarPublicacionAsync(datos.Publicacion, ct) is { } errorWeb) return errorWeb;
 
             servicio.Actualizar(datos.Nombre, datos.Precio, datos.Sexo);
+            ConfigurarWeb(servicio, datos.Publicacion);
 
             var anterior = servicio.ImagenRuta;
             string? nuevaRuta = null;
@@ -119,6 +124,16 @@ public sealed class CatalogoService(
             return new Error("La foto no puede pesar más de 5 MB.", "Imagen");
         return null;
     }
+
+    private static void ConfigurarWeb(Servicio servicio, DatosPublicacion? web)
+    {
+        if (web is not null) servicio.ConfigurarPublicacion(web.CategoriaId, web.Descripcion, web.TipoPrecio, web.DuracionMinutos, web.Orden, web.Publicado, web.Destacado);
+        else if (servicio.Publicado) servicio.ConfigurarPublicacion(servicio.CategoriaPublicaId, servicio.DescripcionPublica, servicio.TipoPrecioPublico, servicio.DuracionMinutos, servicio.OrdenPublico, true, servicio.Destacado);
+    }
+
+    private async Task<Error?> ValidarPublicacionAsync(DatosPublicacion? web, CancellationToken ct) =>
+        web?.CategoriaId is { } id && contenido is not null && await contenido.CategoriaAsync(id, ct) is null
+            ? new Error("Elige una categoría válida.", "CategoriaPublicaId") : null;
 
     private Task<string> GuardarImagenAsync(ArchivoImagen imagen, CancellationToken ct) =>
         imagenes.GuardarAsync(imagen.Contenido, Path.GetExtension(imagen.NombreOriginal).ToLowerInvariant(), ct);

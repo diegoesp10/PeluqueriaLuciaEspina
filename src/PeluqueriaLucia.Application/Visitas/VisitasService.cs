@@ -35,7 +35,7 @@ public sealed class VisitasService(
 
             // Se respeta el orden en que se marcaron para que el ticket salga igual que en pantalla
             var ordenados = ids.Select(id => elegidos.First(s => s.Id == id)).ToList();
-            var visita = Visita.Registrar(cliente, datos.Fecha, datos.FormaPago, ordenados);
+            var visita = Visita.Registrar(cliente, datos.Fecha, datos.FormaPago, ordenados, datos.Precios);
             visitas.Agregar(visita);
             await unidadDeTrabajo.GuardarCambiosAsync(ct);
             return Resultado.Ok(visita.Id);

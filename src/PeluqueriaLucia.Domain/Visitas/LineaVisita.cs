@@ -22,6 +22,11 @@ public sealed class LineaVisita
 
     public decimal Precio { get; private set; }
 
-    internal static LineaVisita Desde(Servicio servicio) =>
-        new() { ServicioId = servicio.Id, Nombre = servicio.Nombre, Precio = servicio.Precio };
+    internal static LineaVisita Desde(Servicio servicio, decimal? precio = null)
+    {
+        var aplicado = decimal.Round(precio ?? servicio.Precio,2,MidpointRounding.AwayFromZero);
+        if (aplicado <= 0 || aplicado > Servicio.PrecioMaximo)
+            throw new Comun.ReglaDeNegocioException($"Indica un precio entre 0,01 y 9.999,99 € para «{servicio.Nombre}».", "Servicios");
+        return new() { ServicioId = servicio.Id, Nombre = servicio.Nombre, Precio = decimal.Round(aplicado,2,MidpointRounding.AwayFromZero) };
+    }
 }
