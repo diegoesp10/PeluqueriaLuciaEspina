@@ -1,5 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <PackageReference Include="Otp.NET" Version="1.4.1" />
+    <PackageReference Include="SkiaSharp" Version="4.151.0" />
     <ProjectReference Include="..\PeluqueriaLucia.Application\PeluqueriaLucia.Application.csproj" />
   </ItemGroup>
   <ItemGroup>

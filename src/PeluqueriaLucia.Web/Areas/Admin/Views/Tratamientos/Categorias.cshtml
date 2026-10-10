@@ -1,0 +1,3 @@
+@model IReadOnlyList<PeluqueriaLucia.Domain.Publico.CategoriaTratamiento>
+@{ ViewData["Title"] = "Categorías de la web"; }
+<header class="page-head"><div><a class="back-link" asp-action="Index">← Servicios de la web</a><h1>Cada cuidado,<br />en su lugar.</h1></div><a class="btn btn-primary" asp-action="Categoria">Nueva categoría</a></header><div class="list">@foreach(var c in Model) { <div class="row"><strong class="row-body">@c.Nombre</strong><a class="btn btn-gray" asp-action="Categoria" asp-route-id="@c.Id">Editar</a></div> }</div>

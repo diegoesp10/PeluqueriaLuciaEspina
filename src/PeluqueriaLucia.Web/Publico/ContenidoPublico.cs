@@ -67,9 +67,10 @@ public sealed class DiaHorario
 
 public sealed class CategoriaServicios
 {
+    public string? Slug { get; set; }
     public string Nombre { get; set; } = string.Empty;
 
-    public string Id => new(Nombre.ToLowerInvariant().Normalize(System.Text.NormalizationForm.FormD)
+    public string Id => Slug ?? new string(Nombre.ToLowerInvariant().Normalize(System.Text.NormalizationForm.FormD)
         .Where(c => char.IsAsciiLetterOrDigit(c)).ToArray());
 
     public List<ServicioPublico> Servicios { get; set; } = [];

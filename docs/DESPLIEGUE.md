@@ -1,6 +1,6 @@
 # Despliegue en el equipo de la peluquería
 
-La aplicación corre en IIS contra SQL Server. La portada y los servicios son públicos; toda la gestión está dentro de `/admin` y exige autenticación. El servidor de producción debe tener un certificado HTTPS. Ver [SEGURIDAD.md](SEGURIDAD.md) para los ajustes de acceso.
+La aplicación corre en IIS contra SQL Server. La portada, los servicios y las opiniones son públicos; toda la gestión está dentro de `/admin` y exige contraseña y Authenticator. El servidor de producción debe tener un certificado HTTPS. Ver [SEGURIDAD.md](SEGURIDAD.md) y [CONTENIDO-Y-MFA.md](CONTENIDO-Y-MFA.md) para acceso, migración y copias del almacén de reseñas.
 
 > **Regla de oro:** la base de datos tiene datos reales que no se pueden perder. Antes de cada actualización se hace una copia de seguridad, y las migraciones solo **añaden** (nunca borran ni renombran tablas o columnas). Hay una prueba automática que reproduce la base de datos de la versión anterior con datos, la migra y comprueba que no se pierde nada (`tests/.../Integracion/MigracionTests.cs`).
 

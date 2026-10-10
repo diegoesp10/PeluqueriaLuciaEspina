@@ -2,7 +2,7 @@
 @{ ViewData["Title"] = "Servicios y tratamientos"; }
 <section class="seccion-publica portada-servicios">
     <div><p class="etiqueta">EL ARTE DE CUIDAR TU CABELLO</p><h1>Pequeños cuidados.<br /><em>Grandes sensaciones.</em></h1></div>
-    <div class="servicios-intro"><p class="intro">Cortes, color y bienestar capilar. Encuentra tu próximo momento con Lucía.</p><div class="botones"><a class="btn btn-primary" href="@Model.Reservas" target="_blank" rel="noopener noreferrer">Reservar mi cuidado ↗</a><a class="enlace-flecha" href="@Model.TelefonoEnlace">¿Te ayudamos a elegir? →</a></div><p class="nota">Precios orientativos según nuestra ficha de Booksy. Confirma el precio y la disponibilidad al reservar.</p></div>
+    <div class="servicios-intro"><p class="intro">Cortes, color y bienestar capilar. Encuentra tu próximo momento con Lucía.</p><div class="botones"><a class="btn btn-primary" href="@Model.Reservas" target="_blank" rel="noopener noreferrer">Reservar mi cuidado ↗</a><a class="enlace-flecha" href="@Model.TelefonoEnlace">¿Te ayudamos a elegir? →</a></div><p class="nota">Nuestra carta de cuidados, actualizada por el salón. Confirma los detalles y la disponibilidad al reservar.</p></div>
 </section>
 <div class="catalogo-publico seccion-publica">
     <aside><nav aria-label="Categorías de servicios">@foreach(var categoria in Model.Categorias) { <a href="#@categoria.Id">@categoria.Nombre <span aria-hidden="true">↗</span></a> }</nav><a class="btn btn-primary" href="@Model.Reservas" target="_blank" rel="noopener noreferrer">Reservar cita ↗</a></aside>

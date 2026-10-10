@@ -382,3 +382,10 @@
   .panel-cuenta,.panel-actividad { padding:22px; }
   .sitio-admin .row:has(.row-body) { flex-wrap:wrap; }
 }
+.form-pagina { width: min(100%, 820px); margin-inline: auto; }
+.form-pagina .form { max-width: none; }
+.nueva-visita { width: min(100%, 960px); margin-inline: auto; }
+.nueva-visita .form-ancho { max-width: none; }
+@media (min-width:901px) { .barra-total { padding-inline:max(40px,calc((100vw - var(--sidebar-w) - 960px) / 2)); } }
+.main > .form { margin-inline: auto; }
+.resena-card form { display:grid; gap:16px; }

@@ -16,7 +16,10 @@
   width: var(--sidebar-w);
   padding: 22px 16px 18px;
   border-right: 0.5px solid var(--separator);
+  overflow-y: auto;
 }
+
+.sidebar > * { flex-shrink: 0; }
 
 .brand {
   display: flex;
@@ -354,4 +357,18 @@
     top: calc(var(--topbar-h) + env(safe-area-inset-top) + 8px);
     right: 16px;
   }
+}
+/* Un panel pendiente de validación no expone la copia privada que conserva el navegador. */
+.sitio-admin.sesion-en-comprobacion > :not(.sesion-aviso) { visibility: hidden !important; }
+.sesion-aviso { display: none; }
+.sesion-en-comprobacion > .sesion-aviso {
+  display: grid;
+  position: fixed;
+  inset: 0;
+  place-content: center;
+  padding: 32px;
+  text-align: center;
+  color: var(--label-2);
+  background: var(--bg);
+  z-index: 9999;
 }

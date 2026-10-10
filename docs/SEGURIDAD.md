@@ -2,7 +2,7 @@
 
 ## Rutas y capas
 
-La presentación pública está en `Controllers/InicioController`, `Views/Inicio` y `wwwroot/css/publico.css`. Su contenido se lee de `contenido-publico.json` y no consulta clientes, visitas ni el catálogo interno.
+La presentación pública está en `Controllers/InicioController`, `Views/Inicio` y `wwwroot/css/publico.css`. El contacto se lee de `contenido-publico.json`; los tratamientos publicados y las opiniones aprobadas se leen de tablas propias en SQL. Sus respuestas públicas no incluyen datos de clientes, visitas, tickets ni catálogo de facturación.
 
 La gestión está en `Areas/Admin`: todos sus controladores heredan de `AdminController`, que exige la política `Administrador` y aplica el límite de llamadas del panel. Además, la política de autorización por defecto exige autenticación, incluso si se añade un controlador nuevo. Solo portada, servicios, acceso, errores y recursos estáticos propios permiten visitas anónimas.
 
@@ -30,7 +30,7 @@ La lógica de cuentas y sesiones vive en Application y Domain; los repositorios 
 
    Introduce un usuario y una contraseña de al menos 15 caracteres. La contraseña no aparece en pantalla; se confirma dos veces. No se envía por argumentos, URL ni logs. Si ese usuario ya existe, se cambia su contraseña y se revocan todas sus sesiones. Este comando también sirve para recuperar una cuenta bloqueada o una contraseña olvidada.
 
-4. Abre `/admin/acceso`. Tras entrar, el dashboard permite abrir toda la gestión.
+4. Abre `/admin/acceso`. Tras la contraseña, vincula Microsoft Authenticator escaneando el QR y confirma el código. Guarda los diez códigos de recuperación que se muestran una sola vez. Solo después se abre una sesión del panel. Consulta [CONTENIDO-Y-MFA.md](CONTENIDO-Y-MFA.md) para cambiar de móvil o recuperar MFA desde el servidor.
 
 Para esta copia local, Codex ha aplicado la migración tras hacer y verificar una copia de SQL, y ha creado `lucia` con una contraseña aleatoria. Las credenciales están en `.artifacts/acceso-inicial.txt`, excluido de Git y accesible solo por tu usuario de Windows y SYSTEM. Guarda la contraseña en tu gestor y elimina ese archivo cuando no lo necesites. No se publican ni se incluyen en la distribución.
 
@@ -49,6 +49,16 @@ Todas las peticiones al panel, incluidas búsquedas JSON, exportaciones, tickets
 El navegador envía automáticamente la cookie en las llamadas del mismo origen. Los POST además incluyen `__RequestVerificationToken` de ASP.NET Core; una cookie válida por sí sola no permite ejecutar cambios desde otra página. Las respuestas privadas llevan `Cache-Control: no-store`.
 
 Las fotos históricas conservan `/imagenes/...` en SQL; las vistas las enlazan a `/admin/imagenes/...`, donde un controlador protegido verifica el acceso. Se han excluido de los recursos estáticos anónimos. No se publica ni sobrescribe el directorio físico de fotos.
+
+## Cierre y expulsión del panel
+
+En **Seguridad** se puede cerrar una sesión concreta (incluida **Esta sesión**), cerrar las otras o cerrar todas. Cerrar la actual o todas revoca el token en SQL, elimina la cookie y redirige inmediatamente a `/admin/acceso`. Los cierres requieren POST con antifalsificación y solo afectan a sesiones de la misma cuenta. Las cookies copiadas también quedan inutilizadas.
+
+La validación de servidor se ejecuta en cada petición, sin intervalo de tolerancia, siguiendo el mecanismo [ValidatePrincipal de ASP.NET Core](https://learn.microsoft.com/en-us/aspnet/core/security/authentication/cookie?view=aspnetcore-10.0#react-to-back-end-changes). Se rechazan sesiones cerradas, caducadas, inexistentes, tokens ausentes o incorrectos e identidades que no coinciden con la sesión. Páginas y recargas redirigen al acceso; llamadas JSON devuelven 401. Las respuestas privadas siguen usando `no-store`.
+
+Para las pantallas ya abiertas, `sesion.js` consulta `/admin/acceso/estado` al cargar, al recuperar el foco o la visibilidad y al restaurar el historial. Usa [pageshow](https://developer.mozilla.org/en-US/docs/Web/API/Window/pageshow_event) para revalidar también las páginas restauradas desde la memoria del navegador: `pagehide` oculta su contenido antes de guardarlo. Las pestañas del mismo navegador reciben un aviso tras un cierre confirmado; otras conexiones se comprueban cada 15 segundos mientras la pestaña esté visible. La comprobación automática no renueva el plazo de inactividad. Solo devuelve el identificador de sesión; el token permanece en la cookie HttpOnly.
+
+Si la cookie cambia por otro inicio de sesión, se abandona la pantalla antigua. Si el servidor no responde, el panel oculta los datos y bloquea su uso hasta obtener una validación válida; ante límites de peticiones respeta `Retry-After`. La protección del backend no depende de JavaScript: sin él, cualquier nueva petición sigue exigiendo una sesión válida. Una petición ya autorizada antes de la revocación puede terminar; los datos que ya se descargaron o imprimieron no pueden retirarse del dispositivo.
 
 ## Contraseñas y intentos de acceso
 
@@ -100,6 +110,7 @@ La política CSP permite scripts locales y scripts en línea solo con nonce, imp
 
 ```powershell
 dotnet test -c Release
+node --test tests/PeluqueriaLucia.Tests/Web/sesion.test.cjs
 dotnet publish src/PeluqueriaLucia.Web -c Release -r win-x64 -o .artifacts/publicacion
 ```
 

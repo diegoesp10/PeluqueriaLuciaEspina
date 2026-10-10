@@ -73,6 +73,10 @@
         signal: peticion.signal,
         headers: { Accept: 'application/json' },
       });
+      if (respuesta.status === 401 || respuesta.status === 403) {
+        window.SesionAdministrador?.expulsar();
+        return;
+      }
       if (!respuesta.ok) throw new Error(respuesta.statusText);
       sugerencias = await respuesta.json();
       activa = sugerencias.length > 0 ? 0 : -1;

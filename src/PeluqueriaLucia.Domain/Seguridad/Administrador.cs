@@ -33,6 +33,31 @@ public sealed class Administrador
     public int IntentosFallidos { get; private set; }
 
     public DateTime? BloqueadoHasta { get; private set; }
+    public string? SecretoMfaProtegido { get; private set; }
+    public long UltimoPasoMfa { get; private set; } = -1;
+    public bool MfaActivo => SecretoMfaProtegido is not null;
+    public int VersionSeguridad { get; private set; }
+
+    public void ActivarMfa(string secretoProtegido, long paso)
+    {
+        SecretoMfaProtegido = secretoProtegido;
+        UltimoPasoMfa = paso;
+        VersionSeguridad++;
+    }
+
+    public bool ConsumirPasoMfa(long paso)
+    {
+        if (paso <= UltimoPasoMfa) return false;
+        UltimoPasoMfa = paso;
+        return true;
+    }
+
+    public void RestablecerMfa()
+    {
+        SecretoMfaProtegido = null;
+        UltimoPasoMfa = -1;
+        VersionSeguridad++;
+    }
 
     public static string NormalizarUsuario(string? usuario) => (usuario ?? string.Empty).Trim().ToLowerInvariant();
 
@@ -73,6 +98,7 @@ public sealed class Administrador
 
     public void CambiarContrasena(string hashContrasena, DateTime ahora)
     {
+        VersionSeguridad++;
         HashContrasena = hashContrasena;
         ContrasenaCambiadaEn = ahora;
         IntentosFallidos = 0;

@@ -178,3 +178,27 @@ html { scroll-behavior:smooth; scroll-padding-top:120px; }
   .acceso-intro h1 { font-size:40px; }
 }
 @media(prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } }
+.mfa-panel { display:grid; gap:22px; }
+.mfa-panel .acceso-intro { margin-bottom:0; }
+.mfa-qr { display:block; width:min(100%,240px); height:auto; margin-inline:auto; border:12px solid #fff; border-radius:16px; background:#fff; }
+.mfa-manual { padding:16px; background:var(--fill); border-radius:16px; }
+.mfa-manual code { display:block; overflow-wrap:anywhere; padding-top:12px; }
+.codigos-recuperacion { display:grid; gap:10px; padding:18px; background:var(--fill); border-radius:16px; }
+.codigos-recuperacion code { font-size:12px; overflow-wrap:anywhere; }
+.opiniones-portada { display:grid; grid-template-columns:1.4fr 1fr; gap:64px; align-items:center; }
+.valoracion-salon { justify-self:center; text-align:center; display:grid; gap:18px; }
+.valoracion-salon strong { font:400 clamp(44px,5vw,76px)/1.05 var(--font-display); }
+.valoracion-salon strong small { font-size:24px; }
+.valoracion-salon p { color:var(--olive); }
+.opinion-escribir { display:grid; grid-template-columns:1fr 1fr; gap:clamp(32px,6vw,100px); background:var(--sand); }
+.opinion-escribir > div { display:grid; align-content:start; gap:24px; }
+.form-opinion { display:grid; gap:24px; }
+.opinion-puntuacion { border:0; padding:0; margin:0; }
+.opinion-puntuacion legend { font-weight:600; margin-bottom:12px; }
+.opinion-puntuacion > div { display:flex; gap:8px; flex-wrap:wrap; }
+.opinion-puntuacion label span { display:block; padding:12px 16px; border:1px solid var(--separator); border-radius:999px; cursor:pointer; }
+.opinion-puntuacion input { position:absolute; opacity:0; }
+.opinion-puntuacion input:checked + span { background:var(--accent); color:var(--accent-ink); }
+.opinion-puntuacion input:focus-visible + span { outline:3px solid var(--olive); outline-offset:3px; }
+.aviso-opinion { padding:16px; background:var(--fill); border-radius:16px; }
+@media(max-width:800px) { .opiniones-portada,.opinion-escribir { grid-template-columns:1fr; gap:36px; } .valoracion-salon { justify-self:start; text-align:left; } }

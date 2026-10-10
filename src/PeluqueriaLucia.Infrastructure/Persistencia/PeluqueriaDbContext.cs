@@ -5,6 +5,7 @@ using PeluqueriaLucia.Domain.Catalogo;
 using PeluqueriaLucia.Domain.Clientes;
 using PeluqueriaLucia.Domain.Seguridad;
 using PeluqueriaLucia.Domain.Visitas;
+using PeluqueriaLucia.Domain.Publico;
 
 namespace PeluqueriaLucia.Infrastructure.Persistencia;
 
@@ -29,6 +30,12 @@ public sealed class PeluqueriaDbContext(DbContextOptions<PeluqueriaDbContext> op
     public DbSet<SesionAdministrador> SesionesAdministrador => Set<SesionAdministrador>();
 
     public DbSet<IntentoAcceso> IntentosAcceso => Set<IntentoAcceso>();
+    public DbSet<DesafioMfa> DesafiosMfa => Set<DesafioMfa>();
+    public DbSet<RecuperacionMfa> RecuperacionesMfa => Set<RecuperacionMfa>();
+    public DbSet<CategoriaTratamiento> CategoriasPublicas => Set<CategoriaTratamiento>();
+    public DbSet<TratamientoPublico> TratamientosPublicos => Set<TratamientoPublico>();
+    public DbSet<PermisoResena> PermisosResenas => Set<PermisoResena>();
+    public DbSet<Resena> Resenas => Set<Resena>();
 
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 

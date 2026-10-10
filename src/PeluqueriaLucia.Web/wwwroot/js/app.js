@@ -54,6 +54,7 @@
       if (form.dataset.confirmado === 'true' || !dialogo?.showModal) return;
       evento.preventDefault();
       dialogo.querySelector('#dialogo-texto').textContent = form.dataset.confirmar;
+      dialogo.querySelector('#dialogo-aceptar').textContent = form.dataset.confirmarAccion ?? 'Eliminar';
       dialogo.returnValue = '';
       dialogo.showModal();
       dialogo.addEventListener(

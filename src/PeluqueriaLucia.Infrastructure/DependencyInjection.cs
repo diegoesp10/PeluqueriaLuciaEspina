@@ -33,6 +33,11 @@ public static class DependencyInjection
         services.AddScoped<ISesionRepositorio, SesionRepositorio>();
         services.AddScoped<IIntentoAccesoRepositorio, IntentoAccesoRepositorio>();
         services.AddSingleton<IHasherContrasenas, HasherContrasenas>();
+        services.AddScoped<IMfaRepositorio, MfaRepositorio>();
+        services.AddSingleton<IProtectorSecretos, ProtectorSecretos>();
+        services.AddScoped<IContenidoRepositorio, ContenidoRepositorio>();
+        services.AddSingleton<IFotosResenas, FotosResenas>();
+        services.AddOptions<OpcionesFotosResenas>().Bind(configuracion.GetSection("FotosResenas"));
 
         // Claves de cifrado de cookies y tokens antifalsificación en la base de datos: sobreviven a reinicios de IIS
         // y no dependen de permisos de carpetas en el equipo

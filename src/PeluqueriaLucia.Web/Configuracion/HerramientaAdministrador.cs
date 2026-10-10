@@ -12,9 +12,9 @@ public static class HerramientaAdministrador
 {
     public const string Comando = "administrador";
 
-    public static bool EsComando(string[] args) => args.Length > 0 && args[0] == Comando;
+    public static bool EsComando(string[] args) => args.Length > 0 && (args[0] == Comando || args[0] == "recuperar-mfa");
 
-    public static async Task<int> EjecutarAsync(IServiceProvider servicios)
+    public static async Task<int> EjecutarAsync(IServiceProvider servicios, bool recuperarMfa = false)
     {
         Console.WriteLine("Administrador del panel de Peluquería Lucía");
         Console.WriteLine("Si el usuario ya existe, se le pondrá la contraseña nueva y se cerrarán todas sus sesiones.");
@@ -23,6 +23,14 @@ public static class HerramientaAdministrador
         Console.Write("Usuario: ");
         var usuario = Console.ReadLine() ?? string.Empty;
         var contrasena = LeerOculto($"Contraseña (mínimo {AccesoService.LongitudMinimaContrasena} caracteres): ");
+        if (recuperarMfa)
+        {
+            await using var scopeMfa = servicios.CreateAsyncScope();
+            var recuperacion = await scopeMfa.ServiceProvider.GetRequiredService<MfaService>().RecuperarDesdeConsolaAsync(usuario, contrasena);
+            if (!recuperacion.Exito) { Console.Error.WriteLine(recuperacion.Error!.Mensaje); return 1; }
+            Console.WriteLine("Sesiones y códigos anteriores anulados. El próximo acceso exigirá vincular y confirmar otro Authenticator.");
+            return 0;
+        }
         if (LeerOculto("Repite la contraseña: ") != contrasena)
         {
             Console.Error.WriteLine("Las contraseñas no coinciden. No se ha cambiado nada.");

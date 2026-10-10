@@ -14,8 +14,35 @@ internal sealed class AdministradorConfiguracion : IEntityTypeConfiguration<Admi
         builder.ToTable("Administradores");
         builder.Property(a => a.Usuario).IsRequired().HasMaxLength(Administrador.LongitudUsuario);
         builder.HasIndex(a => a.Usuario).IsUnique();
+        builder.Property(a => a.SecretoMfaProtegido).HasMaxLength(1000);
+        builder.Ignore(a => a.MfaActivo);
         builder.Property(a => a.HashContrasena).IsRequired().HasMaxLength(200);
         builder.Property<byte[]>("Version").IsRowVersion();
+    }
+}
+
+internal sealed class DesafioMfaConfiguracion : IEntityTypeConfiguration<DesafioMfa>
+{
+    public void Configure(EntityTypeBuilder<DesafioMfa> b)
+    {
+        b.ToTable("DesafiosMfa"); b.Property(x => x.Id).ValueGeneratedNever();
+        b.Property(x => x.TokenHash).HasMaxLength(64).IsUnicode(false);
+        b.Property(x => x.Ip).HasMaxLength(45).IsUnicode(false);
+        b.Property(x => x.NuevoSecretoProtegido).HasMaxLength(1000);
+        b.Property<byte[]>("Version").IsRowVersion();
+        b.HasOne<Administrador>().WithMany().HasForeignKey(x => x.AdministradorId).OnDelete(DeleteBehavior.Cascade);
+        b.HasIndex(x => x.ExpiraEn);
+    }
+}
+
+internal sealed class RecuperacionMfaConfiguracion : IEntityTypeConfiguration<RecuperacionMfa>
+{
+    public void Configure(EntityTypeBuilder<RecuperacionMfa> b)
+    {
+        b.ToTable("RecuperacionesMfa"); b.Property(x => x.Id).ValueGeneratedNever();
+        b.Property(x => x.Hash).HasMaxLength(64).IsUnicode(false); b.HasIndex(x => x.Hash).IsUnique();
+        b.Property<byte[]>("Version").IsRowVersion();
+        b.HasOne<Administrador>().WithMany().HasForeignKey(x => x.AdministradorId).OnDelete(DeleteBehavior.Cascade);
     }
 }
 

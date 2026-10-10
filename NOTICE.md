@@ -20,6 +20,9 @@ Las [Human Interface Guidelines](https://developer.apple.com/design/human-interf
 | Trazos de iconos al estilo de [Lucide](https://lucide.dev) | ISC |
 | [ClosedXML](https://github.com/ClosedXML/ClosedXML) (exportación a Excel) | MIT |
 | [Entity Framework Core](https://github.com/dotnet/efcore) y ASP.NET Core | MIT |
+| [QRCoder](https://github.com/codebude/QRCoder) (QR local de Authenticator) | MIT |
+| [Otp.NET](https://github.com/kspearrin/Otp.NET) (TOTP) | MIT |
+| [SkiaSharp](https://github.com/mono/SkiaSharp) (normalización de fotos) | MIT; incluye Skia, BSD y licencias de sus dependencias nativas |
 
 La foto pública del salón procede de la [ficha de Lucía en Booksy](https://booksy.com/es-es/173411_lucia-peluqueria-ecologica_peluqueria_79758_oviedo), aportada como referencia por el propietario del proyecto. Se guarda localmente en `wwwroot/publico/salon.jpg`. El logo ya formaba parte del proyecto. Booksy conserva los derechos sobre su plataforma; la aplicación enlaza allí para las reservas.
 

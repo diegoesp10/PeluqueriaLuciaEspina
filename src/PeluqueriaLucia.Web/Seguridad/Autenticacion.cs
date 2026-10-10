@@ -17,6 +17,8 @@ public static class Autenticacion
     public const string ClaimSesion = "sid";
     public const string ClaimToken = "tok";
     public const string ClaimAdministrador = "aid";
+    public const string RutaEstado = "/admin/acceso/estado";
+    public const string AvisoSesiones = "sesiones-cambiadas";
 
     public static IServiceCollection AddAutenticacionAdministrador(this IServiceCollection services)
     {
@@ -52,7 +54,9 @@ public static class Autenticacion
                 .AddAuthenticationSchemes(Esquema)
                 .RequireAuthenticatedUser()
                 .RequireClaim(ClaimSesion)
-                .RequireClaim(ClaimAdministrador));
+                .RequireClaim(ClaimAdministrador)
+                .RequireClaim(ClaimToken)
+                .RequireClaim("amr", "mfa"));
 
         return services;
     }
@@ -63,6 +67,7 @@ public static class Autenticacion
             new Claim(ClaimAdministrador, sesion.AdministradorId.ToString(System.Globalization.CultureInfo.InvariantCulture)),
             new Claim(ClaimSesion, sesion.SesionId.ToString()),
             new Claim(ClaimToken, sesion.Token),
+            new Claim("amr", "mfa"),
         ],
         Esquema));
 
@@ -72,10 +77,12 @@ public static class Autenticacion
         var principal = contexto.Principal;
         var acceso = contexto.HttpContext.RequestServices.GetRequiredService<AccesoService>();
         var valida = principal?.FindFirst(ClaimSesion)?.Value is { } sid && Guid.TryParse(sid, out var sesionId)
-            ? await acceso.ValidarSesionAsync(sesionId, principal.FindFirst(ClaimToken)?.Value, IpCliente.De(contexto.HttpContext), contexto.HttpContext.RequestAborted)
+            ? await acceso.ValidarSesionAsync(sesionId, principal.FindFirst(ClaimToken)?.Value, IpCliente.De(contexto.HttpContext),
+                contexto.HttpContext.RequestAborted, registrarUso: !contexto.Request.Path.Equals(RutaEstado))
             : null;
 
-        if (valida is null)
+        if (valida is null || principal?.FindFirst("amr")?.Value != "mfa" || principal?.FindFirst(ClaimAdministrador)?.Value != valida.AdministradorId.ToString(System.Globalization.CultureInfo.InvariantCulture) ||
+            principal.Identity?.Name != valida.Usuario)
         {
             contexto.RejectPrincipal();
             await contexto.HttpContext.SignOutAsync(Esquema);

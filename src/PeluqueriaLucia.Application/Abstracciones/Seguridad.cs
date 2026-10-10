@@ -47,3 +47,19 @@ public enum ResultadoVerificacion
     /// <summary>Correcta, pero el hash usa parámetros antiguos y conviene recalcularlo.</summary>
     CorrectaRecalcular,
 }
+
+public interface IProtectorSecretos
+{
+    string Proteger(string valor, string finalidad);
+    string? Leer(string valor, string finalidad);
+    string GenerarSecretoMfa();
+    long? VerificarTotp(string secreto, string codigo, DateTime ahora);
+}
+
+public interface IMfaRepositorio
+{
+    Task<DesafioMfa?> ObtenerAsync(Guid id, CancellationToken ct);
+    void Agregar(DesafioMfa desafio);
+    Task<IReadOnlyList<RecuperacionMfa>> CodigosAsync(int administradorId, CancellationToken ct);
+    void Agregar(RecuperacionMfa codigo);
+}

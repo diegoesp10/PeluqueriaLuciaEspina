@@ -2,12 +2,15 @@
 
 Aplicación de gestión interna de la Peluquería Ecológica Lucía Espina: visitas y cobros del día, clientes con su historial, catálogo de servicios con precios, tickets de caja y exportación a Excel para la gestoría.
 
-Web pública del salón y gestión privada con usuario y contraseña. Corre con ASP.NET Core 10 y SQL Server, en el ordenador de la peluquería o en su servidor IIS.
+Web pública del salón y gestión privada con contraseña y Authenticator obligatorio. Corre con ASP.NET Core 10 y SQL Server, en el ordenador de la peluquería o en su servidor IIS.
 
 - `/`: presentación del salón, logo, foto real, contacto y reservas en Booksy.
-- `/servicios`: página pública de servicios y precios orientativos, independiente del catálogo interno y de SQL.
+- `/servicios`: servicios y precios publicados, almacenados en SQL y editables desde administración.
+- `/opiniones`: reseñas con estrellas y fotos opcionales, verificadas mediante un código de ticket cobrado.
 - `/admin`: dashboard, visitas, clientes, catálogo, cobros y exportaciones. Requiere una sesión válida.
-- `/admin/Seguridad`: sesiones, cambio de contraseña, intentos de acceso y llamadas por IP.
+- `/admin/Seguridad`: sesiones, contraseña con MFA, cambio de Authenticator, intentos de acceso y llamadas por IP.
+- `/admin/Tratamientos`: categorías, precios, duración, orden y publicación del catálogo público.
+- `/admin/Resenas`: revisión, publicación, retirada y respuesta a las opiniones.
 
 La separación de capas existente se conserva; la gestión se ha trasladado al área MVC `Areas/Admin`. Ver [docs/SEGURIDAD.md](docs/SEGURIDAD.md) para activar o recuperar el acceso.
 
@@ -67,7 +70,9 @@ Pruebas (crean y borran bases temporales aisladas en SQL Server; otro servidor c
 dotnet test
 ```
 
-Los datos públicos se editan en `src/PeluqueriaLucia.Web/contenido-publico.json`; los precios y reservas se contrastan con [Booksy](https://booksy.com/es-es/173411_lucia-peluqueria-ecologica_peluqueria_79758_oviedo). No se muestran horarios ni reseñas inventados. Logo y foto se sirven desde archivos locales.
+El contacto y las reservas se editan en `src/PeluqueriaLucia.Web/contenido-publico.json`. Los precios se inicializan una sola vez con la migración y después se editan en **Servicios de la web**. Las reseñas proceden de tickets reales y se moderan desde **Reseñas**. El catálogo público es independiente del catálogo de facturación; cambiarlo no altera visitas ni cobros anteriores. Logo y foto se sirven desde archivos locales.
+
+En el primer acceso, escanea el QR con Microsoft Authenticator (**Añadir cuenta → Otra cuenta**) y confirma el código de seis dígitos. Guarda los diez códigos de recuperación que se muestran una sola vez. En accesos posteriores se exigen contraseña y código. Para recuperar un móvil perdido utiliza un código de reserva y **Seguridad → Vincular otro Authenticator**. La recuperación excepcional desde el servidor es `dotnet run --project src/PeluqueriaLucia.Web -- recuperar-mfa`; pide la contraseña y revoca todas las sesiones, sin abrir acceso sin MFA. Detalles y endpoints en [docs/CONTENIDO-Y-MFA.md](docs/CONTENIDO-Y-MFA.md).
 
 ### Cambios en la base de datos
 

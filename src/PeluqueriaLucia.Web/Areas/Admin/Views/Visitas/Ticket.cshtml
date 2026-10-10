@@ -16,6 +16,7 @@
     </div>
 
     <article class="ticket" id="ticket" aria-label="Ticket de la visita">
+        @if(Model.CodigoOpinion is not null) { <div class="ticket-opinion"><strong>Tu experiencia cuenta</strong><p>Comparte tu opinión en la web del salón → Opiniones.</p><p>Código: <span class="ticket-codigo">@string.Join("-", Enumerable.Range(0, 8).Select(i => Model.CodigoOpinion.Substring(i * 4, 4)))</span></p><small>Una opinión por ticket. Válido 6 meses desde su emisión. No se publican datos de tu visita.</small></div> }
         <img class="ticket-logo" src="~/Img/Icono_bn.png" alt="" />
         <div class="ticket-centro ticket-fuerte">@n.Nombre</div>
         <div class="ticket-centro">@n.Localidad</div>
@@ -69,5 +70,6 @@
         }
         <div class="ticket-centro">Impuestos incluidos</div>
         <div class="ticket-centro">@n.PieTicket</div>
+
     </article>
 </div>

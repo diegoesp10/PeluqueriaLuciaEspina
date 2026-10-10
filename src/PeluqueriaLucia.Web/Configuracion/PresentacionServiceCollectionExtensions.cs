@@ -44,6 +44,8 @@ public static class PresentacionServiceCollectionExtensions
             : Path.GetFullPath(o.Carpeta, environment.ContentRootPath));
 
         services.AddHostedService<ArranqueBaseDeDatos>();
+        services.PostConfigure<OpcionesFotosResenas>(o => o.Carpeta = string.IsNullOrWhiteSpace(o.Carpeta)
+            ? Path.Combine(environment.ContentRootPath, "AlmacenResenas") : Path.GetFullPath(o.Carpeta, environment.ContentRootPath));
         return services;
     }
 
@@ -66,6 +68,7 @@ public static class PresentacionServiceCollectionExtensions
         });
 
         services.AddAutenticacionAdministrador();
+        services.AddScoped<DesafioCookie>();
         services.AddLimitesDePeticiones();
         services.AddSingleton<MonitorPeticiones>();
         services.AddAntiforgery(o =>

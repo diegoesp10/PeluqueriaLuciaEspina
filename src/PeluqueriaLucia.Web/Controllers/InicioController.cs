@@ -9,11 +9,27 @@ namespace PeluqueriaLucia.Web.Controllers;
 
 [AllowAnonymous]
 [EnableRateLimiting(LimitesDePeticiones.Publico)]
-public sealed class InicioController(IOptionsSnapshot<ContenidoPublico> contenido) : Controller
+public sealed class InicioController(IOptionsSnapshot<ContenidoPublico> contenido, PeluqueriaLucia.Application.Publico.ContenidoService catalogo) : Controller
 {
     [HttpGet("/")]
     public IActionResult Index() => View(contenido.Value);
 
     [HttpGet("/servicios")]
-    public IActionResult Servicios() => View(contenido.Value);
+    public async Task<IActionResult> Servicios(CancellationToken ct) => View(await CatalogoAsync(ct));
+
+    [HttpGet("/api/tratamientos")]
+    public async Task<IActionResult> Tratamientos(CancellationToken ct) => Json((await CatalogoAsync(ct)).Categorias);
+
+    private async Task<ContenidoPublico> CatalogoAsync(CancellationToken ct)
+    {
+        var modelo = contenido.Value;
+        var categorias = await catalogo.CategoriasAsync(ct);
+        var tratamientos = await catalogo.TratamientosAsync(true, ct);
+        modelo.Categorias = categorias.Select(c => new CategoriaServicios { Nombre = c.Nombre, Slug = c.Slug, Servicios = tratamientos.Where(x => x.CategoriaId == c.Id).Select(x => new ServicioPublico {
+            Nombre = x.Nombre, Detalle = x.Descripcion, Destacado = x.Destacado,
+            Precio = x.TipoPrecio == Domain.Publico.TipoPrecioPublico.Consultar ? "Consultar" : (x.TipoPrecio == Domain.Publico.TipoPrecioPublico.Desde ? "desde " : "") + x.Precio!.Value.ToString("C", Infraestructura.Formato.Espanol),
+            Duracion = (x.DuracionMinutos / 60 > 0 ? $"{x.DuracionMinutos / 60} h " : "") + (x.DuracionMinutos % 60 > 0 ? $"{x.DuracionMinutos % 60} min" : "")
+        }).ToList() }).Where(c => c.Servicios.Count > 0).ToList();
+        return modelo;
+    }
 }

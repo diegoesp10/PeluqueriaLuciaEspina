@@ -746,3 +746,31 @@ input[type='datetime-local'].input {
 .btn-light { background:var(--cream); color:var(--forest); }
 .btn-light:hover { background:color-mix(in oklab,var(--cream) 92%,var(--olive)); }
 .row-body { flex:1; min-width:0; overflow-wrap:anywhere; }
+.fecha-control { position:relative; min-width:0; }
+.fecha-original { position:absolute; width:1px !important; height:1px; opacity:0; pointer-events:none; padding:0; border:0; }
+.fecha-boton { text-align:left; cursor:pointer; min-width:200px; text-transform:capitalize; }
+.fecha-calendario { position:fixed; max-height:calc(100dvh - 40px); overflow-y:auto; z-index:60; width:min(330px,calc(100vw - 40px)); padding:20px; border:1px solid var(--separator); border-radius:24px; background:var(--surface); box-shadow:var(--glass-shadow); display:grid; gap:18px; }
+.fecha-cabecera,.fecha-pie { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.fecha-cabecera strong { text-transform:capitalize; font-size:15px; }
+.fecha-calendario button { border:0; border-radius:999px; min-height:36px; background:transparent; color:var(--label); font:inherit; cursor:pointer; }
+.fecha-calendario button:hover { background:var(--fill); }
+.fecha-calendario button:focus-visible { outline:2px solid var(--olive); outline-offset:2px; }
+.fecha-calendario button:disabled { opacity:.35; cursor:default; }
+.fecha-dias { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; text-align:center; }
+.fecha-semana { color:var(--label-2); font-size:11px; margin-bottom:6px; }
+.fecha-meses { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.fecha-calendario .is-active { background:var(--accent); color:var(--accent-ink); }
+.fecha-calendario .es-hoy { box-shadow:inset 0 0 0 1px var(--olive); }
+.fecha-pie button { padding:4px 14px; background:var(--fill); }
+.check-opcion { display:flex; gap:12px; align-items:flex-start; line-height:1.5; }
+.check-opcion input { accent-color:var(--olive); flex-shrink:0; width:18px; height:18px; }
+
+.resenas-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr)); gap:24px; }
+.resena-card { background:var(--surface); border:1px solid var(--separator); border-radius:var(--radius-card); padding:28px; display:flex; flex-direction:column; gap:16px; min-width:0; }
+.resena-cabecera { display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+.resena-cabecera span { font-size:12px; color:var(--label-2); }
+.resena-estrellas { font-size:22px; color:var(--olive); letter-spacing:3px; }
+.resena-verificada { font-size:12px; color:var(--olive); }
+.resena-comentario { white-space:pre-wrap; overflow-wrap:anywhere; }
+.resena-foto { width:100%; max-height:420px; object-fit:cover; border-radius:18px; }
+.resena-respuesta { padding:16px; background:var(--fill); border-radius:16px; }

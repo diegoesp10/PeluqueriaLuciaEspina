@@ -12,6 +12,7 @@ public sealed class VisitasController(
     VisitasService visitas,
     ClientesService clientes,
     CatalogoService catalogo,
+    PeluqueriaLucia.Application.Publico.ResenasService resenas,
     TimeProvider reloj,
     IOptions<DatosNegocio> negocio) : AdminController
 {
@@ -129,7 +130,7 @@ public sealed class VisitasController(
     public async Task<IActionResult> Ticket(int id, CancellationToken ct)
     {
         var visita = await visitas.ObtenerAsync(id, ct);
-        return visita is null ? NotFound() : View(new TicketModelo(visita, negocio.Value));
+        return visita is null ? NotFound() : View(new TicketModelo(visita, negocio.Value, await resenas.CodigoTicketAsync(id, ct)));
     }
 
     private async Task<NuevaVisitaModelo> ModeloNuevaAsync(NuevaVisitaFormulario formulario, CancellationToken ct)

@@ -13,7 +13,7 @@ var app = builder.Build();
 
 // «dotnet PeluqueriaLucia.Web.dll administrador»: crea el usuario del panel desde la consola y termina
 if (HerramientaAdministrador.EsComando(args))
-    return await HerramientaAdministrador.EjecutarAsync(app.Services);
+    return await HerramientaAdministrador.EjecutarAsync(app.Services, recuperarMfa: args[0] == "recuperar-mfa");
 
 startup.Configure(app);
 await app.RunAsync();

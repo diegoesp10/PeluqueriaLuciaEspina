@@ -20,6 +20,8 @@ public sealed class AccesoFormulario
 
 public sealed class ContrasenaFormulario
 {
+    [Required(ErrorMessage = "Escribe el código de Authenticator."), RegularExpression(@"[0-9 ]{6,9}", ErrorMessage = "Escribe los seis dígitos de la app.")]
+    public string Codigo { get; set; } = "";
     [Required(ErrorMessage = "Escribe tu contraseña actual."), StringLength(256, ErrorMessage = "La contraseña actual no puede superar 256 caracteres."), DataType(DataType.Password)]
     public string Actual { get; set; } = string.Empty;
 
@@ -28,6 +30,19 @@ public sealed class ContrasenaFormulario
 
     [Required(ErrorMessage = "Repite la nueva contraseña."), StringLength(256, ErrorMessage = "La confirmación no puede superar 256 caracteres."), Compare(nameof(Nueva), ErrorMessage = "Las contraseñas no coinciden."), DataType(DataType.Password)]
     public string Confirmacion { get; set; } = string.Empty;
+}
+
+public sealed class MfaFormulario
+{
+    [Required(ErrorMessage = "Escribe el código de la app."), StringLength(64)]
+    public string Codigo { get; set; } = "";
+}
+public sealed record MfaModelo(string Usuario, string? Secreto, string? Qr);
+public sealed class ReconfigurarMfaFormulario : MfaFormularioBase { }
+public class MfaFormularioBase
+{
+    [Required, StringLength(256), DataType(DataType.Password)] public string Contrasena { get; set; } = "";
+    [Required, StringLength(64)] public string Codigo { get; set; } = "";
 }
 
 public sealed record SeguridadModelo(Guid SesionActual, IReadOnlyList<SesionAdministrador> Sesiones,

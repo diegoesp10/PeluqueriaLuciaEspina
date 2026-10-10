@@ -23,7 +23,7 @@
     <link rel="stylesheet" href="~/css/paginas.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/ticket.css" asp-append-version="true" />
 </head>
-<body class="sitio-admin">
+<body class="sitio-admin" data-sesion-id="@User.FindFirst(Autenticacion.ClaimSesion)?.Value" data-sesion-estado="@Url.Content(Autenticacion.RutaEstado)" data-sesion-acceso="@Url.Content("/admin/acceso")">
     <a class="skip-link" href="#contenido">Saltar al contenido</a>
 
     <div class="app">
@@ -53,6 +53,8 @@
                     <span class="nav-tile"><icono nombre="tijeras" tamano="17" /></span> Catálogo
                 </a>
                 <a class="nav-item @Activo("Seguridad")" asp-controller="Seguridad" asp-action="Index"><span class="nav-tile"><icono nombre="check-circulo" tamano="17" /></span> Seguridad</a>
+                <a class="nav-item @Activo("Tratamientos")" asp-controller="Tratamientos" asp-action="Index"><span class="nav-tile"><icono nombre="hoja" tamano="17" /></span> Servicios de la web</a>
+                <a class="nav-item @Activo("Resenas")" asp-controller="Resenas" asp-action="Index"><span class="nav-tile"><icono nombre="clientes" tamano="17" /></span> Reseñas</a>
             </nav>
 
             <div class="sidebar-foot">
@@ -75,6 +77,8 @@
                 <div class="cuenta-menu glass">
                     <p class="cuenta-actual">Sesión de <strong>@User.Identity?.Name</strong></p>
                     <a class="btn btn-gray" asp-controller="Seguridad" asp-action="Index">Seguridad y sesiones</a>
+                    <a class="btn btn-gray" asp-controller="Tratamientos" asp-action="Index">Servicios de la web</a>
+                    <a class="btn btn-gray" asp-controller="Resenas" asp-action="Index">Reseñas</a>
                     <a class="btn btn-gray" asp-controller="Seguridad" asp-action="Contrasena">Cambiar contraseña</a>
                     <partial name="_SelectorTema" />
                     <form method="post" asp-controller="Acceso" asp-action="Salir"><button class="btn btn-gray btn-block" type="submit">Cerrar sesión</button></form>
@@ -125,7 +129,9 @@
         </form>
     </dialog>
 
+    <partial name="_ControlSesion" />
     <script src="~/js/app.js" asp-append-version="true"></script>
+    <script src="~/js/fechas.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

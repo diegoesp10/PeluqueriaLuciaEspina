@@ -14,6 +14,7 @@ public static class LimitesDePeticiones
     public const string Publico = "publico";
     public const string Panel = "panel";
     public const string Acceso = "acceso";
+    public const string Resenas = "resenas";
 
     public static IServiceCollection AddLimitesDePeticiones(this IServiceCollection services)
     {
@@ -28,6 +29,7 @@ public static class LimitesDePeticiones
                 PorIp(c, "total", limites.TotalPorMinuto, TimeSpan.FromMinutes(1)));
             o.AddPolicy(Publico, c => PorIp(c, Publico, limites.PublicoPorMinuto, TimeSpan.FromMinutes(1)));
             o.AddPolicy(Panel, c => PorIp(c, Panel, limites.PanelPorMinuto, TimeSpan.FromMinutes(1)));
+            o.AddPolicy(Resenas, c => PorIp(c, Resenas, 6, TimeSpan.FromHours(1)));
             o.AddPolicy(Acceso, c => HttpMethods.IsPost(c.Request.Method)
                 ? PorIp(c, Acceso, limites.AccesoPorCuartoDeHora, TimeSpan.FromMinutes(15))
                 : PorIp(c, Publico, limites.PublicoPorMinuto, TimeSpan.FromMinutes(1)));

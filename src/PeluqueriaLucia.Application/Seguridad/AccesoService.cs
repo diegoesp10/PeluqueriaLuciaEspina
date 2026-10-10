@@ -21,6 +21,7 @@ public sealed class AccesoService(
     ISesionRepositorio sesiones,
     IIntentoAccesoRepositorio intentos,
     IHasherContrasenas hasher,
+    IProtectorSecretos secretos,
     IUnidadDeTrabajo unidadDeTrabajo,
     TimeProvider reloj)
 {
@@ -37,7 +38,7 @@ public sealed class AccesoService(
 
     public Task<bool> HayAdministradorAsync(CancellationToken ct = default) => administradores.HayAlgunoAsync(ct);
 
-    public async Task<Resultado<SesionIniciada>> IniciarSesionAsync(string usuario, string contrasena, Origen origen, CancellationToken ct = default)
+    public async Task<Resultado<Administrador>> VerificarContrasenaAsync(string usuario, string contrasena, Origen origen, CancellationToken ct = default)
     {
         var nombre = Administrador.NormalizarUsuario(usuario);
         var administrador = nombre.Length == 0 ? null : await administradores.ObtenerPorUsuarioAsync(nombre, ct);
@@ -67,21 +68,39 @@ public sealed class AccesoService(
         if (verificacion == ResultadoVerificacion.CorrectaRecalcular)
             administrador.ActualizarHash(hasher.Calcular(contrasena!));
 
+        await unidadDeTrabajo.GuardarCambiosAsync(ct);
+        return Resultado.Ok(administrador);
+    }
+
+    public async Task<Resultado<SesionIniciada>> IniciarSesionAsync(string usuario, string contrasena, Origen origen, CancellationToken ct = default, string? codigo = null)
+    {
+        var comprobacion = await VerificarContrasenaAsync(usuario, contrasena, origen, ct);
+        if (!comprobacion.Exito) return comprobacion.Error!;
+        var administrador = comprobacion.Valor!;
+        var secreto = administrador.SecretoMfaProtegido is { } protegido ? secretos.Leer(protegido, "totp") : null;
+        var paso = secreto is not null ? secretos.VerificarTotp(secreto, codigo ?? "", Ahora) : null;
+        if (paso is null || !administrador.ConsumirPasoMfa(paso.Value))
+            return new Error("Completa la verificación de Authenticator.");
+        return Resultado.Ok(await AbrirSesionMfaAsync(administrador, origen, ct));
+    }
+
+    internal async Task<SesionIniciada> AbrirSesionMfaAsync(Administrador administrador, Origen origen, CancellationToken ct)
+    {
         administrador.RegistrarAcceso(Ahora);
         var abiertas = await sesiones.ListarAbiertasAsync(administrador.Id, Ahora, ct);
         foreach (var anterior in abiertas.Skip(9)) anterior.Cerrar(Ahora);
         var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
         var sesion = SesionAdministrador.Abrir(administrador.Id, HashToken(token), origen.Ip, origen.Agente, Ahora);
         sesiones.Agregar(sesion);
-        await AnotarAsync(nombre, origen, exito: true, "Acceso correcto", ct);
+        await AnotarAsync(administrador.Usuario, origen, exito: true, "Acceso correcto con MFA", ct);
 
-        return Resultado.Ok(new SesionIniciada(sesion.Id, token, administrador.Id, administrador.Usuario, sesion.ExpiraEn));
+        return new SesionIniciada(sesion.Id, token, administrador.Id, administrador.Usuario, sesion.ExpiraEn);
     }
 
     /// <summary>
     /// Comprueba el token de sesión de una petición: que exista, que coincida, que no esté cerrada ni caducada.
     /// </summary>
-    public async Task<SesionValida?> ValidarSesionAsync(Guid sesionId, string? token, string ip, CancellationToken ct = default)
+    public async Task<SesionValida?> ValidarSesionAsync(Guid sesionId, string? token, string ip, CancellationToken ct = default, bool registrarUso = true)
     {
         if (string.IsNullOrEmpty(token))
             return null;
@@ -91,10 +110,10 @@ public sealed class AccesoService(
             return null;
 
         var administrador = await administradores.ObtenerAsync(sesion.AdministradorId, ct);
-        if (administrador is null)
+        if (administrador is null || !administrador.MfaActivo)
             return null;
 
-        if (sesion.RegistrarUso(Ahora, ip))
+        if (registrarUso && sesion.RegistrarUso(Ahora, ip))
             await unidadDeTrabajo.GuardarCambiosAsync(ct);
 
         return new SesionValida(sesion.Id, administrador.Id, administrador.Usuario);
@@ -127,6 +146,13 @@ public sealed class AccesoService(
         return otras.Count;
     }
 
+    public async Task CerrarTodasSesionesAsync(int administradorId, CancellationToken ct = default)
+    {
+        foreach (var sesion in await sesiones.ListarAbiertasAsync(administradorId, Ahora, ct))
+            sesion.Cerrar(Ahora);
+        await unidadDeTrabajo.GuardarCambiosAsync(ct);
+    }
+
     public Task<IReadOnlyList<SesionAdministrador>> ListarSesionesAsync(int administradorId, CancellationToken ct = default) =>
         sesiones.ListarAbiertasAsync(administradorId, Ahora, ct);
 
@@ -135,7 +161,7 @@ public sealed class AccesoService(
 
     /// <summary>Cambia la contraseña desde el panel y cierra el resto de sesiones abiertas.</summary>
     public async Task<Resultado> CambiarContrasenaAsync(
-        int administradorId, Guid sesionActual, string actual, string nueva, CancellationToken ct = default)
+        int administradorId, Guid sesionActual, string actual, string nueva, CancellationToken ct = default, string? codigo = null)
     {
         var administrador = await administradores.ObtenerAsync(administradorId, ct);
         if (administrador is null)
@@ -150,6 +176,15 @@ public sealed class AccesoService(
         }
         if (ValidarContrasena(administrador.Usuario, nueva) is { } error)
             return error;
+
+        var secreto = administrador.SecretoMfaProtegido is { } protegido ? secretos.Leer(protegido, "totp") : null;
+        var paso = secreto is not null ? secretos.VerificarTotp(secreto, codigo ?? "", Ahora) : null;
+        if (paso is null || !administrador.ConsumirPasoMfa(paso.Value))
+        {
+            administrador.RegistrarFallo(Ahora);
+            await unidadDeTrabajo.GuardarCambiosAsync(ct);
+            return new Error("El código de Authenticator no es válido o ya se utilizó. Espera al siguiente código.", "Codigo");
+        }
 
         administrador.CambiarContrasena(hasher.Calcular(nueva), Ahora);
         foreach (var sesion in await sesiones.ListarAbiertasAsync(administradorId, Ahora, ct))

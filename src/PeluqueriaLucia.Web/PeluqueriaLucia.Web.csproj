@@ -9,7 +9,9 @@
     <SelfContained>false</SelfContained>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="QRCoder" Version="1.8.0" />
     <Content Remove="wwwroot\imagenes\**" />
+    <Content Remove="AlmacenResenas\**" />
     <None Include="wwwroot\imagenes\**" />
     <Content Update="contenido-publico.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <ProjectReference Include="..\PeluqueriaLucia.Infrastructure\PeluqueriaLucia.Infrastructure.csproj" />
