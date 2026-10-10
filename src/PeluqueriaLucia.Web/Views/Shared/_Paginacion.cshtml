@@ -1,0 +1,15 @@
+@model PaginacionModelo
+@if (Model.TotalPaginas > 1)
+{
+    <nav class="pager" aria-label="Páginas">
+        @if (Model.Numero > 1)
+        {
+            <a class="btn btn-gray btn-sm" href="@Model.Enlace(Model.Numero - 1)"><icono nombre="anterior" tamano="16" /> Anterior</a>
+        }
+        <span class="num">Página @Model.Numero de @Model.TotalPaginas</span>
+        @if (Model.Numero < Model.TotalPaginas)
+        {
+            <a class="btn btn-gray btn-sm" href="@Model.Enlace(Model.Numero + 1)">Siguiente <icono nombre="siguiente" tamano="16" /></a>
+        }
+    </nav>
+}

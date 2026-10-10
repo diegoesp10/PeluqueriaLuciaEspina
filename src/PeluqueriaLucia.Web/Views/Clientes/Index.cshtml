@@ -1,0 +1,69 @@
+@model ClientesIndiceModelo
+@{
+    ViewData["Title"] = "Clientes";
+    var p = Model.Pagina;
+    var filtrando = !string.IsNullOrWhiteSpace(Model.Texto) || Model.Sexo is not null;
+}
+
+<div>
+    <header class="page-head">
+        <div>
+            <h1>Clientes</h1>
+            <p class="subtitle">@p.TotalElementos @(p.TotalElementos == 1 ? "cliente" : "clientes")@(filtrando ? " encontrados" : "")</p>
+        </div>
+        <div class="acciones">
+            <a class="btn btn-primary" asp-action="Nuevo"><icono nombre="cliente-nuevo" tamano="18" /> Nuevo cliente</a>
+        </div>
+    </header>
+
+    <form class="toolbar" method="get" asp-action="Index" role="search" data-busqueda>
+        <label class="search">
+            <icono nombre="buscar" tamano="17" />
+            <input class="input" type="search" name="q" value="@Model.Texto" placeholder="Buscar por nombre, teléfono o email"
+                   aria-label="Buscar clientes" autocomplete="off" data-buscar-al-escribir />
+        </label>
+        <div class="segmented" role="radiogroup" aria-label="Sexo">
+            <label><input type="radio" name="sexo" value="" checked="@(Model.Sexo is null)" data-enviar-al-cambiar /> Todos</label>
+            @foreach (var sexo in new[] { Sexo.Mujer, Sexo.Hombre, Sexo.Otro })
+            {
+                <label><input type="radio" name="sexo" value="@sexo" checked="@(Model.Sexo == sexo)" data-enviar-al-cambiar /> @Formato.Texto(sexo)</label>
+            }
+        </div>
+    </form>
+
+    @if (p.TotalElementos == 0)
+    {
+        <div class="estado-vacio">
+            <span class="estado-icono tint-green"><icono nombre="clientes" tamano="30" /></span>
+            @if (filtrando)
+            {
+                <h2>Sin resultados</h2>
+                <p>No hay ningún cliente que coincida con la búsqueda.</p>
+                <div class="acciones"><a class="btn btn-gray" asp-action="Index">Ver todos</a></div>
+            }
+            else
+            {
+                <h2>Aún no hay clientes</h2>
+                <p>Da de alta a tus clientes para registrar sus visitas y ver su historial.</p>
+                <div class="acciones"><a class="btn btn-primary" asp-action="Nuevo">Nuevo cliente</a></div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="list list-avatars">
+            @foreach (var c in p.Elementos)
+            {
+                <a class="row" asp-action="Detalle" asp-route-id="@c.Id">
+                    <span class="avatar @Formato.Tinte(c.Sexo)">@c.Iniciales</span>
+                    <span class="row-main">
+                        <span class="row-title">@c.NombreCompleto</span>
+                        <span class="row-sub">@(string.Join(" · ", new[] { c.Telefono, c.Email }.Where(x => !string.IsNullOrEmpty(x))) is { Length: > 0 } contacto ? contacto : "Sin datos de contacto")</span>
+                    </span>
+                    <span class="row-end"><span class="row-chevron"><icono nombre="siguiente" tamano="16" /></span></span>
+                </a>
+            }
+        </div>
+        <partial name="_Paginacion" model="@(new PaginacionModelo(p.Numero, p.TotalPaginas, p.TotalElementos, n => Url.Action("Index", new { q = Model.Texto, sexo = Model.Sexo, pagina = n })!))" />
+    }
+</div>

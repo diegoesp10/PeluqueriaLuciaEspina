@@ -404,3 +404,6 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# Configuración real del equipo de la peluquería (cadena de conexión con contraseña)
+appsettings.Production.json

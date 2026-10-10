@@ -1,0 +1,73 @@
+@model TicketModelo
+@{
+    ViewData["Title"] = "Ticket";
+    var v = Model.Visita;
+    var n = Model.Negocio;
+    string Importe(decimal d) => d.ToString("0.00", Formato.Espanol);
+}
+
+<div class="ticket-pagina">
+    <div class="ticket-barra no-print">
+        <a class="back-link" asp-action="Detalle" asp-route-id="@v.Id"><icono nombre="anterior" tamano="20" /> Visita</a>
+        <div class="acciones">
+            <a class="btn btn-gray" asp-action="Index" asp-route-fecha="@v.Fecha.ToString("yyyy-MM-dd")">Hecho</a>
+            <button type="button" class="btn btn-primary" onclick="window.print()"><icono nombre="imprimir" tamano="18" /> Imprimir</button>
+        </div>
+    </div>
+
+    <article class="ticket" id="ticket" aria-label="Ticket de la visita">
+        <img class="ticket-logo" src="~/Img/Icono_bn.png" alt="" />
+        <div class="ticket-centro ticket-fuerte">@n.Nombre</div>
+        <div class="ticket-centro">@n.Localidad</div>
+        <div class="ticket-centro">Tlf @n.Telefono</div>
+        <div class="ticket-centro">@n.Direccion</div>
+
+        <hr />
+
+        <div class="ticket-fila"><span>Fact. simplificada: @v.Id</span><span>@v.Fecha.ToString("dd/MM/yy HH:mm")</span></div>
+        <div>Empleado: @n.Empleado</div>
+        <div class="ticket-tenue">NIF: @n.Nif</div>
+
+        <hr />
+
+        <table>
+            <thead>
+                <tr><th class="uds">Uds</th><th>Descripción</th><th class="importe">Total</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var linea in v.Lineas)
+                {
+                    <tr><td class="uds">1</td><td>@linea.Nombre</td><td class="importe">@Importe(linea.Precio)</td></tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr><td></td><td class="ticket-fuerte derecha">TOTAL</td><td class="importe ticket-fuerte">@Importe(v.Total)</td></tr>
+            </tfoot>
+        </table>
+
+        <hr />
+
+        <table>
+            <thead><tr><th>Tipo imp.</th><th class="importe">Base</th><th class="importe">Cuota</th></tr></thead>
+            <tbody><tr><td>@n.TipoImpuesto.ToString("0.##", Formato.Espanol) %</td><td class="importe">@Importe(Model.Base)</td><td class="importe">@Importe(Model.Cuota)</td></tr></tbody>
+        </table>
+
+        <hr />
+
+        @if (v.EstaCobrada)
+        {
+            <div class="ticket-centro ticket-fuerte">Contado (@Formato.Texto(v.FormaPago))</div>
+            @if (v.FormaPago == FormaPago.Mixto)
+            {
+                <div class="ticket-fila"><span>Efectivo</span><span>@Importe(v.TotalEfectivo ?? 0)</span></div>
+                <div class="ticket-fila"><span>Tarjeta</span><span>@Importe(v.TotalTarjeta ?? 0)</span></div>
+            }
+        }
+        else
+        {
+            <div class="ticket-centro ticket-fuerte">PENDIENTE DE COBRO</div>
+        }
+        <div class="ticket-centro">Impuestos incluidos</div>
+        <div class="ticket-centro">@n.PieTicket</div>
+    </article>
+</div>
