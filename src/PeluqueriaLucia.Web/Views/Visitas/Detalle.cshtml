@@ -1,0 +1,135 @@
+@model VisitaDetalleModelo
+@{
+    var v = Model.Visita;
+    var cliente = v.Cliente;
+    ViewData["Title"] = cliente?.NombreCompleto ?? "Visita";
+    var fechaDia = v.Fecha.ToString("yyyy-MM-dd");
+}
+
+<div>
+    <a class="back-link" asp-action="Index" asp-route-fecha="@fechaDia"><icono nombre="anterior" tamano="20" /> Visitas</a>
+    <header class="page-head">
+        <div class="titulo-con-avatar">
+            <span class="avatar avatar-lg @(cliente is null ? "tint-gray" : Formato.Tinte(cliente.Sexo))">@(cliente?.Iniciales ?? "?")</span>
+            <div>
+                <h1>@(cliente?.NombreCompleto ?? "Cliente eliminado")</h1>
+                <p class="subtitle">@Formato.FechaLarga(DateOnly.FromDateTime(v.Fecha)) · @Formato.Hora(v.Fecha)</p>
+            </div>
+        </div>
+        <div class="acciones">
+            @if (v.EstaCobrada)
+            {
+                <a class="btn btn-gray" asp-action="Ticket" asp-route-id="@v.Id"><icono nombre="ticket" tamano="18" /> Ticket</a>
+            }
+            else
+            {
+                <form method="post" asp-action="Eliminar" asp-route-id="@v.Id"
+                      data-confirmar="La visita de @(cliente?.NombreCompleto ?? "este cliente") se borrará. No se puede deshacer.">
+                    <button class="btn btn-gray btn-destructive"><icono nombre="papelera" tamano="18" /> Eliminar</button>
+                </form>
+            }
+            @if (cliente is not null)
+            {
+                <a class="btn btn-gray" asp-controller="Clientes" asp-action="Detalle" asp-route-id="@cliente.Id"><icono nombre="cliente" tamano="18" /> Ficha</a>
+            }
+        </div>
+    </header>
+
+    <div class="detalle-grid">
+        <section>
+            <div class="section-head">
+                <h2>Servicios</h2>
+                @if (v.EstaCobrada)
+                {
+                    <span class="pill tint-green"><icono nombre="check" tamano="13" /> Cobrada</span>
+                }
+                else
+                {
+                    <span class="pill tint-orange">Pendiente de cobro</span>
+                }
+            </div>
+            <div class="list">
+                @foreach (var linea in v.Lineas)
+                {
+                    <div class="row row-kv">
+                        <span class="row-title">@linea.Nombre</span>
+                        <span class="row-amount">@Formato.Euros(linea.Precio)</span>
+                    </div>
+                }
+                <div class="row row-kv">
+                    <strong>Total</strong>
+                    <span class="row-amount row-total">@Formato.Euros(v.Total)</span>
+                </div>
+            </div>
+
+            @if (v.EstaCobrada)
+            {
+                <div class="section">
+                    <div class="section-head"><h2>Pago</h2></div>
+                    <div class="list">
+                        <div class="row row-kv">
+                            <span>Forma de pago</span>
+                            <span class="pill tint-green"><icono nombre="@Formato.Icono(v.FormaPago)" tamano="13" /> @Formato.Texto(v.FormaPago)</span>
+                        </div>
+                        <div class="row row-kv"><span>Efectivo</span><span class="num">@Formato.Euros(v.TotalEfectivo ?? 0)</span></div>
+                        <div class="row row-kv"><span>Tarjeta</span><span class="num">@Formato.Euros(v.TotalTarjeta ?? 0)</span></div>
+                    </div>
+                </div>
+            }
+        </section>
+
+        @if (!v.EstaCobrada)
+        {
+            <section>
+                <div class="section-head"><h2>Cobrar</h2></div>
+                <form class="card card-pad cobro" method="post" asp-action="Cobrar" asp-route-id="@v.Id"
+                      data-cobro data-total="@Formato.ImporteJs(v.Total)">
+                    <div asp-validation-summary="All"></div>
+
+                    <fieldset class="cobro-formas">
+                        <legend class="field-label">¿Cómo paga?</legend>
+                        <div class="segmented segmented-lg segmented-block">
+                            @foreach (var forma in new[] { FormaPago.Efectivo, FormaPago.Tarjeta, FormaPago.Mixto })
+                            {
+                                <label>
+                                    <input type="radio" name="FormaPago" value="@forma" checked="@(Model.Cobro.FormaPago == forma)" />
+                                    <icono nombre="@Formato.Icono(forma)" tamano="17" /> @Formato.Texto(forma)
+                                </label>
+                            }
+                        </div>
+                    </fieldset>
+
+                    <div class="cobro-mixto" data-mixto hidden>
+                        <div class="fields-2">
+                            <div class="field">
+                                <label for="Efectivo">En efectivo</label>
+                                <div class="input-affix">
+                                    <input class="input num" id="Efectivo" name="Efectivo" inputmode="decimal" autocomplete="off"
+                                           value="@Formato.Importe(Model.Cobro.Efectivo)" placeholder="0,00" />
+                                    <span>€</span>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label for="Tarjeta">Con tarjeta</label>
+                                <div class="input-affix">
+                                    <input class="input num" id="Tarjeta" name="Tarjeta" inputmode="decimal" autocomplete="off"
+                                           value="@Formato.Importe(Model.Cobro.Tarjeta)" placeholder="0,00" />
+                                    <span>€</span>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="field-hint" data-mixto-estado aria-live="polite">Escribe una parte y la otra se completa sola.</p>
+                    </div>
+
+                    <button class="btn btn-success btn-lg btn-block" data-cobro-boton>
+                        <icono nombre="check" tamano="20" /> Cobrar @Formato.Euros(v.Total)
+                    </button>
+                </form>
+            </section>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/cobro.js" asp-append-version="true"></script>
+}

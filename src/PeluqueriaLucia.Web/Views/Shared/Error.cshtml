@@ -1,0 +1,18 @@
+@model ErrorModelo
+@{
+    ViewData["Title"] = Model.Titulo;
+}
+
+<div class="estado-vacio estado-error">
+    <span class="estado-icono tint-orange"><icono nombre="alerta" tamano="34" /></span>
+    <h1>@Model.Titulo</h1>
+    <p>@Model.Descripcion</p>
+    <div class="acciones">
+        <button type="button" class="btn btn-gray" onclick="history.back()"><icono nombre="volver" tamano="18" /> Volver</button>
+        <a class="btn btn-primary" asp-controller="Visitas" asp-action="Index">Ir a visitas</a>
+    </div>
+    @if (Model.Codigo >= 500 && Model.IdPeticion is not null)
+    {
+        <p class="small muted">Referencia del error: <span class="mono">@Model.IdPeticion</span></p>
+    }
+</div>
