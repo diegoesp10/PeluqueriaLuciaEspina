@@ -1,0 +1,99 @@
+@model ServicioEdicionModelo
+@{
+    var nuevo = Model.Id is null;
+    ViewData["Title"] = nuevo ? "Nuevo servicio" : "Editar servicio";
+    var f = Model.Formulario;
+}
+
+<div>
+    <a class="back-link" asp-action="Index"><icono nombre="anterior" tamano="20" /> Catálogo</a>
+    <header class="page-head">
+        <div>
+            <h1>@ViewData["Title"]</h1>
+            @if (!Model.Activo)
+            {
+                <p class="subtitle"><span class="pill tint-gray"><icono nombre="archivar" tamano="13" /> Archivado</span></p>
+            }
+        </div>
+    </header>
+
+    <form class="form" method="post" enctype="multipart/form-data" asp-action="@(nuevo ? "Nuevo" : "Editar")" asp-route-id="@Model.Id" novalidate>
+        <div asp-validation-summary="ModelOnly"></div>
+
+        <div class="fields">
+            <div class="field">
+                <label for="Nombre">Nombre</label>
+                <input class="input" id="Nombre" name="Nombre" value="@f.Nombre" maxlength="100" autocomplete="off" required autofocus="@nuevo"
+                       placeholder="Por ejemplo, Corte y peinado" />
+                @Html.ValidationMessage("Nombre")
+            </div>
+
+            <div class="field">
+                <label for="Precio">Precio</label>
+                <div class="input-affix input-precio">
+                    <input class="input num" id="Precio" name="Precio" inputmode="decimal" autocomplete="off" required
+                           value="@Formato.Importe(f.Precio)" placeholder="0,00" />
+                    <span>€</span>
+                </div>
+                @Html.ValidationMessage("Precio")
+                @if (!nuevo)
+                {
+                    <span class="field-hint">Las visitas ya registradas mantienen el precio que tenían.</span>
+                }
+            </div>
+
+            <fieldset class="field">
+                <legend class="field-label">Para</legend>
+                <div class="segmented segmented-lg segmented-block">
+                    @foreach (var sexo in new[] { Sexo.Mujer, Sexo.Hombre, Sexo.Otro })
+                    {
+                        <label><input type="radio" name="Sexo" value="@sexo" checked="@(f.Sexo == sexo)" /> @Formato.Texto(sexo)</label>
+                    }
+                </div>
+                @Html.ValidationMessage("Sexo")
+            </fieldset>
+        </div>
+
+        <div>
+            <div class="section-head"><h2>Foto (opcional)</h2></div>
+            <div class="fields">
+                <div class="foto-editor" data-foto>
+                    <span class="servicio-foto foto-preview">
+                        <img src="@Url.Content(ImagenesPrivadas.Ruta(Model.ImagenActual))" alt="" data-foto-preview hidden="@(Model.ImagenActual is null)" />
+                        <span data-foto-vacia hidden="@(Model.ImagenActual is not null)"><icono nombre="imagen" tamano="34" /></span>
+                    </span>
+                    <div class="foto-acciones">
+                        <label class="btn btn-gray">
+                            <icono nombre="imagen" tamano="18" /> @(Model.ImagenActual is null ? "Elegir foto" : "Cambiar foto")
+                            <input class="sr-only" type="file" name="Imagen" accept="image/jpeg,image/png,image/webp,image/gif" data-foto-input />
+                        </label>
+                        @if (Model.ImagenActual is not null)
+                        {
+                            <label class="check">
+                                <input type="checkbox" name="QuitarImagen" value="true" data-foto-quitar /> Quitar la foto
+                            </label>
+                        }
+                        <span class="field-hint">JPG, PNG, WEBP o GIF. Máximo 5 MB.</span>
+                        @Html.ValidationMessage("Imagen")
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="acciones acciones-form">
+            <button class="btn btn-primary btn-lg">@(nuevo ? "Añadir al catálogo" : "Guardar cambios")</button>
+        </div>
+    </form>
+
+    @if (!nuevo)
+    {
+        <form class="form zona-peligro" method="post" asp-action="Eliminar" asp-route-id="@Model.Id"
+              data-confirmar="Si «@f.Nombre» aparece en visitas anteriores se archivará en lugar de borrarse, para conservar el historial.">
+            <button class="btn btn-gray btn-destructive"><icono nombre="papelera" tamano="17" /> Eliminar servicio</button>
+        </form>
+    }
+</div>
+
+@section Scripts {
+    <script src="~/js/catalogo.js" asp-append-version="true"></script>
+}

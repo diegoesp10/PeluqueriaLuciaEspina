@@ -182,7 +182,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px 20px;
-  padding: 14px max(24px, calc((100vw - var(--sidebar-w) - 760px) / 2)) calc(14px + env(safe-area-inset-bottom));
+  padding: 14px 40px calc(14px + env(safe-area-inset-bottom));
   border-top: 0.5px solid var(--separator);
 }
 
@@ -192,7 +192,7 @@
 }
 
 .barra-total-cifras strong {
-  font: 700 26px/1.15 var(--font-display);
+  font: 650 26px/1.15 var(--font);
   letter-spacing: -0.02em;
 }
 
@@ -344,4 +344,41 @@
   margin-top: 28px;
   padding-top: 24px;
   border-top: 0.5px solid var(--separator);
+}
+
+/* Identidad del salón dentro del espacio de trabajo. */
+.nav-label { padding:6px 10px 10px; color:var(--olive); font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; }
+.cuenta-actual { padding:12px; background:var(--fill); border:1px solid var(--separator); border-radius:var(--r-ctl); }
+.cuenta-actual strong { display:block; margin-top:3px; font-size:15px; font-weight:600; color:var(--label); }
+.enlace-cuenta { display:block; padding-block:6px; color:var(--accent); font-weight:500; }
+.sitio-admin .main { background:radial-gradient(ellipse at 100% 0,var(--fill),transparent 40%); min-height:100dvh; }
+.sitio-admin .stat { padding:22px; border-left:3px solid var(--tint); }
+.sitio-admin .section-head h2 { color:var(--olive); letter-spacing:.08em; font-size:11px; }
+.sitio-admin .brand-text small { letter-spacing:.02em; }
+.panel-bienvenida { display:grid; grid-template-columns:minmax(0,1fr) minmax(280px,.65fr); gap:32px; align-items:center; margin-bottom:28px; padding:32px; border:1px solid var(--separator); border-radius:var(--r-card); background:var(--surface); overflow:hidden; }
+.panel-bienvenida h1 { font:400 clamp(36px,3.3vw,58px)/1.06 var(--font-display); letter-spacing:-.035em; margin:12px 0; }
+.panel-bienvenida h1 em { color:var(--olive); font-weight:400; }
+.panel-bienvenida .subtitle { color:var(--label-2); margin-bottom:24px; }
+.panel-fecha { color:var(--olive); font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.09em; }
+.panel-foto { height:230px; width:100%; object-fit:cover; object-position:center; border-radius:100px 100px var(--r-ctl) var(--r-ctl); }
+.panel-grid { display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr); gap:28px; }
+.panel-grid .row-title { flex:1; }
+.panel-grid .row>svg { color:var(--olive); }
+.panel-actividad { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; padding:26px; }
+.panel-actividad strong { display:block; font-size:32px; font-weight:600; font-variant-numeric:tabular-nums; }
+.panel-actividad span { font-size:13px; color:var(--label-2); }
+.panel-cuenta { padding:22px 26px; display:flex; flex-wrap:wrap; gap:16px; align-items:center; justify-content:space-between; }
+.panel-cuenta p { color:var(--label-2); font-size:13px; margin-top:4px; }
+@media(min-width:901px) and (max-width:1180px) { .nav-label { display:none; } }
+@media(max-width:900px) {
+  .panel-bienvenida { grid-template-columns:minmax(0,1fr); padding:26px; gap:24px; }
+  .panel-foto { display:none; }
+  .panel-grid { grid-template-columns:minmax(0,1fr); gap:0; }
+  .sitio-admin .topbar .brand-text strong { font-size:26px; }
+}
+@media(max-width:560px) {
+  .sitio-admin .stat { padding:16px; }
+  .panel-bienvenida { padding:22px; }
+  .panel-cuenta,.panel-actividad { padding:22px; }
+  .sitio-admin .row:has(.row-body) { flex-wrap:wrap; }
 }

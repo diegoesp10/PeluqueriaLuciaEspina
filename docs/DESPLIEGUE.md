@@ -1,6 +1,6 @@
 # Despliegue en el equipo de la peluquería
 
-La aplicación corre en el propio ordenador de la peluquería, en IIS, contra un SQL Server local. Solo la usa una persona en ese equipo, así que no hay usuarios ni autenticación.
+La aplicación corre en IIS contra SQL Server. La portada y los servicios son públicos; toda la gestión está dentro de `/admin` y exige autenticación. El servidor de producción debe tener un certificado HTTPS. Ver [SEGURIDAD.md](SEGURIDAD.md) para los ajustes de acceso.
 
 > **Regla de oro:** la base de datos tiene datos reales que no se pueden perder. Antes de cada actualización se hace una copia de seguridad, y las migraciones solo **añaden** (nunca borran ni renombran tablas o columnas). Hay una prueba automática que reproduce la base de datos de la versión anterior con datos, la migra y comprueba que no se pierde nada (`tests/.../Integracion/MigracionTests.cs`).
 
@@ -81,7 +81,10 @@ Como alternativa, se puede poner `"BaseDeDatos": { "AplicarMigracionesAlArrancar
 
 1. Para el sitio en IIS (o deja un `app_offline.htm` en su carpeta).
 2. Copia el contenido de `artifacts/publicacion` sobre la carpeta del sitio. **No borres** antes la carpeta: así se conservan `wwwroot\imagenes` y `appsettings.Production.json`.
-3. Arranca el sitio y abre la aplicación. La pantalla de inicio es la de *Visitas de hoy*.
+3. Desde la carpeta publicada ejecuta `dotnet PeluqueriaLucia.Web.dll administrador` para crear el usuario o restablecer su contraseña, sin mostrarla ni pasarla como argumento.
+4. Arranca el sitio y abre la aplicación. La raíz muestra el salón; `/admin` abre el acceso al panel.
+
+La migración `SeguridadAdministrador` solo crea `Administradores`, `SesionesAdministrador`, `IntentosAcceso` y `DataProtectionKeys`; no modifica las tablas de clientes, servicios, visitas o cobros. Aplícala antes de arrancar esta versión. Las claves de cookies se guardan en SQL y, en Windows, se cifran con DPAPI para el equipo; la herramienta de consola y el grupo de IIS deben ejecutarse en el mismo equipo.
 
 Los ficheros de la versión 1 que ya no se usan (`PelqueriaLuciaEspina.dll` y similares) no molestan; se pueden borrar más adelante.
 

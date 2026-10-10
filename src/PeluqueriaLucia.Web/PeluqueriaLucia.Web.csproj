@@ -9,6 +9,9 @@
     <SelfContained>false</SelfContained>
   </PropertyGroup>
   <ItemGroup>
+    <Content Remove="wwwroot\imagenes\**" />
+    <None Include="wwwroot\imagenes\**" />
+    <Content Update="contenido-publico.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <ProjectReference Include="..\PeluqueriaLucia.Infrastructure\PeluqueriaLucia.Infrastructure.csproj" />
   </ItemGroup>
   <ItemGroup>

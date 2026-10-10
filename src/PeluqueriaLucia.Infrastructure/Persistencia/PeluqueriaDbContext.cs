@@ -1,7 +1,9 @@
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using PeluqueriaLucia.Application.Abstracciones;
 using PeluqueriaLucia.Domain.Catalogo;
 using PeluqueriaLucia.Domain.Clientes;
+using PeluqueriaLucia.Domain.Seguridad;
 using PeluqueriaLucia.Domain.Visitas;
 
 namespace PeluqueriaLucia.Infrastructure.Persistencia;
@@ -10,8 +12,9 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia;
 /// Contexto de la base de datos. Los nombres de tablas y columnas son los de la primera versión de la aplicación
 /// (ServiciosClientes, ServiciosGenericos…) y no se cambian: así la base de datos de producción se actualiza solo con
 /// migraciones que añaden, nunca con renombrados ni borrados.
+/// También guarda las claves con las que se cifran las cookies de sesión, para que sobrevivan a reinicios de IIS.
 /// </summary>
-public sealed class PeluqueriaDbContext(DbContextOptions<PeluqueriaDbContext> options) : DbContext(options), IUnidadDeTrabajo
+public sealed class PeluqueriaDbContext(DbContextOptions<PeluqueriaDbContext> options) : DbContext(options), IUnidadDeTrabajo, IDataProtectionKeyContext
 {
     public DbSet<Cliente> Clientes => Set<Cliente>();
 
@@ -20,6 +23,14 @@ public sealed class PeluqueriaDbContext(DbContextOptions<PeluqueriaDbContext> op
     public DbSet<Visita> Visitas => Set<Visita>();
 
     public DbSet<LineaVisita> LineasVisita => Set<LineaVisita>();
+
+    public DbSet<Administrador> Administradores => Set<Administrador>();
+
+    public DbSet<SesionAdministrador> SesionesAdministrador => Set<SesionAdministrador>();
+
+    public DbSet<IntentoAcceso> IntentosAcceso => Set<IntentoAcceso>();
+
+    public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
     public Task GuardarCambiosAsync(CancellationToken ct = default) => SaveChangesAsync(ct);
 

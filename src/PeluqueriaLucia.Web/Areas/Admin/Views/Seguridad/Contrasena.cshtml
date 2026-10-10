@@ -1,0 +1,14 @@
+@model ContrasenaFormulario
+@{ ViewData["Title"] = "Cambiar contraseña"; }
+<a class="back-link" asp-action="Index"><icono nombre="anterior" tamano="20" /> Seguridad</a>
+<header class="page-head"><div><h1>Cambiar contraseña</h1><p class="subtitle">Actualiza la contraseña de tu cuenta de administrador.</p></div></header>
+<form method="post" asp-action="Contrasena" class="form">
+    @if (!ViewData.ModelState.IsValid) { <div asp-validation-summary="All" role="alert"></div> }
+    <div class="fields">
+        <div class="field"><label asp-for="Actual">Contraseña actual</label><input class="input" asp-for="Actual" type="password" autocomplete="current-password" required maxlength="256" /></div>
+        <div class="field"><label asp-for="Nueva">Nueva contraseña</label><input class="input" asp-for="Nueva" type="password" autocomplete="new-password" required minlength="15" maxlength="256" aria-describedby="ayuda-contrasena" /><p id="ayuda-contrasena" class="field-hint">Usa al menos 15 caracteres. Elige una frase larga que no incluya tu usuario.</p></div>
+        <div class="field"><label asp-for="Confirmacion">Repite la nueva contraseña</label><input class="input" asp-for="Confirmacion" type="password" autocomplete="new-password" required maxlength="256" /></div>
+    </div>
+    <p class="subtitle">Al guardar se cerrarán las otras sesiones abiertas. Podrás seguir trabajando en esta sesión.</p>
+    <div class="acciones acciones-form"><button class="btn btn-primary" type="submit">Guardar contraseña</button><a class="btn btn-gray" asp-action="Index">Cancelar</a></div>
+</form>

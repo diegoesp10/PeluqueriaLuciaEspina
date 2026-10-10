@@ -8,8 +8,7 @@
     <h1>@Model.Titulo</h1>
     <p>@Model.Descripcion</p>
     <div class="acciones">
-        <button type="button" class="btn btn-gray" onclick="history.back()"><icono nombre="volver" tamano="18" /> Volver</button>
-        <a class="btn btn-primary" asp-controller="Visitas" asp-action="Index">Ir a visitas</a>
+        <a class="btn btn-primary" asp-area="" asp-controller="Inicio" asp-action="Index">Volver al inicio</a>
     </div>
     @if (Model.Codigo >= 500 && Model.IdPeticion is not null)
     {

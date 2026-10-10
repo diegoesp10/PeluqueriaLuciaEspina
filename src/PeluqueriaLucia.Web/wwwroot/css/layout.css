@@ -26,9 +26,9 @@
 }
 
 .brand-logo {
-  width: 40px;
-  height: 40px;
-  border-radius: 11px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
   object-fit: cover;
   box-shadow: var(--card-edge);
 }
@@ -39,13 +39,13 @@
 }
 
 .brand-text strong {
-  font: 700 19px/1.15 var(--font-display);
+  font: 400 32px/1.15 var(--font-display);
   letter-spacing: -0.02em;
 }
 
 .brand-text small {
   color: var(--label-2);
-  font-size: 12.5px;
+  font-size: 11.5px;
 }
 
 .nav {
@@ -81,8 +81,8 @@
   width: 30px;
   height: 30px;
   border-radius: 8px;
-  background: var(--tint);
-  color: #fff;
+  background: color-mix(in oklab, var(--tint) 12%, var(--surface));
+  color: var(--tint);
 }
 
 .sidebar-foot {
@@ -90,40 +90,12 @@
   gap: 12px;
   margin-top: auto;
   padding: 0 6px;
-  color: var(--label-3);
-  font-size: 11.5px;
+  color: var(--label-2);
+  font-size: 12px;
   line-height: 1.4;
 }
 
 /* ── Selector de apariencia ───────────────────────────────────────────────── */
-
-.selector-tema {
-  display: inline-flex;
-  justify-self: start;
-  padding: 2px;
-  border-radius: 10px;
-  background: var(--fill);
-}
-
-.selector-tema button {
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 30px;
-  border-radius: 8px;
-  color: var(--label-2);
-  transition: background 0.2s, color 0.2s;
-}
-
-.selector-tema button:hover {
-  color: var(--label);
-}
-
-.selector-tema button[aria-checked='true'] {
-  background: light-dark(#ffffff, #636366);
-  box-shadow: 0 2px 6px rgb(0 0 0 / 0.12);
-  color: var(--label);
-}
 
 /* ── Contenido ────────────────────────────────────────────────────────────── */
 
@@ -134,8 +106,7 @@
 }
 
 .main > * {
-  max-width: var(--content-max);
-  margin-inline: auto;
+  margin-inline: 0;
 }
 
 /* Cabecera de página: título grande y acciones a la derecha */
@@ -149,7 +120,7 @@
 }
 
 .page-head h1 {
-  font: 700 34px/1.12 var(--font-display);
+  font: 400 44px/1.12 var(--font-display);
   letter-spacing: -0.025em;
 }
 
@@ -238,6 +209,27 @@
   display: none;
 }
 
+.cuenta-movil > summary { list-style: none; }
+.cuenta-movil > summary::-webkit-details-marker { display: none; }
+.cuenta-movil[open] > summary { background: var(--fill-2); }
+.cuenta-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 16px;
+  display: grid;
+  gap: 12px;
+  width: min(280px, calc(100vw - 32px));
+  padding: 16px;
+  border: 1px solid var(--separator);
+  border-radius: var(--r-card);
+  box-shadow: var(--glass-shadow);
+  background: var(--surface);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.cuenta-menu .selector-tema { justify-self: center; }
+.cuenta-menu .selector-tema button { width: 44px; height: 40px; }
+
 @media (max-width: 900px) {
   .sidebar {
     display: none;
@@ -258,7 +250,7 @@
   .topbar .brand-logo {
     width: 32px;
     height: 32px;
-    border-radius: 9px;
+    border-radius: 50%;
   }
 
   .topbar .brand-text strong {
@@ -271,7 +263,7 @@
   }
 
   .page-head h1 {
-    font-size: 30px;
+    font-size: 36px;
   }
 
   .tabbar {

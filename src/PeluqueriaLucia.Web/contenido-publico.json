@@ -1,0 +1,264 @@
+{
+  "Publico": {
+    "Nombre": "Lucía Peluquería Ecológica",
+    "Lema": "Peluquería ecológica en Oviedo",
+    "Direccion": "C. de Pío XII, 10, bajo 1",
+    "CodigoPostal": "33013",
+    "Ciudad": "Oviedo",
+    "Telefono": "659 306 659",
+    "Reservas": "https://booksy.com/es-es/173411_lucia-peluqueria-ecologica_peluqueria_79758_oviedo",
+    "Mapa": "https://www.google.com/maps/search/?api=1&query=Calle+P%C3%ADo+XII+10%2C+33013+Oviedo",
+    "Comodidades": [
+      "Servicio a domicilio",
+      "Pago con tarjeta",
+      "Se admiten mascotas",
+      "Wi-Fi"
+    ],
+    "Categorias": [
+      {
+        "Nombre": "Combinados",
+        "Servicios": [
+          {
+            "Nombre": "Peinar y cortar",
+            "Precio": "33,90 €",
+            "Duracion": "1 h",
+            "Destacado": true
+          },
+          {
+            "Nombre": "Tinte y peinar",
+            "Precio": "61,46 €",
+            "Duracion": "2 h 10 min",
+            "Detalle": "Tinte, lavar y marcar, mascarilla"
+          },
+          {
+            "Nombre": "Tinte ecológico y peinar",
+            "Precio": "75,59 €",
+            "Duracion": "2 h 15 min",
+            "Detalle": "Tinte ecológico, lavar y marcar, multimasking",
+            "Destacado": true
+          },
+          {
+            "Nombre": "Todo mechas",
+            "Precio": "Consultar",
+            "Duracion": "3 h 55 min",
+            "Detalle": "Mechas, lavar y marcar, cortar, matizar, agua micelar y multimasking"
+          },
+          {
+            "Nombre": "Permanente, cortar, hidratar y peinar",
+            "Precio": "66,90 €",
+            "Duracion": "2 h"
+          }
+        ]
+      },
+      {
+        "Nombre": "Peluquería",
+        "Servicios": [
+          {
+            "Nombre": "Cortar",
+            "Precio": "20,00 €",
+            "Duracion": "30 min",
+            "Destacado": true
+          },
+          {
+            "Nombre": "Corte de rizos en seco",
+            "Precio": "30,00 €",
+            "Duracion": "30 min"
+          },
+          {
+            "Nombre": "Lavar y marcar",
+            "Precio": "13,90 €",
+            "Duracion": "30 min"
+          },
+          {
+            "Nombre": "Lavar y marcar media melena",
+            "Precio": "17,50 €",
+            "Duracion": "30 min"
+          },
+          {
+            "Nombre": "Lavar y marcar melena",
+            "Precio": "19,90 €",
+            "Duracion": "40 min"
+          },
+          {
+            "Nombre": "Tinte",
+            "Precio": "42,26 €",
+            "Duracion": "1 h 30 min"
+          },
+          {
+            "Nombre": "Tinte ecológico",
+            "Precio": "51,59 €",
+            "Duracion": "1 h 30 min",
+            "Destacado": true
+          },
+          {
+            "Nombre": "Color 100 % plantas",
+            "Precio": "67,90 €",
+            "Duracion": "2 h 15 min",
+            "Destacado": true
+          },
+          {
+            "Nombre": "Mechas",
+            "Precio": "Consultar",
+            "Duracion": "1 h 30 min"
+          },
+          {
+            "Nombre": "Pocas mechas",
+            "Precio": "Consultar",
+            "Duracion": "1 h 30 min"
+          },
+          {
+            "Nombre": "Matizar mechas",
+            "Precio": "27,00 €",
+            "Duracion": "30 min"
+          },
+          {
+            "Nombre": "Gloss, baño de color",
+            "Precio": "19,00 €",
+            "Duracion": "45 min"
+          },
+          {
+            "Nombre": "Color fantasía",
+            "Precio": "25,00 €",
+            "Duracion": "40 min"
+          },
+          {
+            "Nombre": "Mascarilla",
+            "Precio": "5,30 €",
+            "Duracion": "10 min"
+          },
+          {
+            "Nombre": "Multimasking",
+            "Precio": "6,50 €",
+            "Duracion": "15 min"
+          },
+          {
+            "Nombre": "Agua micelar",
+            "Precio": "desde 9,00 €",
+            "Duracion": "30 min"
+          },
+          {
+            "Nombre": "Gotas de alergia / Olaplex",
+            "Precio": "5,50 €",
+            "Duracion": "45 min"
+          },
+          {
+            "Nombre": "Ampolla caída / hidratación",
+            "Precio": "15,47 €",
+            "Duracion": "30 min"
+          }
+        ]
+      },
+      {
+        "Nombre": "Caballero",
+        "Servicios": [
+          {
+            "Nombre": "Corte caballero",
+            "Precio": "12,00 €",
+            "Duracion": "30 min",
+            "Destacado": true
+          },
+          {
+            "Nombre": "Corte solo máquina",
+            "Precio": "10,00 €",
+            "Duracion": "15 min"
+          },
+          {
+            "Nombre": "Arreglo de barba",
+            "Precio": "5,00 €",
+            "Duracion": "15 min"
+          }
+        ]
+      },
+      {
+        "Nombre": "Recogidos",
+        "Servicios": [
+          {
+            "Nombre": "Semirrecogido",
+            "Precio": "30,00 €",
+            "Duracion": "1 h"
+          },
+          {
+            "Nombre": "Recogido",
+            "Precio": "36,00 €",
+            "Duracion": "1 h 30 min"
+          }
+        ]
+      },
+      {
+        "Nombre": "Tratamientos",
+        "Servicios": [
+          {
+            "Nombre": "Oxigenación",
+            "Precio": "35,00 €",
+            "Duracion": "30 min"
+          },
+          {
+            "Nombre": "Oxigenación exprés",
+            "Precio": "12,00 €",
+            "Duracion": "15 min"
+          },
+          {
+            "Nombre": "Oxidación terapéutica",
+            "Precio": "45,00 €",
+            "Duracion": "45 min"
+          },
+          {
+            "Nombre": "Spa trufa blanca, regeneración",
+            "Precio": "33,38 €",
+            "Duracion": "40 min"
+          },
+          {
+            "Nombre": "Tratamiento profundo intensivo",
+            "Precio": "20,00 €",
+            "Duracion": "15 min"
+          }
+        ]
+      },
+      {
+        "Nombre": "Estética",
+        "Servicios": [
+          {
+            "Nombre": "Manicura",
+            "Precio": "10,00 €",
+            "Duracion": "30 min"
+          },
+          {
+            "Nombre": "Pedicura",
+            "Precio": "18,00 €",
+            "Duracion": "40 min"
+          },
+          {
+            "Nombre": "Limar y cortar",
+            "Precio": "4,00 €",
+            "Duracion": "20 min"
+          },
+          {
+            "Nombre": "Quitar semipermanente o gel",
+            "Precio": "6,00 €",
+            "Duracion": "30 min"
+          },
+          {
+            "Nombre": "Tinte de cejas",
+            "Precio": "9,47 €",
+            "Duracion": "30 min"
+          },
+          {
+            "Nombre": "Depilación con hilo",
+            "Precio": "9,00 €",
+            "Duracion": "30 min"
+          },
+          {
+            "Nombre": "Maquillaje de evento",
+            "Precio": "26,00 €",
+            "Duracion": "45 min"
+          },
+          {
+            "Nombre": "Maquillaje de novia",
+            "Precio": "35,00 €",
+            "Duracion": "1 h 15 min"
+          }
+        ]
+      }
+    ]
+  }
+}

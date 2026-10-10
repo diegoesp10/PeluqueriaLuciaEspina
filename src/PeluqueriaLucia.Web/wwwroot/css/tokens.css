@@ -1,78 +1,60 @@
-/*
- * Sistema de diseño de la aplicación de la peluquería.
- * Inspirado en las pautas públicas de interfaz de Apple (Human Interface Guidelines): superficies agrupadas sobre un fondo
- * neutro, colores del sistema, tipografía del sistema, esquinas generosas y vidrio translúcido solo en la navegación.
- * El contenido va siempre en superficies sólidas. Cada color se define una vez con light-dark(día, noche).
- *
- * Solo se usan valores funcionales (colores, medidas): ni logotipos, ni iconos, ni fuentes de Apple. Ver NOTICE.md.
- */
+/* Lucía: una identidad para la web, el acceso y la gestión. Ver docs/DISENO.md. */
 :root {
   color-scheme: light dark;
-
-  /* Fondos y superficies */
-  --bg: light-dark(#f2f2f7, #000000);
-  --surface: light-dark(#ffffff, #1c1c1e);
-  --surface-2: light-dark(#f2f2f7, #2c2c2e);
-  --surface-hover: light-dark(rgb(0 0 0 / 0.035), rgb(255 255 255 / 0.05));
-
-  /* Texto: primario, secundario y terciario */
-  --label: light-dark(#000000, #ffffff);
-  --label-2: light-dark(rgb(60 60 67 / 0.64), rgb(235 235 245 / 0.64));
-  --label-3: light-dark(rgb(60 60 67 / 0.32), rgb(235 235 245 / 0.32));
-
-  /* Líneas y rellenos translúcidos */
-  --separator: light-dark(rgb(60 60 67 / 0.18), rgb(84 84 88 / 0.6));
-  --fill: light-dark(rgb(120 120 128 / 0.12), rgb(120 120 128 / 0.24));
-  --fill-2: light-dark(rgb(120 120 128 / 0.2), rgb(120 120 128 / 0.34));
-
-  /* Colores del sistema */
-  --blue: light-dark(#007aff, #0a84ff);
-  --green: light-dark(#34c759, #30d158);
-  --green-text: light-dark(#248a3d, #30d158);
-  --red: light-dark(#ff3b30, #ff453a);
-  --orange: light-dark(#ff9500, #ff9f0a);
-  --orange-text: light-dark(#c93400, #ff9f0a);
-  --purple: light-dark(#af52de, #bf5af2);
-  --pink: light-dark(#ff2d55, #ff375f);
-  --teal: light-dark(#30b0c7, #40c8e0);
-  --indigo: light-dark(#5856d6, #5e5ce6);
-  --gray: light-dark(#8e8e93, #98989d);
-  --accent: var(--blue);
-
-  /* Vidrio: solo barra lateral, barra de pestañas, notificaciones y barras flotantes */
-  --glass: light-dark(rgb(250 250 252 / 0.72), rgb(30 30 32 / 0.68));
-  --glass-edge: light-dark(rgb(255 255 255 / 0.8), rgb(255 255 255 / 0.1));
-  --glass-shadow: 0 10px 40px light-dark(rgb(0 0 0 / 0.1), rgb(0 0 0 / 0.5));
-
-  /* Sombra sutil de las tarjetas: filo de 0,5 px en vez de borde */
-  --card-edge: 0 0 0 0.5px light-dark(rgb(0 0 0 / 0.06), rgb(255 255 255 / 0.05));
-  --card-shadow: var(--card-edge), 0 1px 2px light-dark(rgb(0 0 0 / 0.04), transparent);
-
-  /* Forma */
-  --r-card: 18px;
-  --r-ctl: 12px;
-  --r-sm: 8px;
-
-  /* Tipografía del sistema: SF en equipos Apple, Segoe UI Variable en Windows */
-  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, 'Segoe UI Variable Text', 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-  --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, 'Segoe UI Variable Display', 'Segoe UI', Roboto, sans-serif;
-  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', Consolas, monospace;
-
-  /* Movimiento: curva de resorte suave */
-  --ease: cubic-bezier(0.32, 0.72, 0, 1);
-
-  /* Medidas de la estructura */
+  --bg: light-dark(#f8f6ef, #10231f);
+  --surface: light-dark(#fffdf8, #19302a);
+  --surface-2: light-dark(#eeeee4, #233d34);
+  --surface-hover: light-dark(#f2f2e8, #264438);
+  --sand: light-dark(#eeeadd, #24392f);
+  --label: light-dark(#183a35, #f4f1e7);
+  --label-2: light-dark(#5c695e, #bac6b6);
+  --label-3: light-dark(#65735f, #9daa97);
+  --separator: light-dark(#dcded0, #3a5145);
+  --fill: light-dark(rgb(89 102 68 / .09), rgb(187 201 162 / .12));
+  --fill-2: light-dark(rgb(89 102 68 / .16), rgb(187 201 162 / .20));
+  --accent: light-dark(#244c40, #c5d3ac);
+  --accent-ink: light-dark(#fffdf8, #19302a);
+  --olive: light-dark(#596644, #c2cfaa);
+  --forest: #183a35;
+  --cream: #f8f6ef;
+  --blue: light-dark(#526f72, #aac6c4);
+  --green: light-dark(#60764c, #b5ca9a);
+  --green-text: light-dark(#4c653d, #b5ca9a);
+  --red: light-dark(#ad3f39, #ffa69a);
+  --orange: light-dark(#95613d, #e4b792);
+  --orange-text: var(--orange);
+  --purple: light-dark(#786a7e, #cabbcf);
+  --pink: light-dark(#916d76, #d5b3bd);
+  --teal: var(--blue);
+  --indigo: var(--purple);
+  --gray: light-dark(#65735f, #aab6a2);
+  --tint: var(--olive);
+  --glass: light-dark(rgb(248 246 239 / .86), rgb(16 35 31 / .88));
+  --glass-edge: light-dark(rgb(255 253 248 / .9), rgb(197 211 172 / .12));
+  --glass-shadow: 0 14px 45px light-dark(rgb(24 58 53 / .10), rgb(0 0 0 / .30));
+  --card-edge: 0 0 0 1px var(--separator);
+  --card-shadow: var(--card-edge), 0 5px 20px light-dark(rgb(24 58 53 / .035), rgb(0 0 0 / .12));
+  --r-card: 24px;
+  --r-ctl: 14px;
+  --r-sm: 10px;
+  --r-pill: 999px;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  --font-display: Georgia, 'Times New Roman', serif;
+  --font-mono: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  --ease: cubic-bezier(.32,.72,0,1);
   --sidebar-w: 264px;
-  --content-max: 1080px;
   --tabbar-h: 64px;
-  --topbar-h: 56px;
+  --topbar-h: 64px;
+  --page-gutter: clamp(24px, 3vw, 80px);
+  /* Alias de presentación: proceden de la misma paleta, nunca de colores duplicados. */
+  --tinta: var(--label);
+  --oliva: var(--olive);
+  --papel: var(--bg);
+  --arena: var(--sand);
+  --linea: var(--separator);
+  --muted: var(--label-2);
+  --serif: var(--font-display);
+  --sans: var(--font);
 }
-
-/* Apariencia elegida a mano en el selector (sin atributo: la del sistema) */
-:root[data-theme='dia'] {
-  color-scheme: light;
-}
-
-:root[data-theme='noche'] {
-  color-scheme: dark;
-}
+:root[data-theme='dia'] { color-scheme: light; }
+:root[data-theme='noche'] { color-scheme: dark; }

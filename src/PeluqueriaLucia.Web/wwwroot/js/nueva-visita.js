@@ -69,7 +69,7 @@
     peticion?.abort();
     peticion = new AbortController();
     try {
-      const respuesta = await fetch(`/Clientes/Buscar?q=${encodeURIComponent(buscador.value.trim())}`, {
+      const respuesta = await fetch(`${buscador.dataset.urlBuscar}?q=${encodeURIComponent(buscador.value.trim())}`, {
         signal: peticion.signal,
         headers: { Accept: 'application/json' },
       });

@@ -17,10 +17,29 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.6")
+                .HasAnnotation("ProductVersion", "10.0.12")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("Microsoft.AspNetCore.DataProtection.EntityFrameworkCore.DataProtectionKey", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("FriendlyName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Xml")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DataProtectionKeys");
+                });
 
             modelBuilder.Entity("PeluqueriaLucia.Domain.Catalogo.Servicio", b =>
                 {
@@ -93,6 +112,133 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
                     b.ToTable("Clientes", (string)null);
                 });
 
+            modelBuilder.Entity("PeluqueriaLucia.Domain.Seguridad.Administrador", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("BloqueadoHasta")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ContrasenaCambiadaEn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreadoEn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("HashContrasena")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("IntentosFallidos")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UltimoAccesoEn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Usuario")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Usuario")
+                        .IsUnique();
+
+                    b.ToTable("Administradores", (string)null);
+                });
+
+            modelBuilder.Entity("PeluqueriaLucia.Domain.Seguridad.IntentoAcceso", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<bool>("Exito")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("Fecha")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Ip")
+                        .IsRequired()
+                        .HasMaxLength(45)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(45)");
+
+                    b.Property<string>("Motivo")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Usuario")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Fecha");
+
+                    b.ToTable("IntentosAcceso", (string)null);
+                });
+
+            modelBuilder.Entity("PeluqueriaLucia.Domain.Seguridad.SesionAdministrador", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("AdministradorId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Agente")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<DateTime?>("CerradaEn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreadaEn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ExpiraEn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Ip")
+                        .IsRequired()
+                        .HasMaxLength(45)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(45)");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("char(64)")
+                        .IsFixedLength();
+
+                    b.Property<DateTime>("UltimoUsoEn")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AdministradorId", "CerradaEn");
+
+                    b.ToTable("SesionesAdministrador", (string)null);
+                });
+
             modelBuilder.Entity("PeluqueriaLucia.Domain.Visitas.LineaVisita", b =>
                 {
                     b.Property<int>("Id")
@@ -162,6 +308,15 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
                     b.HasIndex("Fecha");
 
                     b.ToTable("ServiciosClientes", (string)null);
+                });
+
+            modelBuilder.Entity("PeluqueriaLucia.Domain.Seguridad.SesionAdministrador", b =>
+                {
+                    b.HasOne("PeluqueriaLucia.Domain.Seguridad.Administrador", null)
+                        .WithMany()
+                        .HasForeignKey("AdministradorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("PeluqueriaLucia.Domain.Visitas.LineaVisita", b =>

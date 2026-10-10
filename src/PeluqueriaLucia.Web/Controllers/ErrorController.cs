@@ -1,12 +1,14 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using PeluqueriaLucia.Web.Models;
 
 namespace PeluqueriaLucia.Web.Controllers;
 
 /// <summary>Página de error amable. Responde a cualquier método porque se ejecuta en lugar de la petición que falló.</summary>
 [IgnoreAntiforgeryToken]
+[AllowAnonymous]
 [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
 public sealed class ErrorController(ILogger<ErrorController> logger) : Controller
 {

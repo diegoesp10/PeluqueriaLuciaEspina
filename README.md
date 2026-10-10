@@ -2,7 +2,14 @@
 
 Aplicación de gestión interna de la Peluquería Ecológica Lucía Espina: visitas y cobros del día, clientes con su historial, catálogo de servicios con precios, tickets de caja y exportación a Excel para la gestoría.
 
-Corre en local, en el ordenador de la peluquería (IIS + SQL Server), y la usa una sola persona.
+Web pública del salón y gestión privada con usuario y contraseña. Corre con ASP.NET Core 10 y SQL Server, en el ordenador de la peluquería o en su servidor IIS.
+
+- `/`: presentación del salón, logo, foto real, contacto y reservas en Booksy.
+- `/servicios`: página pública de servicios y precios orientativos, independiente del catálogo interno y de SQL.
+- `/admin`: dashboard, visitas, clientes, catálogo, cobros y exportaciones. Requiere una sesión válida.
+- `/admin/Seguridad`: sesiones, cambio de contraseña, intentos de acceso y llamadas por IP.
+
+La separación de capas existente se conserva; la gestión se ha trasladado al área MVC `Areas/Admin`. Ver [docs/SEGURIDAD.md](docs/SEGURIDAD.md) para activar o recuperar el acceso.
 
 ## Qué hace
 
@@ -23,7 +30,7 @@ src/
   PeluqueriaLucia.Application/     Casos de uso (ClientesService, CatalogoService, VisitasService) y los contratos que
                                    necesitan (repositorios, almacén de imágenes, exportador). Devuelven Resultado, no excepciones.
   PeluqueriaLucia.Infrastructure/  EF Core + SQL Server, migraciones, fotos en disco y Excel (ClosedXML).
-  PeluqueriaLucia.Web/             ASP.NET Core MVC: controladores, vistas Razor, CSS y JS propios (sin librerías externas).
+  PeluqueriaLucia.Web/             ASP.NET Core MVC: web pública y área Admin protegida, vistas Razor, CSS y JS propios.
                                    Program.cs solo arranca; Startup.cs registra las capas y Configuracion/ tiene el detalle.
 tests/
   PeluqueriaLucia.Tests/           Dominio, formato web e integración contra SQL Server (incluida la migración con datos).
@@ -33,12 +40,13 @@ Decisiones importantes:
 
 - **Base de datos con datos reales.** Las tablas conservan sus nombres de la versión 1 (`ServiciosClientes`, `ServiciosGenericos`…) y las entidades se mapean a ellas. Las migraciones solo añaden. Ver [docs/DESPLIEGUE.md](docs/DESPLIEGUE.md).
 - **Sin dependencias de internet.** La versión 1 cargaba Bootstrap, jQuery, Select2, Flatpickr y Font Awesome desde CDN: si se caía la conexión de la peluquería, la aplicación se rompía. Ahora todo (estilos, iconos y scripts) va dentro de la aplicación.
-- **Carga rápida.** CSS y JS se sirven comprimidos (Brotli) y con caché de un año gracias a la huella en la URL; las páginas se precargan al pasar el ratón por un enlace; al arrancar se prepara la conexión con la base de datos, y la publicación va compilada con ReadyToRun.
+- **Carga rápida.** CSS y JS se sirven comprimidos (Brotli) y con caché de un año gracias a la huella en la URL; al arrancar se prepara la conexión con la base de datos, y la publicación va compilada con ReadyToRun. El panel y sus fotos se sirven con `Cache-Control: no-store`.
+- **Acceso al backend.** Cada acceso crea un token aleatorio de 256 bits en una cookie cifrada y HttpOnly; SQL guarda solo su hash. Cada petición comprueba caducidad y revocación. Hay protección CSRF, bloqueo de cuenta y límites por IP.
 - **Importes independientes del idioma de Windows.** Los formularios aceptan `12,50` y `12.50`. La aplicación fija la cultura `es-ES` para fechas e importes.
 
 ## Diseño
 
-Sistema de diseño propio inspirado en las pautas públicas de interfaz de Apple: superficies agrupadas sobre fondo neutro, colores del sistema, tipografía del sistema, controles segmentados, interruptores y vidrio translúcido solo en la navegación. Modo día, noche o automático (como el sistema), elegible desde la barra lateral o la superior en el móvil. Se adapta a ordenador, tablet (barra lateral solo con iconos) y móvil (barra de pestañas inferior). Los tokens están en `wwwroot/css/tokens.css`. Avisos legales en [NOTICE.md](NOTICE.md).
+Una identidad compartida para la web, el login y la administración: crema, verde bosque y oliva, títulos en Georgia y controles claros con tipografía del sistema. Conserva las superficies agrupadas, los controles segmentados y la suavidad del panel inspirado en Apple, adaptados a la marca del salón. El login se presenta en una tarjeta centrada y las pantallas de contenido aprovechan todo el ancho. Día, noche y automático comparten la misma elección entre ambas capas; en móvil, las opciones de cuenta y apariencia están en el menú Cuenta. Los tokens y componentes comunes están en `wwwroot/css/tokens.css` y `componentes.css`. Criterios para futuras pantallas en [docs/DISENO.md](docs/DISENO.md). Avisos legales en [NOTICE.md](NOTICE.md).
 
 ## Desarrollo
 
@@ -47,14 +55,19 @@ Requisitos: SDK de .NET 10 y SQL Server local (la cadena de desarrollo está en 
 ```powershell
 dotnet tool restore
 dotnet ef database update --project src/PeluqueriaLucia.Infrastructure --startup-project src/PeluqueriaLucia.Web
+dotnet run --project src/PeluqueriaLucia.Web -- administrador
 dotnet run --project src/PeluqueriaLucia.Web
 ```
 
-Pruebas (crean y borran bases de datos temporales en el SQL Server local; otro servidor con `PELUQUERIA_PRUEBAS_SQL`):
+El comando `administrador` pide usuario y contraseña en consola, sin mostrarla. Crea el usuario o restablece su contraseña revocando sus sesiones. No hay contraseña por defecto ni registro público.
+
+Pruebas (crean y borran bases temporales aisladas en SQL Server; otro servidor con `PELUQUERIA_PRUEBAS_SQL`). Incluyen migraciones, dominio y flujos HTTP de seguridad:
 
 ```powershell
 dotnet test
 ```
+
+Los datos públicos se editan en `src/PeluqueriaLucia.Web/contenido-publico.json`; los precios y reservas se contrastan con [Booksy](https://booksy.com/es-es/173411_lucia-peluqueria-ecologica_peluqueria_79758_oviedo). No se muestran horarios ni reseñas inventados. Logo y foto se sirven desde archivos locales.
 
 ### Cambios en la base de datos
 

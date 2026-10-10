@@ -1,7 +1,6 @@
-using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
-using PeluqueriaLucia.Infrastructure.Almacenamiento;
+using PeluqueriaLucia.Web.Seguridad;
 
 namespace PeluqueriaLucia.Web.Configuracion;
 
@@ -12,23 +11,41 @@ public static class CanalDePeticionesExtensions
 
     public static WebApplication UseCanalDePeticiones(this WebApplication app)
     {
+        if (app.Services.GetRequiredService<IOptions<OpcionesSeguridad>>().Value.ProxiesConfiables.Length > 0)
+            app.UseForwardedHeaders();
         app.UseRequestLocalization();
 
         if (!app.Environment.IsDevelopment())
             app.UseExceptionHandler("/error");
         app.UseStatusCodePagesWithReExecute("/error/{0}");
 
+        if (app.Services.GetRequiredService<IOptions<OpcionesSeguridad>>().Value.RequerirHttps)
+        {
+            app.UseHsts();
+            app.UseHttpsRedirection();
+        }
+
+        app.UseCabecerasDeSeguridad();
         app.UseCacheDeRecursosVersionados();
-        app.UseFotosDelCatalogo();
+        app.UseFiltroIpPanel();
+        app.UseMonitorPeticiones();
+
         app.UseRouting();
+        app.UseRateLimiter();
+        app.UseAuthentication();
+        app.UseAuthorization();
         return app;
     }
 
     public static WebApplication MapRutas(this WebApplication app)
     {
         // CSS, JS e imágenes propias: con huella en la URL, comprimidos y guardados por el navegador hasta que cambian
-        app.MapStaticAssets();
-        app.MapControllerRoute(name: "default", pattern: "{controller=Visitas}/{action=Index}/{id?}")
+        app.MapStaticAssets().AllowAnonymous();
+
+        // Panel de administración en /admin; la web pública en la raíz
+        app.MapAreaControllerRoute(name: "panel", areaName: "Admin", pattern: "admin/{controller=Panel}/{action=Index}/{id?}")
+            .WithStaticAssets();
+        app.MapControllerRoute(name: "publico", pattern: "{controller=Inicio}/{action=Index}/{id?}")
             .WithStaticAssets();
         return app;
     }
@@ -53,19 +70,4 @@ public static class CanalDePeticionesExtensions
             return siguiente(contexto);
         });
 
-    /// <summary>
-    /// Las fotos del catálogo se suben con la aplicación en marcha, así que no forman parte de los recursos estáticos
-    /// compilados. Tienen nombre único (un Guid) y nunca cambian: el navegador las guarda sin volver a preguntar.
-    /// </summary>
-    private static void UseFotosDelCatalogo(this WebApplication app)
-    {
-        var opciones = app.Services.GetRequiredService<IOptions<OpcionesImagenes>>().Value;
-        Directory.CreateDirectory(opciones.Carpeta);
-        app.UseStaticFiles(new StaticFileOptions
-        {
-            FileProvider = new PhysicalFileProvider(opciones.Carpeta),
-            RequestPath = opciones.RutaPublica,
-            OnPrepareResponse = c => c.Context.Response.Headers[HeaderNames.CacheControl] = Inmutable,
-        });
-    }
 }

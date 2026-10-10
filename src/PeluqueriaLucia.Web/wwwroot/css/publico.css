@@ -1,0 +1,180 @@
+/* Composición del sitio público. Paleta, controles y apariencia se comparten con administración. */
+html { scroll-behavior:smooth; scroll-padding-top:120px; }
+.sitio-publico { font-size:16px; line-height:1.65; }
+.sitio-publico h1, .sitio-publico h2 { font-family:var(--font-display); font-weight:400; line-height:1.06; letter-spacing:-.045em; }
+.sitio-publico h1 { font-size:clamp(3.4rem,6vw,6.1rem); }
+.sitio-publico h2 { font-size:clamp(2.6rem,4vw,4.2rem); }
+.sitio-publico h3 { font-size:1.25rem; font-weight:500; }
+.sitio-publico em { font-weight:400; color:var(--olive); }
+.sitio-publico .btn { min-height:50px; padding:12px 24px; font-size:14px; }
+.saltar { position:absolute; left:20px; top:-100px; z-index:100; padding:12px 20px; background:var(--surface); border-radius:var(--r-ctl); }
+.saltar:focus { top:10px; }
+.cabecera-publica { width:100%; min-height:112px; padding:20px var(--page-gutter); display:flex; align-items:center; justify-content:space-between; gap:28px; border-bottom:1px solid var(--separator); }
+.marca-publica { display:flex; align-items:center; gap:14px; }
+.marca-publica img { border-radius:50%; width:60px; height:60px; object-fit:cover; box-shadow:0 0 0 5px var(--fill); }
+.marca-publica strong { font:36px/1 var(--font-display); }
+.marca-publica small { display:block; margin-top:7px; font-size:9px; letter-spacing:.16em; }
+.cabecera-publica nav { display:flex; gap:30px; font-size:14px; }
+.cabecera-publica nav a { padding:7px 0; }
+.cabecera-publica nav a[aria-current=page] { border-bottom:1px solid var(--olive); }
+.enlace-admin { color:var(--olive); font-weight:600; }
+.enlace-flecha { display:inline-block; font-size:14px; font-weight:500; border-bottom:1px solid var(--separator); padding:6px 0; }
+.enlace-flecha:hover { border-color:var(--olive); }
+.etiqueta { font-size:10px; letter-spacing:.16em; font-weight:600; margin-bottom:24px; color:var(--olive); }
+.etiqueta span { font-size:17px; vertical-align:middle; margin-right:8px; }
+.intro { font-size:17px; color:var(--label-2); max-width:440px; }
+.hero-publico { width:100%; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.1fr); gap:5%; padding:62px var(--page-gutter) 72px; align-items:center; }
+.hero-texto h1 { margin-bottom:26px; }
+.botones { display:flex; flex-wrap:wrap; align-items:center; gap:24px; margin:30px 0 38px; }
+.detalle-hero { font-size:10px; letter-spacing:.085em; color:var(--label-2); }
+.detalle-hero span { padding:0 10px; }
+.hero-foto { position:relative; align-self:stretch; min-height:490px; margin-top:18px; }
+.hero-foto>img { width:100%; height:100%; object-fit:cover; object-position:47% center; border-radius:180px 180px var(--r-card) var(--r-card); }
+.foto-sello { position:absolute; bottom:32px; left:-25px; background:var(--surface); padding:18px 25px; box-shadow:var(--glass-shadow); border:1px solid var(--separator); border-radius:var(--r-ctl); }
+.foto-sello span { font-size:11px; color:var(--label-2); display:block; }
+.foto-sello strong { font:italic 25px var(--font-display); }
+.franja-publica { background:var(--sand); padding:24px var(--page-gutter); display:flex; align-items:center; justify-content:center; gap:6%; font:18px var(--font-display); border-block:1px solid var(--separator); }
+.franja-publica span:nth-child(even) { color:var(--olive); font-size:24px; }
+.seccion-publica { width:100%; padding:85px var(--page-gutter); }
+.filosofia { display:grid; grid-template-columns:1fr 1fr; gap:12%; align-items:center; }
+.filosofia p:not(.etiqueta) { margin-bottom:24px; max-width:485px; color:var(--label-2); }
+.filosofia .texto-grande { font:26px/1.4 var(--font-display); color:var(--label)!important; }
+.servicios-destacados { padding-top:35px; }
+.titulo-seccion { display:flex; justify-content:space-between; align-items:end; margin-bottom:40px; gap:25px; }
+.especialidades { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:24px; }
+.especialidades>a { position:relative; display:flex; flex-direction:column; align-items:start; padding:30px; background:var(--surface); box-shadow:var(--card-shadow); border-radius:var(--r-card); transition:background .2s,transform .2s; }
+.especialidades>a:hover { background:var(--surface-hover); transform:translateY(-3px); }
+.especialidades>a:nth-child(2) { background:color-mix(in oklab,var(--olive) 7%,var(--surface)); }
+.especialidades>a:nth-child(3) { background:color-mix(in oklab,var(--orange) 6%,var(--surface)); }
+.numero { font-size:10px; letter-spacing:.1em; }
+.simbolo { align-self:end; font:72px/1 var(--font-display); color:var(--olive); margin:0 0 26px; }
+.especialidades h3 { font:27px/1.2 var(--font-display); margin-bottom:15px; letter-spacing:-.03em; }
+.especialidades p { font-size:14px; color:var(--label-2); margin-bottom:25px; flex:1; }
+.cita-publica { text-align:center; background:var(--forest); color:var(--cream); padding:80px 24px; position:relative; overflow:hidden; }
+.cita-publica:before,.cita-publica:after { content:'✳'; position:absolute; font:350px/1 var(--font-display); color:color-mix(in oklab,var(--cream) 4%,transparent); top:0; left:-75px; pointer-events:none; }
+.cita-publica:after { left:auto; right:-75px; top:auto; bottom:-70px; }
+.cita-publica em,.cita-publica .etiqueta { color:color-mix(in oklab,var(--cream) 75%,var(--olive)); }
+.cita-publica .btn { margin-top:30px; }
+.contacto-publico { display:grid; grid-template-columns:1fr 1fr; gap:12%; align-items:center; }
+.contacto-publico h2 { margin-bottom:30px; }
+.contacto-publico p:not(.etiqueta) { color:var(--label-2); margin-bottom:22px; }
+.contacto-tarjeta { background:var(--surface); padding:42px; border-radius:var(--r-card); box-shadow:var(--card-shadow); }
+.telefono-grande { font:clamp(1.8rem,3vw,2.6rem) var(--font-display); display:inline-block; margin-bottom:20px; }
+.contacto-tarjeta .nota { margin-top:18px; }
+.comodidades { display:flex; flex-wrap:wrap; gap:8px; padding-top:15px; border-top:1px solid var(--separator); }
+.comodidades span { font-size:11px; border:1px solid var(--separator); padding:4px 10px; border-radius:var(--r-pill); }
+.nota { font-size:12px; color:var(--label-2); line-height:1.6; }
+.pie-publico { padding:46px var(--page-gutter) 24px; background:var(--sand); display:grid; grid-template-columns:1fr 1.3fr 1fr; gap:30px; border-top:1px solid var(--separator); }
+.pie-publico strong { font:36px var(--font-display); }
+.pie-publico p { font-size:12px; margin-top:8px; color:var(--label-2); }
+.pie-publico a:hover { text-decoration:underline; }
+.pie-nota { grid-column:1/-1; padding-top:24px; border-top:1px solid var(--separator); display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:15px; }
+.pie-nota p { margin:0; font-size:11px; letter-spacing:.02em; }
+.portada-servicios { padding-bottom:50px; }
+.portada-servicios h1 { font-size:clamp(3rem,5vw,5.2rem); margin-bottom:25px; }
+.portada-servicios .nota { margin-top:22px; }
+.catalogo-publico { display:grid; grid-template-columns:230px minmax(0,1fr); gap:9%; padding-top:10px; }
+.catalogo-publico aside { align-self:start; position:sticky; top:35px; }
+.catalogo-publico aside nav { display:grid; margin-bottom:25px; }
+.catalogo-publico aside nav a { display:flex; justify-content:space-between; padding:12px 0; border-bottom:1px solid var(--separator); font-size:14px; }
+.categoria-publica { margin-bottom:48px; scroll-margin-top:40px; }
+.categoria-publica h2 { font-size:35px; margin-bottom:24px; }
+.servicio-publico { display:flex; gap:20px; justify-content:space-between; align-items:start; padding:19px 0; border-bottom:1px solid var(--separator); }
+.servicio-publico h3 { font-size:16px; margin-bottom:5px; }
+.servicio-publico p { font-size:13px; color:var(--label-2); max-width:450px; }
+.servicio-publico small { font-size:11px; color:var(--label-2); }
+.servicio-publico strong { font-weight:500; white-space:nowrap; font-size:16px; }
+/* El acceso se centra como una sola tarjeta, a cualquier resolución. */
+.acceso-publico { display:grid; place-items:center; min-height:calc(100svh - 112px); padding:64px 24px; background:radial-gradient(ellipse at 20% 15%,var(--fill),transparent 45%),radial-gradient(ellipse at 85% 85%,var(--fill),transparent 45%); }
+.acceso-panel { width:100%; max-width:480px; padding:38px 42px 30px; background:var(--surface); border:1px solid var(--separator); border-radius:32px; box-shadow:var(--glass-shadow); }
+.acceso-intro { text-align:center; margin-bottom:30px; }
+.acceso-intro img { margin:0 auto 24px; border-radius:50%; box-shadow:0 0 0 7px var(--fill); }
+.acceso-intro .etiqueta { margin-bottom:16px; }
+.acceso-intro h1 { font-size:44px; margin-bottom:18px; }
+.acceso-intro>p:last-child { color:var(--label-2); font-size:14px; max-width:30ch; margin:auto; }
+.form-acceso { display:grid; gap:20px; }
+.form-acceso .input { border:1px solid var(--separator); min-height:48px; }
+.form-acceso .btn { width:100%; margin-top:4px; }
+.form-acceso .nota { text-align:center; font-size:11px; }
+.acceso-volver { display:block; text-align:center; margin-top:22px; padding:6px; font-size:12px; color:var(--olive); }
+.estado-error { max-width:760px; margin:80px auto; padding:0 25px; }
+.estado-error h1 { font-size:45px; margin:20px 0; }
+.estado-error .acciones { margin:25px 0; }
+@media(min-width:1200px) {
+  .portada-servicios { display:grid; grid-template-columns:minmax(0,1.4fr) minmax(0,1fr); gap:5%; align-items:center; }
+  .servicios-intro { border-left:1px solid var(--separator); padding-left:clamp(30px,3vw,72px); }
+  .servicios-intro .nota { max-width:50ch; }
+  .hero-publico { padding-top:48px; padding-bottom:64px; }
+  .hero-publico h1 { font-size:clamp(6rem,6.2vw,9.5rem); }
+  .hero-foto { height:clamp(540px,36vw,820px); min-height:0; margin-top:0; }
+  .hero-foto>img { border-radius:clamp(180px,15vw,360px) clamp(180px,15vw,360px) var(--r-card) var(--r-card); }
+  .hero-publico .intro { max-width:40ch; font-size:clamp(17px,1.15vw,22px); }
+  .filosofia,.contacto-publico { grid-template-columns:minmax(0,1fr) minmax(0,1.1fr); gap:5%; }
+  .filosofia p:not(.etiqueta) { max-width:65ch; }
+  .especialidades>a { padding:clamp(30px,2.6vw,64px); }
+  .especialidades h3 { font-size:clamp(27px,2vw,42px); }
+  .especialidades p { font-size:clamp(14px,1vw,18px); max-width:48ch; }
+  .contacto-tarjeta { padding:clamp(42px,3vw,72px); }
+  .franja-publica { justify-content:space-between; }
+}
+@media(min-width:1400px) {
+  .catalogo-publico { grid-template-columns:260px minmax(0,1fr); gap:5%; }
+  .lista-servicios { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); column-gap:48px; }
+}
+@media(max-width:900px) {
+  .cabecera-publica { gap:15px; padding:20px 4%; }
+  .cabecera-publica nav { gap:16px; }
+  .marca-publica small { font-size:8px; }
+  .hero-publico { gap:5%; padding-top:42px; }
+  .hero-foto { min-height:430px; }
+  .hero-publico h1 { font-size:4.5rem; }
+  .detalle-hero { line-height:2; }
+  .foto-sello { left:-12px; padding:15px; }
+  .seccion-publica { padding:60px 5%; }
+  .especialidades { gap:15px; }
+  .especialidades>a { padding:23px; }
+  .filosofia,.contacto-publico { gap:7%; }
+  .catalogo-publico { grid-template-columns:180px minmax(0,1fr); gap:6%; }
+}
+@media(max-width:650px) {
+  .cabecera-publica { flex-wrap:wrap; min-height:unset; padding:15px 5%; gap:15px; }
+  .marca-publica img { width:46px; height:46px; }
+  .marca-publica strong { font-size:28px; }
+  .marca-publica small { font-size:7px; }
+  .cabecera-publica>.btn { min-height:42px; font-size:12px; padding:8px 12px; gap:10px; }
+  .cabecera-publica nav { order:3; width:100%; justify-content:space-between; gap:10px; font-size:12px; border-top:1px solid var(--separator); padding-top:9px; }
+  .hero-publico { grid-template-columns:1fr; padding:36px 6% 42px; gap:25px; }
+  .hero-publico h1 { font-size:4rem; }
+  .etiqueta { font-size:9px; margin-bottom:20px; }
+  .intro { font-size:15px; }
+  .botones { gap:20px; margin:25px 0; }
+  .hero-foto { height:390px; min-height:unset; margin:0 0 0 20px; }
+  .hero-foto>img { border-radius:140px 140px var(--r-card) var(--r-card); }
+  .foto-sello { left:-20px; bottom:24px; }
+  .franja-publica { font-size:14px; gap:15px; text-align:center; padding:20px 15px; }
+  .franja-publica span:last-child,.franja-publica span:nth-child(4) { display:none; }
+  .filosofia,.contacto-publico { grid-template-columns:1fr; gap:32px; }
+  .seccion-publica { padding:48px 6%; }
+  .filosofia .texto-grande { font-size:23px; }
+  .titulo-seccion { align-items:start; flex-direction:column; gap:20px; }
+  .especialidades { grid-template-columns:1fr; }
+  .especialidades>a { padding:25px; }
+  .simbolo { position:absolute; right:25px; top:24px; font-size:42px; }
+  .numero { margin-bottom:35px; }
+  .especialidades h3 { font-size:29px; }
+  .especialidades p { max-width:320px; }
+  .cita-publica { padding:60px 20px; }
+  .contacto-tarjeta { padding:28px; }
+  .pie-publico { grid-template-columns:1fr; gap:20px; padding:30px 6% 20px; }
+  .catalogo-publico { grid-template-columns:1fr; gap:35px; padding-top:0; }
+  .catalogo-publico aside { position:static; }
+  .catalogo-publico aside nav { display:flex; flex-wrap:wrap; gap:8px; }
+  .catalogo-publico aside nav a { padding:7px 11px; border:1px solid var(--separator); border-radius:var(--r-pill); font-size:12px; gap:10px; }
+  .catalogo-publico aside>.btn { display:none; }
+  .portada-servicios h1 { font-size:3.2rem; }
+  .servicio-publico h3,.servicio-publico strong { font-size:14px; }
+  .acceso-publico { min-height:0; padding:36px 18px 44px; }
+  .acceso-panel { padding:30px 24px 24px; border-radius:var(--r-card); }
+  .acceso-intro h1 { font-size:40px; }
+}
+@media(prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } }

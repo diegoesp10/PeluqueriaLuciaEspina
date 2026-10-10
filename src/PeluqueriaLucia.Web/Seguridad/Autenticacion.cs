@@ -1,0 +1,84 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using PeluqueriaLucia.Application.Seguridad;
+
+namespace PeluqueriaLucia.Web.Seguridad;
+
+/// <summary>
+/// Inicio de sesión del panel con cookie cifrada. La cookie lleva el identificador de la sesión y su token; en cada
+/// petición se comprueba contra la base de datos, de modo que cerrar la sesión (o cambiar la contraseña) la anula al
+/// momento aunque alguien hubiera copiado la cookie.
+/// </summary>
+public static class Autenticacion
+{
+    public const string Esquema = "Administracion";
+    public const string PoliticaAdministrador = "Administrador";
+    public const string ClaimSesion = "sid";
+    public const string ClaimToken = "tok";
+    public const string ClaimAdministrador = "aid";
+
+    public static IServiceCollection AddAutenticacionAdministrador(this IServiceCollection services)
+    {
+        services
+            .AddAuthentication(Esquema)
+            .AddCookie(Esquema, o =>
+            {
+                o.Cookie.Name = "PeluqueriaLucia.Panel";
+                o.Cookie.HttpOnly = true;
+                o.Cookie.SameSite = SameSiteMode.Strict;
+                o.Cookie.Path = "/admin";
+                o.LoginPath = "/admin/acceso";
+                o.LogoutPath = "/admin/acceso/salir";
+                o.AccessDeniedPath = "/admin/acceso";
+                o.ReturnUrlParameter = "volver";
+                o.ExpireTimeSpan = Domain.Seguridad.SesionAdministrador.DuracionMaxima;
+                o.SlidingExpiration = false;
+                o.Events.OnValidatePrincipal = ValidarSesionAsync;
+                o.Events.OnRedirectToLogin = contexto =>
+                {
+                    if (contexto.Request.Headers.Accept.Any(a => a?.Contains("application/json", StringComparison.OrdinalIgnoreCase) == true))
+                        contexto.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    else contexto.Response.Redirect(contexto.RedirectUri);
+                    return Task.CompletedTask;
+                };
+            });
+        services.AddOptions<CookieAuthenticationOptions>(Esquema).Configure<Microsoft.Extensions.Options.IOptions<OpcionesSeguridad>>(
+            (o, seguridad) => o.Cookie.SecurePolicy = seguridad.Value.RequerirHttps ? CookieSecurePolicy.Always : CookieSecurePolicy.SameAsRequest);
+
+        services.AddAuthorizationBuilder()
+            .SetFallbackPolicy(new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder(Esquema).RequireAuthenticatedUser().Build())
+            .AddPolicy(PoliticaAdministrador, p => p
+                .AddAuthenticationSchemes(Esquema)
+                .RequireAuthenticatedUser()
+                .RequireClaim(ClaimSesion)
+                .RequireClaim(ClaimAdministrador));
+
+        return services;
+    }
+
+    public static ClaimsPrincipal CrearPrincipal(SesionIniciada sesion) => new(new ClaimsIdentity(
+        [
+            new Claim(ClaimTypes.Name, sesion.Usuario),
+            new Claim(ClaimAdministrador, sesion.AdministradorId.ToString(System.Globalization.CultureInfo.InvariantCulture)),
+            new Claim(ClaimSesion, sesion.SesionId.ToString()),
+            new Claim(ClaimToken, sesion.Token),
+        ],
+        Esquema));
+
+    /// <summary>Se ejecuta en cada petición con cookie: el token tiene que corresponder a una sesión abierta.</summary>
+    private static async Task ValidarSesionAsync(CookieValidatePrincipalContext contexto)
+    {
+        var principal = contexto.Principal;
+        var acceso = contexto.HttpContext.RequestServices.GetRequiredService<AccesoService>();
+        var valida = principal?.FindFirst(ClaimSesion)?.Value is { } sid && Guid.TryParse(sid, out var sesionId)
+            ? await acceso.ValidarSesionAsync(sesionId, principal.FindFirst(ClaimToken)?.Value, IpCliente.De(contexto.HttpContext), contexto.HttpContext.RequestAborted)
+            : null;
+
+        if (valida is null)
+        {
+            contexto.RejectPrincipal();
+            await contexto.HttpContext.SignOutAsync(Esquema);
+        }
+    }
+}

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -5,6 +6,7 @@ using PeluqueriaLucia.Application.Abstracciones;
 using PeluqueriaLucia.Infrastructure.Almacenamiento;
 using PeluqueriaLucia.Infrastructure.Exportacion;
 using PeluqueriaLucia.Infrastructure.Persistencia;
+using PeluqueriaLucia.Infrastructure.Seguridad;
 
 namespace PeluqueriaLucia.Infrastructure;
 
@@ -27,6 +29,18 @@ public static class DependencyInjection
         services.AddScoped<IClienteRepositorio, ClienteRepositorio>();
         services.AddScoped<IServicioRepositorio, ServicioRepositorio>();
         services.AddScoped<IVisitaRepositorio, VisitaRepositorio>();
+        services.AddScoped<IAdministradorRepositorio, AdministradorRepositorio>();
+        services.AddScoped<ISesionRepositorio, SesionRepositorio>();
+        services.AddScoped<IIntentoAccesoRepositorio, IntentoAccesoRepositorio>();
+        services.AddSingleton<IHasherContrasenas, HasherContrasenas>();
+
+        // Claves de cifrado de cookies y tokens antifalsificación en la base de datos: sobreviven a reinicios de IIS
+        // y no dependen de permisos de carpetas en el equipo
+        var proteccion = services.AddDataProtection()
+            .SetApplicationName("PeluqueriaLucia")
+            .PersistKeysToDbContext<PeluqueriaDbContext>();
+        if (OperatingSystem.IsWindows())
+            proteccion.ProtectKeysWithDpapi(protectToLocalMachine: true);
 
         services.AddOptions<OpcionesImagenes>().Bind(configuracion.GetSection(OpcionesImagenes.Seccion));
         services.AddSingleton<IAlmacenImagenes, AlmacenImagenesLocal>();

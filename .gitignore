@@ -407,3 +407,4 @@ FodyWeavers.xsd
 
 # Configuración real del equipo de la peluquería (cadena de conexión con contraseña)
 appsettings.Production.json
+.artifacts/

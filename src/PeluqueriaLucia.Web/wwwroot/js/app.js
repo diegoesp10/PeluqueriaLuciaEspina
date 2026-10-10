@@ -2,6 +2,7 @@
 'use strict';
 
 (() => {
+  document.querySelectorAll('[data-imprimir]').forEach(b => b.addEventListener('click', () => window.print()));
   // ── Apariencia: automática, día o noche. Se recuerda en este navegador; el <head> la aplica antes de pintar ──
   const selectores = document.querySelectorAll('[data-selector-tema]');
   const leerTema = () => {
