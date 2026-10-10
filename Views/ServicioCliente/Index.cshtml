@@ -8,17 +8,13 @@
 
     var fechaSeleccionada = ViewBag.FechaSeleccionada as DateTime?;
 
-    var total = Model.Sum(s => s.ServiciosRealizados
-        .Where(sr => sr.ServicioGenerico != null)
-        .Sum(sr => sr.ServicioGenerico!.Precio));
+    var total = Model.Sum(s => s.ServiciosRealizados.Sum(sr => sr.PrecioAplicado));
 
     var totalServicios = Model.Sum(s => s.ServiciosRealizados.Count);
 
     var totalCobrado = Model
     .Where(s => s.Estado == Estado.Cobrado)
-    .Sum(s => s.ServiciosRealizados
-        .Where(sr => sr.ServicioGenerico != null)
-        .Sum(sr => sr.ServicioGenerico!.Precio));
+    .Sum(s => s.ServiciosRealizados.Sum(sr => sr.PrecioAplicado));
 
     var totalVisitas = Model.Count();
     
@@ -171,13 +167,11 @@
             <tbody>
                 @foreach (var item in Model.OrderByDescending(x => x.Fecha))
                 {
-                    var totalPrecio = item.ServiciosRealizados
-                    .Where(sr => sr.ServicioGenerico != null)
-                    .Sum(sr => sr.ServicioGenerico!.Precio);
+                    var totalPrecio = item.ServiciosRealizados.Sum(sr => sr.PrecioAplicado);
                     var serviciosRealizados = item.ServiciosRealizados;
                     var nombre = item.Cliente?.Nombre ?? "Desconocido";
                     <tr>
-                        <td class="text-nowrap">@(item.Cliente?.Nombre) @(item.Cliente?.Apellido)</td>
+                        <td class="text-nowrap">@(item.Cliente != null ? $"{item.Cliente.Nombre} {item.Cliente.Apellido}" : "Sin cliente")</td>
                         <td class="text-nowrap">
                             @serviciosRealizados.Count                       
                         </td>

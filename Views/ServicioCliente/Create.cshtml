@@ -68,7 +68,13 @@
                         <div class="row">
                             <div class="col-12 col-md-6 mb-3">
                                 <label class="form-label fw-bolder">Cliente</label>
-                                <select class="form-control" name="ClienteId" id="selectCliente" required></select>
+                                <select class="form-control" name="ClienteId" id="selectCliente"></select>
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input" type="checkbox" id="chkSinCliente">
+                                    <label class="form-check-label" for="chkSinCliente">
+                                        Ticket sin cliente asociado
+                                    </label>
+                                </div>
                             </div>
                             <div class="col-12 col-md-6 mb-3">
                                 <label asp-for="Fecha" class="form-label fw-bolder">Fecha</label>
@@ -199,13 +205,19 @@
                 $('#selectCliente').empty();
             });
 
+            $('#chkSinCliente').on('change', function () {
+                const sinCliente = $(this).is(':checked');
+                $('#selectCliente').prop('disabled', sinCliente).val(null).trigger('change');
+            });
+
             $('#btnSiguiente').on('click', function () {
+                const sinCliente = $('#chkSinCliente').is(':checked');
                 const clienteId = $('#selectCliente').val();
                 const fecha = $('input[name="Fecha"]').val();
                 const sexo = parseInt($('input[name="sexoSeleccionado"]').val());
 
-                if (!clienteId) {
-                    mostrarToast("Por favor, selecciona cliente.");
+                if (!sinCliente && !clienteId) {
+                    mostrarToast("Por favor, selecciona cliente o marca \"Ticket sin cliente asociado\".");
                     return;
                 }
                 if (!fecha) {
@@ -280,18 +292,28 @@
                         }
 
                         servicios.forEach((s, i) => {
+                            const precioInicial = parseFloat(s.precio).toFixed(2);
                             const html = `
-                                        <div class="col-12 col-sm-6 mb-3">
-                                            <div class="d-flex align-items-center">
+                                        <div class="col-12 col-sm-6 mb-3 servicio-item">
+                                            <div class="d-flex align-items-center gap-2">
                                                 <input type="checkbox"
                                                        class="servicio-checkbox form-check-input me-2"
-                                                       data-precio="${s.precio}"
-                                                       name="ServiciosSeleccionados"
+                                                       data-servicio-id="${s.id}"
                                                        id="serv-${s.id}"
                                                        value="${s.id}">
-                                                <label for="serv-${s.id}" class="form-check-label fw-semibold">
-                                                    ${s.nombre} <span class="text-muted">(${parseFloat(s.precio).toFixed(2)} €)</span>
+                                                <label for="serv-${s.id}" class="form-check-label fw-semibold flex-grow-1">
+                                                    ${s.nombre}
                                                 </label>
+                                                <div class="input-group input-group-sm" style="width:120px;">
+                                                    <input type="number"
+                                                           step="0.01"
+                                                           min="0.01"
+                                                           class="form-control form-control-sm servicio-precio"
+                                                           id="precio-${s.id}"
+                                                           value="${precioInicial}"
+                                                           disabled>
+                                                    <span class="input-group-text">€</span>
+                                                </div>
                                             </div>
                                         </div>`;
                             $contenedorServicios.append(html);
@@ -309,15 +331,50 @@
                 });
             }
 
-            $(document).on('change', '.servicio-checkbox', calcularTotalServicios);
+            $(document).on('change', '.servicio-checkbox', function () {
+                const $precioInput = $(this).closest('.servicio-item').find('.servicio-precio');
+                $precioInput.prop('disabled', !this.checked);
+                calcularTotalServicios();
+            });
+
+            $(document).on('input', '.servicio-precio', calcularTotalServicios);
 
             function calcularTotalServicios() {
                 let total = 0;
                 $('.servicio-checkbox:checked').each(function () {
-                    total += parseFloat($(this).data('precio'));
+                    const precio = parseFloat($(this).closest('.servicio-item').find('.servicio-precio').val());
+                    total += isNaN(precio) ? 0 : precio;
                 });
                 $('#totalServicios').text(total.toFixed(2) + " €");
             }
+
+            // Antes de enviar, construye los campos ServiciosSeleccionados[i].ServicioGenericoId /
+            // .Precio (con el precio editado en pantalla) solo para los servicios marcados.
+            $('#formServicio').on('submit', function () {
+                $('.hidden-servicio-input').remove();
+
+                let index = 0;
+                $('.servicio-checkbox:checked').each(function () {
+                    const id = $(this).data('servicio-id');
+                    const precio = parseFloat($(this).closest('.servicio-item').find('.servicio-precio').val()) || 0;
+
+                    $('<input>').attr({
+                        type: 'hidden',
+                        class: 'hidden-servicio-input',
+                        name: `ServiciosSeleccionados[${index}].ServicioGenericoId`,
+                        value: id
+                    }).appendTo(this.form);
+
+                    $('<input>').attr({
+                        type: 'hidden',
+                        class: 'hidden-servicio-input',
+                        name: `ServiciosSeleccionados[${index}].Precio`,
+                        value: precio.toFixed(2).replace('.', ',')
+                    }).appendTo(this.form);
+
+                    index++;
+                });
+            });
 
             function mostrarToast(mensaje) {
                 $('#toastMensaje').text(mensaje);

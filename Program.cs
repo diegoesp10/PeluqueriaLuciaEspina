@@ -5,6 +5,10 @@ using Microsoft.EntityFrameworkCore;
 using PeluqueriaLuciaEspina.Servicios;
 using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
 using PeluqueriaLuciaEspina.RepoServicio;
+using System.Text;
+
+// Habilita páginas de código (CP850, etc.) necesarias para acentos/ñ al construir el ticket ESC/POS.
+Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +22,7 @@ builder.Services.AddScoped<IServicioClienteService, ServicioClienteService>();
 builder.Services.AddScoped<IServicioGenericoService, ServicioGenericoService>();
 builder.Services.AddScoped<IClienteService, ClienteService>();
 builder.Services.AddScoped<IServicioGenericoRepository, ServicioGenericoRepository>();
+builder.Services.AddScoped<ITicketPrinterService, TicketPrinterService>();
 
 
 

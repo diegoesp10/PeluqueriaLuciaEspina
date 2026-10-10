@@ -80,8 +80,7 @@ namespace PeluqueriaLuciaEspina.Services
         public async Task CobrarServicioAsync(ServicioCliente servicio)
         {
             decimal total = servicio.ServiciosRealizados
-             .Where(sr => sr.ServicioGenerico != null)
-             .Sum(sr => sr.ServicioGenerico!.Precio);
+             .Sum(sr => sr.PrecioAplicado);
             if (servicio.OpcionPago == OpcionPago.Mixto)
             {
                 decimal efectivo = servicio.TotalEfectivo ?? 0;

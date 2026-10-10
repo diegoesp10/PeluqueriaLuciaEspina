@@ -3,8 +3,8 @@
 
 @{
     ViewData["Title"] = "Detalles del Servicio";
-    var servicios = Model.ServiciosRealizados.Where(s => s.ServicioGenerico != null).ToList();
-    var total = servicios.Sum(s => s.ServicioGenerico!.Precio);
+    var servicios = Model.ServiciosRealizados;
+    var total = servicios.Sum(s => s.PrecioAplicado);
 }
 
 <div class="container mt-5">
@@ -21,7 +21,9 @@
 
                     <div class="mb-3">
                         <label class="form-label fw-bolder">Cliente</label>
-                        <div class="form-control bg-light">@Model.Cliente?.Nombre @Model.Cliente?.Apellido</div>
+                        <div class="form-control bg-light">
+                            @(Model.Cliente != null ? $"{Model.Cliente.Nombre} {Model.Cliente.Apellido}" : "Venta sin cliente asociado")
+                        </div>
                     </div>
 
                     <div class="mb-3">
@@ -38,6 +40,14 @@
                         <label class="form-label fw-bolder">Forma de pago</label>
                         <div class="form-control bg-light">@Model.OpcionPago</div>
                     </div>
+
+                    @if (Model.Estado == Estado.Cobrado)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label fw-bolder">IVA aplicado</label>
+                            <div class="form-control bg-light">@Model.PorcentajeIva.ToString("F0") %</div>
+                        </div>
+                    }
 
                     @if (Model.OpcionPago == OpcionPago.Mixto)
                     {
@@ -62,8 +72,8 @@
                                     @if(s.ServicioGenerico != null)
                                     {
                                         <span>@s.ServicioGenerico.Nombre</span>
-                                        <span>@s.ServicioGenerico.Precio.ToString("F2") €</span>
-                                    }                                  
+                                        <span>@s.PrecioAplicado.ToString("F2") €</span>
+                                    }
                                 </li>
                             }
                         </ul>

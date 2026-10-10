@@ -12,10 +12,12 @@ namespace PeluqueriaLuciaEspina.Controllers
     public class ServicioClienteController : Controller
     {
         private readonly IServicioClienteService _servicioService;
+        private readonly ITicketPrinterService _ticketPrinterService;
 
-        public ServicioClienteController(IServicioClienteService servicioService)
+        public ServicioClienteController(IServicioClienteService servicioService, ITicketPrinterService ticketPrinterService)
         {
             _servicioService = servicioService;
+            _ticketPrinterService = ticketPrinterService;
         }
 
         public async Task<IActionResult> Index(DateTime? fecha, int page = 1)
@@ -70,9 +72,10 @@ namespace PeluqueriaLuciaEspina.Controllers
                 Fecha = model.Fecha,
                 OpcionPago = model.OpcionPago,
                 Estado = Estado.NoCobrado,
-                ServiciosRealizados = model.ServiciosSeleccionados.Select(id => new ServicioGenericoRealizado
+                ServiciosRealizados = model.ServiciosSeleccionados.Select(s => new ServicioGenericoRealizado
                 {
-                    ServicioGenericoId = id
+                    ServicioGenericoId = s.ServicioGenericoId,
+                    PrecioAplicado = s.Precio
                 }).ToList()
             };
 
@@ -106,7 +109,7 @@ namespace PeluqueriaLuciaEspina.Controllers
 
         [ValidateAntiForgeryToken]
         [HttpPost]
-        public async Task<IActionResult> CobrarConfirmado(int id, decimal? totalEfectivo, decimal? totalTarjeta)
+        public async Task<IActionResult> CobrarConfirmado(int id, decimal? totalEfectivo, decimal? totalTarjeta, decimal iva = 0)
         {
             var servicio = await _servicioService.ObtenerPorIdAsync(id);
             if (servicio == null)
@@ -118,6 +121,9 @@ namespace PeluqueriaLuciaEspina.Controllers
                 servicio.TotalEfectivo = totalEfectivo ?? 0;
                 servicio.TotalTarjeta = totalTarjeta ?? 0;
             }
+
+            // IVA aplicado, elegido en el momento del cobro: solo se admite 0% o 21%.
+            servicio.PorcentajeIva = iva == 21 ? 21 : 0;
 
             try
             {
@@ -150,6 +156,27 @@ namespace PeluqueriaLuciaEspina.Controllers
 
             ViewBag.OpcionPago = servicio.OpcionPago.ToString();
             return View(servicio);
+        }
+
+        // Envía el ticket en RAW (ESC/POS) directamente a la impresora térmica configurada
+        // en appsettings.json (TicketPrinter:Name), sin pasar por ningún diálogo de impresión.
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ImprimirTicket(int id)
+        {
+            var servicio = await _servicioService.ObtenerPorIdAsync(id);
+            if (servicio == null)
+                return Json(new { ok = false, error = "Servicio no encontrado." });
+
+            try
+            {
+                _ticketPrinterService.ImprimirTicket(servicio);
+                return Json(new { ok = true });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { ok = false, error = ex.Message });
+            }
         }
 
         [HttpGet("exportar-excel")]
@@ -186,10 +213,10 @@ namespace PeluqueriaLuciaEspina.Controllers
                                             .Select(sr => sr.ServicioGenerico.Nombre))
                     : "—";
 
-                var total = s.ServiciosRealizados?.Where(sr => sr.ServicioGenerico != null)
-                                  .Sum(sr => sr.ServicioGenerico.Precio) ?? 0;
+                var total = s.ServiciosRealizados?.Sum(sr => sr.PrecioAplicado) ?? 0;
 
-                worksheet.Cell(row, 1).Value = $"{s.Cliente?.Nombre} {s.Cliente?.Apellido}".Trim();
+                var nombreCliente = $"{s.Cliente?.Nombre} {s.Cliente?.Apellido}".Trim();
+                worksheet.Cell(row, 1).Value = string.IsNullOrWhiteSpace(nombreCliente) ? "Sin cliente" : nombreCliente;
                 worksheet.Cell(row, 2).Value = nombres;
                 worksheet.Cell(row, 3).Value = total;
                 worksheet.Cell(row, 4).Value = s.Estado.ToString();

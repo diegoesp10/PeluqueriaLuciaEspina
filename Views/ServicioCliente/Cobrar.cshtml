@@ -4,7 +4,7 @@
 @{
     ViewData["Title"] = "Cobrar Servicio";
     var opcionesPago = Enum.GetValues(typeof(OpcionPago)).Cast<OpcionPago>();
-    var total = Model.ServiciosRealizados.Sum(s => s.ServicioGenerico.Precio);
+    var total = Model.ServiciosRealizados.Sum(s => s.PrecioAplicado);
 }
 @if (TempData["Error"] != null)
 {
@@ -44,7 +44,9 @@
 
                         <div class="mb-3">
                             <label class="form-label fw-bolder">Cliente</label>
-                            <div class="form-control bg-light">@Model.Cliente.Nombre @Model.Cliente.Apellido</div>
+                            <div class="form-control bg-light">
+                                @(Model.Cliente != null ? $"{Model.Cliente.Nombre} {Model.Cliente.Apellido}" : "Venta sin cliente asociado")
+                            </div>
                         </div>
 
                         <div class="mb-3">
@@ -53,8 +55,8 @@
                                 @foreach (var s in Model.ServiciosRealizados)
                                 {
                                     <li class="list-group-item d-flex justify-content-between">
-                                        <span>@s.ServicioGenerico.Nombre</span>
-                                        <span>@s.ServicioGenerico.Precio.ToString("F2") €</span>
+                                        <span>@s.ServicioGenerico?.Nombre</span>
+                                        <span>@s.PrecioAplicado.ToString("F2") €</span>
                                     </li>
                                 }
                             </ul>
@@ -90,6 +92,31 @@
                             <div class="form-text text-danger d-none" id="errorMixto" aria-live="polite"></div>
                         </div>
 
+                        <div class="mb-3" id="grupoCambio">
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <label for="dineroEntregado" class="form-label fw-bolder">Dinero que paga el cliente</label>
+                                    <input type="number" min="0" step="0.01" id="dineroEntregado"
+                                           class="form-control" placeholder="Entregado (€)">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="vueltaCliente" class="form-label fw-bolder">Vuelta a entregar</label>
+                                    <input type="text" id="vueltaCliente" class="form-control bg-light" readonly value="0,00 €">
+                                </div>
+                            </div>
+                            <div class="form-text">Solo orientativo, para calcular el cambio en efectivo; no afecta al cobro registrado.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bolder">IVA aplicado</label>
+                            <div class="btn-group d-flex" role="group">
+                                <input type="radio" class="btn-check" name="iva" id="iva0" value="0" checked>
+                                <label class="btn btn-outline-secondary" for="iva0">0% (Exento)</label>
+
+                                <input type="radio" class="btn-check" name="iva" id="iva21" value="21">
+                                <label class="btn btn-outline-secondary" for="iva21">21%</label>
+                            </div>
+                        </div>
 
                         <div class="d-flex justify-content-end gap-2">
                             <button type="submit" class="btn btn-success">
@@ -114,6 +141,10 @@
             const montoTarjeta = document.getElementById('montoTarjeta');
             const total = @total.ToString("F2").Replace(',', '.');
 
+            const grupoCambio = document.getElementById('grupoCambio');
+            const dineroEntregado = document.getElementById('dineroEntregado');
+            const vueltaCliente = document.getElementById('vueltaCliente');
+
             function toggleMixto() {
                 if (formaPagoInput.value === '3') {
                     grupoMixto.classList.remove('d-none');
@@ -129,9 +160,33 @@
                 }
             }
 
-            toggleMixto(); // Ejecutar al cargar
+            // Base sobre la que se calcula la vuelta: en pago mixto solo la parte en efectivo,
+            // en pago en efectivo el total completo.
+            function baseParaCambio() {
+                return formaPagoInput.value === '3' ? (parseFloat(montoEfectivo.value) || 0) : total;
+            }
 
-           
+            function actualizarVuelta() {
+                const entregado = parseFloat(dineroEntregado.value) || 0;
+                const vuelta = entregado - baseParaCambio();
+                vueltaCliente.value = (vuelta > 0 ? vuelta : 0).toFixed(2).replace('.', ',') + ' €';
+            }
+
+            function toggleGrupoCambio() {
+                // Con pago íntegro en tarjeta no hay cambio en efectivo que calcular.
+                if (formaPagoInput.value === '1') {
+                    grupoCambio.classList.add('d-none');
+                } else {
+                    grupoCambio.classList.remove('d-none');
+                }
+                actualizarVuelta();
+            }
+
+            dineroEntregado.addEventListener('input', actualizarVuelta);
+            montoEfectivo.addEventListener('input', actualizarVuelta);
+
+            toggleMixto(); // Ejecutar al cargar
+            toggleGrupoCambio();
 
 
             document.querySelector('form').addEventListener('submit', function (e) {

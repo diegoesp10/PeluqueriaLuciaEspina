@@ -65,7 +65,7 @@ namespace PelqueriaLuciaEspina.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("ClienteId")
+                    b.Property<int?>("ClienteId")
                         .HasColumnType("int");
 
                     b.Property<int>("Estado")
@@ -76,6 +76,11 @@ namespace PelqueriaLuciaEspina.Migrations
 
                     b.Property<int>("OpcionPago")
                         .HasColumnType("int");
+
+                    b.Property<decimal>("PorcentajeIva")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(5,2)")
+                        .HasDefaultValue(0m);
 
                     b.Property<decimal?>("TotalEfectivo")
                         .HasColumnType("decimal(18,2)");
@@ -128,6 +133,11 @@ namespace PelqueriaLuciaEspina.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<decimal>("PrecioAplicado")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
+
                     b.Property<int>("ServicioClienteId")
                         .HasColumnType("int");
 
@@ -148,8 +158,7 @@ namespace PelqueriaLuciaEspina.Migrations
                     b.HasOne("PeluqueriaLuciaEspina.Models.Cliente", "Cliente")
                         .WithMany()
                         .HasForeignKey("ClienteId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Cliente");
                 });

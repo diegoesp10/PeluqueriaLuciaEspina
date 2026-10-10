@@ -39,13 +39,25 @@ namespace PeluqueriaLuciaEspina.Models
             modelBuilder.Entity<ServicioCliente>()
                 .HasOne(sc => sc.Cliente)
                 .WithMany()
-                .HasForeignKey(sc => sc.ClienteId);
+                .HasForeignKey(sc => sc.ClienteId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ServicioCliente>()
+                .Property(s => s.PorcentajeIva)
+                .HasColumnType("decimal(5,2)")
+                .HasDefaultValue(0m);
 
             // ServicioGenericoRealizado
             modelBuilder.Entity<ServicioGenericoRealizado>()
                 .HasOne(sgr => sgr.ServicioGenerico)
                 .WithMany(sg => sg.Realizados)
                 .HasForeignKey(sgr => sgr.ServicioGenericoId);
+
+            modelBuilder.Entity<ServicioGenericoRealizado>()
+                .Property(sgr => sgr.PrecioAplicado)
+                .HasColumnType("decimal(18,2)")
+                .HasDefaultValue(0m);
 
             modelBuilder.Entity<ServicioGenericoRealizado>()
                 .HasOne(sgr => sgr.ServicioCliente)
