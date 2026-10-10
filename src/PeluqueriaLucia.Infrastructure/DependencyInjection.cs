@@ -14,17 +14,10 @@ public static class DependencyInjection
 {
     public const string NombreCadenaConexion = "DefaultConnection";
 
-    public static IServiceCollection AddInfraestructura(this IServiceCollection services, IConfiguration configuracion)
+    public static IServiceCollection AddInfraestructura(this IServiceCollection services, IConfiguration configuracion, string? conexionPrueba = null)
     {
-        var cadena = configuracion.GetConnectionString(NombreCadenaConexion);
-        if (string.IsNullOrWhiteSpace(cadena))
-        {
-            throw new InvalidOperationException(
-                $"Falta la cadena de conexión «{NombreCadenaConexion}». En el equipo de la peluquería va en " +
-                "appsettings.Production.json (ver docs/DESPLIEGUE.md).");
-        }
-
-        services.AddDbContext<PeluqueriaDbContext>(o => o.UseSqlServer(cadena, sql => sql.EnableRetryOnFailure(3)));
+        // Resolver al abrir el contexto permite mostrar un error genérico si el servicio conectado falla.
+        services.AddDbContext<PeluqueriaDbContext>(o => o.UseSqlServer(conexionPrueba ?? ServicioConexionSql.Obtener(), sql => sql.EnableRetryOnFailure(3)));
         services.AddScoped<IUnidadDeTrabajo>(sp => sp.GetRequiredService<PeluqueriaDbContext>());
         services.AddScoped<IClienteRepositorio, ClienteRepositorio>();
         services.AddScoped<IServicioRepositorio, ServicioRepositorio>();

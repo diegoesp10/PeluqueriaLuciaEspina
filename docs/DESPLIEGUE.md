@@ -2,7 +2,7 @@
 
 La aplicación corre en IIS contra SQL Server. La portada, los servicios y las opiniones son públicos; toda la gestión está dentro de `/admin` y exige contraseña y Authenticator. El servidor de producción debe tener un certificado HTTPS. Ver [SEGURIDAD.md](SEGURIDAD.md) y [CONTENIDO-Y-MFA.md](CONTENIDO-Y-MFA.md) para acceso, migración y copias del almacén de reseñas.
 
-> **Regla de oro:** la base de datos tiene datos reales que no se pueden perder. Antes de cada actualización se hace una copia de seguridad, y las migraciones solo **añaden** (nunca borran ni renombran tablas o columnas). Hay una prueba automática que reproduce la base de datos de la versión anterior con datos, la migra y comprueba que no se pierde nada (`tests/.../Integracion/MigracionTests.cs`).
+> **Regla de oro:** la base de datos tiene datos reales que no se pueden perder. Antes de cada actualización se hace una copia de seguridad, y las migraciones conservan los datos de negocio; las tablas redundantes se retiran después de trasladar su contenido. Hay una prueba automática que reproduce la base de datos de la versión anterior con datos, la migra y comprueba que no se pierde nada (`tests/.../Integracion/MigracionTests.cs`).
 
 ## Qué hay que tener instalado en ese equipo
 
@@ -32,22 +32,9 @@ sqlcmd -S localhost -E -C -Q "BACKUP DATABASE PeluqueriaLuciaDb TO DISK = N'C:\C
 
 Haz también una copia de la carpeta actual del sitio de IIS (por ejemplo, `C:\inetpub\PeluqueriaLucia` → `C:\inetpub\PeluqueriaLucia-anterior`).
 
-### 3. Solo la primera vez que se pasa de la versión 1 a la 2: la configuración
+### 3. Configurar el servicio conectado SQL
 
-En la versión 1 la cadena de conexión estaba dentro de `appsettings.json`. Ahora va aparte, en `appsettings.Production.json`, que no está en el repositorio y no se sobrescribe al publicar.
-
-1. Abre el `appsettings.json` **del sitio actual** y copia el valor de `ConnectionStrings:DefaultConnection`.
-2. En la carpeta del sitio crea `appsettings.Production.json` tomando como modelo `appsettings.Production.example.json`, y pega ahí la cadena:
-
-   ```json
-   {
-     "ConnectionStrings": {
-       "DefaultConnection": "Server=localhost;Database=PeluqueriaLuciaDb;User Id=…;Password=…;TrustServerCertificate=True;"
-     }
-   }
-   ```
-
-IIS arranca la aplicación en entorno *Production*, que lee este fichero automáticamente. Si falta, la aplicación no arranca y el registro de IIS lo indica con un mensaje claro.
+Ejecuta el comando configurar-conexion bajo la identidad que ejecutará la web. Consulta [CONEXION-Y-ERRORES.md](CONEXION-Y-ERRORES.md). La cadena está en el almacén de credenciales de Windows y nunca se lee de appsettings ni User Secrets.
 
 ### 4. Actualizar la base de datos
 
@@ -55,13 +42,13 @@ Desde la carpeta del repositorio, con `dotnet ef database update` apuntando a la
 
 ```powershell
 dotnet tool restore
-dotnet ef database update --project src/PeluqueriaLucia.Infrastructure --startup-project src/PeluqueriaLucia.Web --connection "Server=localhost;Database=PeluqueriaLuciaDb;User Id=…;Password=…;TrustServerCertificate=True;"
+dotnet ef database update --project src/PeluqueriaLucia.Infrastructure --startup-project src/PeluqueriaLucia.Web
 ```
 
 Se ejecuta en el equipo de la peluquería (necesita el SDK de .NET), o desde el tuyo si llegas a su SQL Server por la red (cambiando `localhost` por el nombre de su equipo). Solo aplica las migraciones que falten: si ya está al día, no hace nada. Para ver antes cuáles faltan:
 
 ```powershell
-dotnet ef migrations list --project src/PeluqueriaLucia.Infrastructure --startup-project src/PeluqueriaLucia.Web --connection "…"
+dotnet ef migrations list --project src/PeluqueriaLucia.Infrastructure --startup-project src/PeluqueriaLucia.Web
 ```
 
 Qué hace la migración `HistoricoPreciosYCatalogoArchivable` (versión 2):
@@ -110,3 +97,4 @@ Al arrancar, la aplicación prepara la conexión con la base de datos antes de a
 
 - *Visor de eventos de Windows* → *Registros de aplicaciones* → origen *IIS AspNetCore Module V2*.
 - Para más detalle, en el `web.config` del sitio pon `stdoutLogEnabled="true"` y crea la carpeta `logs`.
+

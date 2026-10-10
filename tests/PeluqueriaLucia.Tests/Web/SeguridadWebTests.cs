@@ -59,7 +59,7 @@ internal sealed class FabricaWeb(string cadena, Dictionary<string, string?>? aju
     {
         builder.UseEnvironment("Development");
         builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(
-            new Dictionary<string, string?> { ["ConnectionStrings:DefaultConnection"] = cadena, ["Seguridad:RequerirHttps"] = "false", ["Seguridad:Limites:AccesoPorCuartoDeHora"] = "100" }
+            new Dictionary<string, string?> { ["Seguridad:RequerirHttps"] = "false", ["Seguridad:Limites:AccesoPorCuartoDeHora"] = "100" }
                 .Concat(ajustes ?? []).GroupBy(p => p.Key).ToDictionary(g => g.Key, g => g.Last().Value)));
         builder.ConfigureServices(services =>
         {

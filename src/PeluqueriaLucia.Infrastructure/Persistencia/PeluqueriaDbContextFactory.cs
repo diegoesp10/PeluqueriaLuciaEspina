@@ -9,12 +9,9 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia;
 /// </summary>
 internal sealed class PeluqueriaDbContextFactory : IDesignTimeDbContextFactory<PeluqueriaDbContext>
 {
-    private const string ConexionDesarrollo =
-        "Server=localhost;Database=PeluqueriaLuciaDb;Integrated Security=True;TrustServerCertificate=True;Encrypt=False";
-
     public PeluqueriaDbContext CreateDbContext(string[] args)
     {
-        var cadena = Environment.GetEnvironmentVariable("PELUQUERIA_CONEXION") ?? ConexionDesarrollo;
+        var cadena = ServicioConexionSql.Obtener();
         return new PeluqueriaDbContext(new DbContextOptionsBuilder<PeluqueriaDbContext>().UseSqlServer(cadena).Options);
     }
 }

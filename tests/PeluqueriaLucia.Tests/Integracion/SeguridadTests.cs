@@ -16,7 +16,7 @@ public sealed class SeguridadTests
         var servicios = new ServiceCollection();
         servicios.AddLogging();
         servicios.AddAplicacion();
-        servicios.AddInfraestructura(new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["ConnectionStrings:DefaultConnection"] = bd.Cadena }).Build());
+        servicios.AddInfraestructura(new ConfigurationBuilder().Build(), bd.Cadena);
         servicios.AddSingleton<TimeProvider>(reloj);
         await using var proveedor = servicios.BuildServiceProvider();
         async Task<T> Ejecutar<T>(Func<AccesoService, Task<T>> accion)

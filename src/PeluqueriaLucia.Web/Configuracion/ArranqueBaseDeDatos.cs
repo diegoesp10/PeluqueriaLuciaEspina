@@ -26,13 +26,11 @@ internal sealed class ArranqueBaseDeDatos(
     {
         var cronometro = Stopwatch.StartNew();
         await using var scope = scopes.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService<PeluqueriaDbContext>();
-
-        if (opciones.Value.AplicarMigracionesAlArrancar)
-            await db.Database.MigrateAsync(cancellationToken);
-
         try
         {
+            var db = scope.ServiceProvider.GetRequiredService<PeluqueriaDbContext>();
+            if (opciones.Value.AplicarMigracionesAlArrancar)
+                await db.Database.MigrateAsync(cancellationToken);
             await db.Visitas.AsNoTracking().Include(v => v.Cliente).Include(v => v.Lineas).OrderBy(v => v.Id).Take(1).ToListAsync(cancellationToken);
             logger.LogInformation("Base de datos preparada en {Milisegundos} ms", cronometro.ElapsedMilliseconds);
         }

@@ -13,6 +13,33 @@ public sealed class MigracionTests
     private const string UltimaMigracionDeLaVersionAnterior = "20250705153725_TotalServicioCliente";
 
     [Fact]
+    public async Task Base_vacia_recupera_catalogo_completo_sin_datos_privados()
+    {
+        await using var bd = await BaseDeDatosPrueba.CrearAsync();
+        Assert.Equal(42, await bd.EscalarAsync<int>("SELECT COUNT(*) FROM ServiciosGenericos"));
+        Assert.Equal(41, await bd.EscalarAsync<int>("SELECT COUNT(*) FROM ServiciosGenericos WHERE Publicado=1"));
+        Assert.Equal(6, await bd.EscalarAsync<int>("SELECT COUNT(*) FROM CategoriasPublicas"));
+        Assert.Equal(25m, await bd.EscalarAsync<decimal>("SELECT Precio FROM ServiciosGenericos WHERE Nombre=N'corte de pelo' AND Publicado=0"));
+        Assert.Equal(0, await bd.EscalarAsync<int>("SELECT COUNT(*) FROM Clientes"));
+        Assert.Equal(0, await bd.EscalarAsync<int>("SELECT COUNT(*) FROM ServiciosClientes"));
+        Assert.Equal(0, await bd.EscalarAsync<int>("SELECT COUNT(*) FROM Administradores"));
+        Assert.Equal(0, await bd.EscalarAsync<int>("SELECT COUNT(*) FROM sys.tables WHERE name='TratamientosPublicos'"));
+    }
+
+    [Fact]
+    public async Task Semilla_no_sobrescribe_precios_modificados_ni_duplica_servicios()
+    {
+        await using var bd = await BaseDeDatosPrueba.CrearAsync("20261010144105_ConcurrenciaYAjustesSeguridad");
+        await bd.EjecutarAsync("UPDATE ServiciosGenericos SET Precio=69.50 WHERE Nombre=N'Tinte'; INSERT INTO ServiciosGenericos (Nombre,Precio,Sexo,Activo,FechaCreacion,DuracionMinutos,OrdenPublico,Publicado,Destacado,TipoPrecioPublico) VALUES (N'corte de pelo',27,0,1,GETUTCDATE(),30,0,0,0,0);");
+        await using var db = bd.Contexto();
+        await db.Database.MigrateAsync();
+        await db.Database.MigrateAsync();
+        Assert.Equal(42, await bd.EscalarAsync<int>("SELECT COUNT(*) FROM ServiciosGenericos"));
+        Assert.Equal(69.50m, await bd.EscalarAsync<decimal>("SELECT Precio FROM ServiciosGenericos WHERE Nombre=N'Tinte'"));
+        Assert.Equal(27m, await bd.EscalarAsync<decimal>("SELECT Precio FROM ServiciosGenericos WHERE Nombre=N'corte de pelo'"));
+    }
+
+    [Fact]
     public async Task Migrar_una_base_de_datos_de_la_version_anterior_conserva_todos_los_datos()
     {
         await using var bd = await BaseDeDatosPrueba.CrearAsync(UltimaMigracionDeLaVersionAnterior);

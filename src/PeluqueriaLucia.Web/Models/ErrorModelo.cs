@@ -13,6 +13,6 @@ public sealed record ErrorModelo(int Codigo, string? IdPeticion)
     {
         404 => "Puede que el enlace sea antiguo o que lo que buscas se haya eliminado.",
         400 => "Vuelve atrás e inténtalo otra vez. Si la página llevaba mucho tiempo abierta, recárgala primero.",
-        _ => "No se ha guardado nada a medias. Vuelve atrás e inténtalo de nuevo; si se repite, reinicia el programa.",
+        _ => "No hemos podido completar esta operación. Vuelve a intentarlo en unos minutos.",
     };
 }

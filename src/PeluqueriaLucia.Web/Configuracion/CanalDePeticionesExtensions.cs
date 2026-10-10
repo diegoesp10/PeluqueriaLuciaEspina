@@ -15,8 +15,21 @@ public static class CanalDePeticionesExtensions
             app.UseForwardedHeaders();
         app.UseRequestLocalization();
 
-        if (!app.Environment.IsDevelopment())
-            app.UseExceptionHandler("/error");
+        // Nunca publicar la traza de una excepción, tampoco bajo Visual Studio.
+        app.UseExceptionHandler(new ExceptionHandlerOptions
+        {
+            ExceptionHandler = async contexto =>
+            {
+                var fallo = contexto.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>();
+                contexto.RequestServices.GetRequiredService<ILogger<Startup>>()
+                    .LogError(fallo?.Error, "Fallo de petición. Referencia {Referencia}", contexto.TraceIdentifier);
+                contexto.Response.StatusCode = 500;
+                contexto.Response.Headers.CacheControl = "no-store";
+                contexto.Response.ContentType = "text/html; charset=utf-8";
+                // Independiente de SQL, cookies, TempData y vistas: funciona incluso si falla Data Protection.
+                await contexto.Response.WriteAsync("<!doctype html><html lang=\"es\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width\"><title>Algo ha fallado · Lucía</title><link rel=\"stylesheet\" href=\"/css/error.css\"></head><body><main><img src=\"/Img/Icono.jpg\" width=\"100\" height=\"100\" alt=\"Lucía Peluquería Ecológica\"><h1>Algo ha fallado</h1><p>No hemos podido completar esta operación. Vuelve a intentarlo en unos minutos.</p><a href=\"/\">Volver al inicio</a><p class=\"referencia\">Referencia: " + System.Net.WebUtility.HtmlEncode(contexto.TraceIdentifier) + "</p></main></body></html>");
+            }
+        });
         app.UseStatusCodePagesWithReExecute("/error/{0}");
 
         if (app.Services.GetRequiredService<IOptions<OpcionesSeguridad>>().Value.RequerirHttps)

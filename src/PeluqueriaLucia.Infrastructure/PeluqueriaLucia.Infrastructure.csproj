@@ -14,5 +14,6 @@
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="PeluqueriaLucia.Tests" />
+    <EmbeddedResource Include="Persistencia\Migraciones\Datos\catalogo-inicial-20261010.json" LogicalName="CatalogoInicial20261010" />
   </ItemGroup>
 </Project>

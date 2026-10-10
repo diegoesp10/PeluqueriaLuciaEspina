@@ -52,7 +52,7 @@ public static class HerramientaAdministrador
     }
 
     /// <summary>Lee sin mostrar lo que se escribe. Si la entrada viene redirigida (scripts), lee la línea tal cual.</summary>
-    private static string LeerOculto(string pregunta)
+    public static string LeerOculto(string pregunta)
     {
         Console.Write(pregunta);
         if (Console.IsInputRedirected)
