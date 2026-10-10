@@ -13,7 +13,7 @@ public sealed class ReservaCita
     public string Nombre { get; set; } = "";
     public string Telefono { get; set; } = "";
     public int? ServicioId { get; set; }
-    public string ServicioNombre { get; set; } = "Consulta con Lucía";
+    public string ServicioNombre { get; set; } = "Consulta con el equipo";
     public EstadoCita Estado { get; set; }
     public DateTime CreadaUtc { get; set; }
     public DateTime ActualizadaUtc { get; set; }

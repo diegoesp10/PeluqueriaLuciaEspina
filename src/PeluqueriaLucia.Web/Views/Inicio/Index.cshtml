@@ -4,7 +4,7 @@
     <div class="hero-texto">
         <p class="etiqueta"><span aria-hidden="true">✳</span> BELLEZA CON RAÍCES · OVIEDO</p>
         <h1>Tu cabello.<br />Tu esencia.<br /><em>Al natural.</em></h1>
-        <p class="intro">Un espacio para ti y para el cuidado de tu cabello. Descubre la peluquería ecológica de Lucía, en el corazón de Oviedo.</p>
+        <p class="intro">Un espacio para ti y para el cuidado de tu cabello. Descubre el salón y su equipo, en el corazón de Oviedo.</p>
         <div class="botones"><a class="btn btn-primary" href="/citas">Encuentra tu momento <span aria-hidden="true">↗</span></a><a class="enlace-flecha" asp-action="Servicios">Nuestros servicios →</a></div>
         <p class="detalle-hero">COLORACIÓN VEGETAL <span>·</span> CUIDADO CAPILAR <span>·</span> TRATO CERCANO</p>
     </div>
@@ -17,7 +17,7 @@
 <div class="franja-publica"><span>Color de origen vegetal</span><span aria-hidden="true">✳</span><span>Cuidado y bienestar capilar</span><span aria-hidden="true">✳</span><span>Tu estilo, a tu ritmo</span></div>
 <section class="seccion-publica filosofia">
     <div><p class="etiqueta">01 / NUESTRA ESENCIA</p><h2>El cuidado empieza<br /><em>en la raíz.</em></h2></div>
-    <div><p class="texto-grande">Cada cabello tiene su historia. Nos gusta escuchar la tuya.</p><p>Con Lucía puedes descubrir cortes, coloración ecológica y tratamientos para cuidar tu cabello. Un salón cercano donde encontrar tu estilo y dedicarte un momento.</p><a class="enlace-flecha" href="@Model.TelefonoEnlace">Hablemos de tu cabello →</a></div>
+    <div><p class="texto-grande">Cada cabello tiene su historia. El equipo quiere conocer la tuya.</p><p>El equipo del salón ofrece cortes, coloración ecológica y tratamientos para cuidar tu cabello. Un salón cercano donde encontrar tu estilo y dedicarte un momento.</p><a class="enlace-flecha" href="@Model.TelefonoEnlace">Contactar con el equipo →</a></div>
 </section>
 <section class="seccion-publica servicios-destacados">
     <div class="titulo-seccion"><div><p class="etiqueta">02 / LO QUE HACEMOS</p><h2>Naturalmente,<br /><em>para ti.</em></h2></div><a class="enlace-flecha" asp-action="Servicios">Ver todos los servicios →</a></div>
@@ -30,5 +30,5 @@
 <section class="cita-publica"><p class="etiqueta">UN MOMENTO PARA CUIDARTE</p><h2>Ven como eres.<br /><em>Sal sintiéndote tú.</em></h2><a class="btn btn-light" href="/citas">Reserva tu próxima cita ↗</a></section>
 <section class="seccion-publica contacto-publico" id="contacto">
     <div><p class="etiqueta">03 / NOS VEMOS EN OVIEDO</p><h2>Muy cerca.<br /><em>Muy tuyo.</em></h2><p>Te esperamos en @Model.Direccion,<br />@Model.CodigoPostal @Model.Ciudad.</p><a class="enlace-flecha" href="@Model.Mapa" target="_blank" rel="noopener noreferrer">Cómo llegar →</a></div>
-    <div class="contacto-tarjeta"><p class="etiqueta">HABLEMOS</p><a class="telefono-grande" href="@Model.TelefonoEnlace">@Model.Telefono</a><p>Llámanos para consultar un servicio o preparar tu visita.</p><a class="btn btn-primary" href="/citas">Solicitar mi cita →</a><p class="nota">Elige día y hora. Lucía validará tu solicitud por teléfono.</p><div class="comodidades">@foreach (var comodidad in Model.Comodidades) { <span>@comodidad</span> }</div></div>
+    <div class="contacto-tarjeta"><p class="etiqueta">CONTACTO</p><a class="telefono-grande" href="@Model.TelefonoEnlace">@Model.Telefono</a><p>Contacta con el equipo para consultar un servicio o preparar tu visita.</p><a class="btn btn-primary" href="/citas">Solicitar mi cita →</a><p class="nota">Elige día y hora. El equipo del salón validará tu solicitud por teléfono.</p><div class="comodidades">@foreach (var comodidad in Model.Comodidades) { <span>@comodidad</span> }</div></div>
 </section>

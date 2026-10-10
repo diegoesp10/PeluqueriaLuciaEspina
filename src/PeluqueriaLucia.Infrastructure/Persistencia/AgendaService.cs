@@ -73,7 +73,7 @@ internal sealed class AgendaService(PeluqueriaDbContext db, TimeProvider reloj) 
             return new Error("Ya hay varias solicitudes desde tus datos. Contacta con el salón para revisarlas.");
         var disponibles = await DisponibilidadAsync(d.Dia, d.ServicioId, ct);
         if (!disponibles.Horas.Contains(d.Hora)) return new Error("Ese horario acaba de ocuparse o no está disponible. Elige otro.", "Hora");
-        var nombreServicio = d.ServicioId is null ? "Consulta con Lucía" : await db.Servicios.Where(x => x.Id == d.ServicioId).Select(x => x.Nombre).SingleAsync(ct);
+        var nombreServicio = d.ServicioId is null ? "Consulta con el equipo" : await db.Servicios.Where(x => x.Id == d.ServicioId).Select(x => x.Nombre).SingleAsync(ct);
         var cita = new ReservaCita { Id = Guid.NewGuid(), SolicitudId = d.SolicitudId, Inicio = d.Dia.ToDateTime(d.Hora),
             Fin = d.Dia.ToDateTime(d.Hora).AddMinutes(disponibles.Minutos), Telefono = telefono, Nombre = d.Nombre?.Trim() ?? "",
             ServicioId = d.ServicioId, ServicioNombre = nombreServicio, Estado = EstadoCita.Pendiente,
@@ -112,8 +112,8 @@ internal sealed class AgendaService(PeluqueriaDbContext db, TimeProvider reloj) 
         if (cambio && d.Estado is EstadoCita.Confirmada or EstadoCita.Rechazada or EstadoCita.Cancelada)
         {
             var texto = d.Estado == EstadoCita.Confirmada
-                ? $"Lucía Peluquería Ecológica: cita confirmada el {r.Inicio:dd/MM/yyyy} a las {r.Inicio:HH:mm}. Duración {d.Minutos} min. Para cambios llama al 659306659."
-                : $"Lucía Peluquería Ecológica: tu solicitud del {r.Inicio:dd/MM/yyyy HH:mm} no está confirmada o se ha cancelado. Llámanos al 659306659 para acordar otro momento.";
+                ? $"El equipo del salón confirma tu cita el {r.Inicio:dd/MM/yyyy} a las {r.Inicio:HH:mm}. Duración {d.Minutos} min. Para cambios, contacta con el equipo en el 659306659."
+                : $"El equipo del salón informa de que tu solicitud del {r.Inicio:dd/MM/yyyy HH:mm} no está confirmada o se ha cancelado. Contacta con el equipo en el 659306659 para acordar otro momento.";
             // Una actualización invalida mensajes todavía no enviados para evitar confirmaciones antiguas.
             await db.MensajesCitas.Where(x => x.ReservaId == r.Id && x.Estado == EstadoSms.Pendiente).ExecuteUpdateAsync(s => s.SetProperty(x => x.Estado, EstadoSms.Obsoleto), ct);
             db.MensajesCitas.Add(new MensajeCita { Id = Guid.NewGuid(), ReservaId = r.Id, Telefono = r.Telefono, Texto = texto, CreadoUtc = Utc, Estado = EstadoSms.Pendiente });

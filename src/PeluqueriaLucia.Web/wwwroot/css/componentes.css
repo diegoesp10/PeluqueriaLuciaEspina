@@ -6,10 +6,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
   max-width: 100%;
   min-height: 44px;
-  padding: 6px 20px;
+  padding: 10px 22px;
   border-radius: var(--r-pill);
   background: var(--fill);
   color: var(--accent);
@@ -17,7 +17,9 @@
   font-weight: 600;
   line-height: 1.2;
   text-align: center;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  flex-shrink: 0;
   transition: transform 0.2s var(--ease), opacity 0.2s, background 0.2s;
 }
 
@@ -63,15 +65,15 @@
 }
 
 .btn-sm {
-  min-height: 34px;
-  padding: 4px 14px;
+  min-height: 38px;
+  padding: 8px 16px;
   border-radius: 17px;
   font-size: 13.5px;
 }
 
 .btn-lg {
   min-height: 52px;
-  padding: 8px 28px;
+  padding: 12px 28px;
   border-radius: var(--r-pill);
   font-size: 17px;
 }
@@ -86,7 +88,29 @@
 }
 
 .btn-icon.btn-sm {
-  width: 34px;
+  width: 38px;
+}
+
+/* Grupos de acciones compartidos por el frontal y el espacio profesional. */
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+}
+.acciones > form { margin: 0; max-width: 100%; }
+.acciones-form { margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--separator); }
+:where(.card-pad, .section) > p + :is(.btn, form:has(> .btn)) { margin-top: 20px; }
+.btn > svg { flex-shrink: 0; }
+
+/* La imagen de marca es rectangular: el marco respeta todo el original. */
+:is(.sitio-publico, .sitio-admin) img[src$="/Img/Icono.jpg"] {
+  object-fit: contain;
+  object-position: center;
+  border-radius: 16px;
+  padding: 6px;
+  background: #081c26;
+  flex-shrink: 0;
 }
 
 /* ── Control segmentado (radios o enlaces) ────────────────────────────────── */
@@ -155,7 +179,7 @@
 }
 
 .card-pad {
-  padding: 20px;
+  padding: 24px;
 }
 
 .section {
@@ -167,7 +191,7 @@
   flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
-  gap: 4px 12px;
+  gap: 12px 16px;
   padding: 0 16px 8px;
 }
 
@@ -427,8 +451,8 @@ label.row:hover {
 
 .fields {
   display: grid;
-  gap: 18px;
-  padding: 20px;
+  gap: 24px;
+  padding: 24px;
   border-radius: var(--r-card);
   background: var(--surface);
   box-shadow: var(--card-shadow);
@@ -437,7 +461,7 @@ label.row:hover {
 .fields-2 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
+  gap: 24px;
 }
 
 @media (max-width: 600px) {
@@ -448,7 +472,7 @@ label.row:hover {
 
 .field {
   display: grid;
-  gap: 7px;
+  gap: 10px;
 }
 
 .field > label,
@@ -747,7 +771,7 @@ input[type='datetime-local'].input {
 .btn-light:hover { background:color-mix(in oklab,var(--cream) 92%,var(--olive)); }
 .row-body { flex:1; min-width:0; overflow-wrap:anywhere; }
 .fondo-identidad { position:relative; isolation:isolate; }
-.fondo-identidad::before { content:''; position:fixed; z-index:-1; right:-50px; top:130px; width:clamp(300px,38vw,640px); aspect-ratio:1; border-radius:50%; background:url('../Img/Icono.jpg') center/cover no-repeat; opacity:.1; pointer-events:none; }
+.fondo-identidad::before { content:''; position:fixed; z-index:-1; right:var(--page-gutter,24px); top:150px; width:min(38vw,560px,calc(100dvh - 180px)); aspect-ratio:1; background:url('../Img/Icono.jpg') center/contain no-repeat; opacity:.07; pointer-events:none; }
 @media print { .fondo-identidad::before { display:none; } }
 .fecha-control { position:relative; min-width:0; }
 .fecha-original { position:absolute; width:1px !important; height:1px; opacity:0; pointer-events:none; padding:0; border:0; }

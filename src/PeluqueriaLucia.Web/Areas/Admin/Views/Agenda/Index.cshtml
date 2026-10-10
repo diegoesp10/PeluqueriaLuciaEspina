@@ -1,7 +1,7 @@
 @model PeluqueriaLucia.Web.Models.AgendaPanel
 @using PeluqueriaLucia.Domain.Agenda
 @{ViewData["Title"]="Agenda de citas";}
-<header class="page-header"><div><p class="eyebrow">ESPACIO PROFESIONAL</p><h1>Agenda de citas</h1><p>Solicitudes, tiempos de cuidado y conversaciones con tus clientes.</p></div><a class="btn btn-gray" href="/admin/agenda/horarios">Horarios y días de cierre</a></header>
+<header class="page-head"><div><p class="etiqueta">ESPACIO PROFESIONAL</p><h1>Agenda de citas</h1><p class="subtitle">Solicitudes, tiempos de cuidado y conversaciones con tus clientes.</p></div><a class="btn btn-gray" href="/admin/agenda/horarios">Horarios y días de cierre</a></header>
 <div class="agenda-avisos" role="status"><strong>@Model.Avisos.Pendientes solicitudes pendientes</strong><p>Se muestran las citas de la semana y todas las solicitudes pendientes, aunque sean de otra semana. Verifica el teléfono antes de confirmar.</p></div>
 <form method="get" class="agenda-filtro"><label for="agenda-fecha">Semana desde</label><input id="agenda-fecha" type="date" name="dia" value="@Model.Dia.ToString("yyyy-MM-dd")" /><button class="btn btn-gray">Buscar</button><a class="btn btn-gray" href="/admin/agenda?dia=@Model.Dia.AddDays(7).ToString("yyyy-MM-dd")">Semana siguiente →</a></form>
 <div class="agenda-lista">
