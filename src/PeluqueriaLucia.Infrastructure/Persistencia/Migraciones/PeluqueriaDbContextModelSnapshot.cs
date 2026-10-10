@@ -258,52 +258,6 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
                     b.ToTable("Resenas", (string)null);
                 });
 
-            modelBuilder.Entity("PeluqueriaLucia.Domain.Publico.TratamientoPublico", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("CategoriaId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Descripcion")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<bool>("Destacado")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("DuracionMinutos")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Nombre")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("Orden")
-                        .HasColumnType("int");
-
-                    b.Property<decimal?>("Precio")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<bool>("Publicado")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("TipoPrecio")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CategoriaId");
-
-                    b.ToTable("TratamientosPublicos", (string)null);
-                });
-
             modelBuilder.Entity("PeluqueriaLucia.Domain.Seguridad.Administrador", b =>
                 {
                     b.Property<int>("Id")

@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
     <RootNamespace>PeluqueriaLucia.Web</RootNamespace>
+    <UserSecretsId>16f63457-d768-44ed-bede-bd65c9c3b621</UserSecretsId>
   </PropertyGroup>
   <!-- Al publicar para Windows (-r win-x64) el código va ya compilado a nativo (ReadyToRun): la aplicación arranca
        antes porque no tiene que compilarlo en la primera petición. Sigue usando el .NET instalado en el equipo. -->
