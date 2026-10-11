@@ -34,12 +34,20 @@
         <div asp-validation-summary="All" role="alert"></div>
         <input asp-for="Formulario.SolicitudId" type="hidden" /><input type="hidden" name="Formulario.Dia" value="@seleccion.ToString("yyyy-MM-dd")" /><input asp-for="Formulario.ServicioId" type="hidden" />
         <div class="agenda-trampa" aria-hidden="true"><label>Web<input name="Formulario.Web" tabindex="-1" autocomplete="off" /></label></div>
-        <fieldset class="agenda-horas"><legend>Elige una hora</legend>@foreach(var h in Model.Disponibilidad.Horas){<label><input type="radio" name="Formulario.Hora" value="@h.ToString("HH:mm")" checked="@(Model.Formulario.Hora==h)" required /><span>@h.ToString("HH:mm")</span></label>}</fieldset>
+        <fieldset class="agenda-horas"><legend>Elige una hora</legend>@foreach(var h in Model.Disponibilidad.Horas.Concat(Model.Disponibilidad.Ocupadas ?? []).Distinct().Order()){
+            if(Model.Disponibilidad.Horas.Contains(h)){<label><input type="radio" name="Formulario.Hora" value="@h.ToString("HH:mm")" checked="@(Model.Formulario.Hora==h)" required /><span>@h.ToString("HH:mm")</span></label>}
+            else{<label class="agenda-hora-ocupada"><input type="radio" disabled aria-label="@h.ToString("HH:mm"), ocupado" /><span>@h.ToString("HH:mm") · Ocupado</span></label>}
+        }</fieldset>
         @if(Model.Disponibilidad.Horas.Count==0){<div class="agenda-sin-huecos">Este día no tiene huecos disponibles para el cuidado elegido. Prueba otro día.</div>}
-        <div class="form-field"><label asp-for="Formulario.Nombre">Tu nombre <small>(opcional)</small></label><input asp-for="Formulario.Nombre" autocomplete="given-name" maxlength="80" /></div>
         <div class="form-field"><label asp-for="Formulario.Telefono">Móvil de contacto</label><input asp-for="Formulario.Telefono" type="tel" autocomplete="tel" inputmode="tel" maxlength="30" placeholder="612 345 678" required /><small>Móvil español, con o sin +34. Te llamaremos para validar la reserva.</small></div>
-        <label class="agenda-consentimiento"><input asp-for="Formulario.Consentimiento" required /> Acepto que el salón use mi teléfono para gestionar esta cita y avisarme por llamada o SMS.</label>
+        <div class="form-field"><label asp-for="Formulario.Correo">Correo electrónico</label><input asp-for="Formulario.Correo" type="email" autocomplete="email" maxlength="254" placeholder="tu@correo.es" required /><small>Necesitamos tu teléfono y correo para gestionar la reserva.</small></div>
+        <div class="form-field"><label asp-for="Formulario.Nombre">Tu nombre o apodo</label><input asp-for="Formulario.Nombre" autocomplete="nickname" maxlength="80" required /></div>
+        <fieldset class="agenda-horas"><legend>¿Dónde prefieres recibir la propuesta y confirmar tu cita?</legend>
+            <label><input asp-for="Formulario.Canal" id="canal-correo" type="radio" value="Correo" required /><span>Correo electrónico</span></label>
+            <label><input asp-for="Formulario.Canal" id="canal-whatsapp" type="radio" value="WhatsApp" required /><span>WhatsApp</span></label>
+        </fieldset>
+        <label class="agenda-consentimiento"><input asp-for="Formulario.Consentimiento" required /> Acepto que el salón use mi teléfono y correo para gestionar esta cita y contactar por el canal elegido.</label>
         <button class="btn btn-primary btn-block" type="submit" disabled="@(Model.Disponibilidad.Horas.Count==0)">Solicitar mi cita →</button>
-        <p class="nota">La solicitud está pendiente hasta que el equipo del salón la confirme. Si no se revisa en 24 horas, el hueco se libera. Tus datos de contacto nunca se muestran al público.</p>
+        <p class="nota">El equipo revisará tu solicitud y te enviará una propuesta por el canal elegido. La cita quedará confirmada cuando la aceptes en el enlace recibido. Las solicitudes sin revisar caducan en 24 horas. Tus datos nunca se muestran al público.</p>
     </form>
 </section>

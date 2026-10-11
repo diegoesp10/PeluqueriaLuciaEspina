@@ -56,7 +56,8 @@ public static class LimitesDePeticiones
         var ip = IpCliente.De(http);
         http.RequestServices.GetRequiredService<MonitorPeticiones>().AnotarRechazo(ip);
         http.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(LimitesDePeticiones))
-            .LogWarning("Límite de peticiones superado por {Ip} en {Ruta}", ip, http.Request.Path);
+            .LogWarning("Límite de peticiones superado por {Ip} en {Ruta}", ip,
+                http.Request.Path.StartsWithSegments("/citas/confirmar") ? "/citas/confirmar/[privado]" : http.Request.Path.ToString());
 
         var esperaPorDefecto = HttpMethods.IsPost(http.Request.Method) &&
             http.GetEndpoint()?.Metadata.GetMetadata<EnableRateLimitingAttribute>()?.PolicyName == Acceso ? 900 : 60;

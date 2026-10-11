@@ -15,6 +15,9 @@ internal sealed class ClienteConfiguracion : IEntityTypeConfiguration<Cliente>
         builder.Property(c => c.Apellido).IsRequired().HasMaxLength(Cliente.LongitudNombre);
         builder.Ignore(c => c.NombreCompleto);
         builder.Ignore(c => c.Iniciales);
+        builder.Ignore(c => c.NumeroFaltas);
+        builder.Property(c => c.Apodo).HasMaxLength(80);
+        builder.HasIndex(c => c.PendienteCompletar);
         builder.HasIndex(c => new { c.Nombre, c.Apellido });
     }
 }

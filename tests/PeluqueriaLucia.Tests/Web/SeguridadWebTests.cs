@@ -63,9 +63,9 @@ internal sealed class FabricaWeb(string cadena, Dictionary<string, string?>? aju
                 .Concat(ajustes ?? []).GroupBy(p => p.Key).ToDictionary(g => g.Key, g => g.Last().Value)));
         builder.ConfigureServices(services =>
         {
-            // Ninguna prueba web puede enviar SMS, aunque el equipo tenga un proveedor real activado.
-            services.RemoveAll<PeluqueriaLucia.Application.Agenda.ISmsCitas>();
-            services.AddScoped<PeluqueriaLucia.Application.Agenda.ISmsCitas, SmsPrueba>();
+            // Ninguna prueba web puede enviar correo, aunque el equipo tenga SMTP activado.
+            services.RemoveAll<Comunicaciones.Correo.IEnviadorCorreo>();
+            services.AddSingleton<Comunicaciones.Correo.IEnviadorCorreo, CorreoPrueba>();
             if (reloj is not null) { services.RemoveAll<TimeProvider>(); services.AddSingleton(reloj); }
             services.RemoveAll<DbContextOptions<PeluqueriaDbContext>>();
             services.RemoveAll<Microsoft.EntityFrameworkCore.Infrastructure.IDbContextOptionsConfiguration<PeluqueriaDbContext>>();
@@ -77,15 +77,12 @@ internal sealed class FabricaWeb(string cadena, Dictionary<string, string?>? aju
     { AllowAutoRedirect = false, HandleCookies = cookies, BaseAddress = new Uri("https://localhost") });
 }
 
-internal sealed class SmsPrueba : PeluqueriaLucia.Application.Agenda.ISmsCitas
+internal sealed class CorreoPrueba : Comunicaciones.Correo.IEnviadorCorreo
 {
-    public bool Activo => false;
-    public bool ValidarFirma(string ruta,string firma,IReadOnlyDictionary<string,string> campos) => false;
-    public Task ProcesarWebhookAsync(IReadOnlyDictionary<string,string> campos,bool entrada,CancellationToken ct) => Task.CompletedTask;
-    public Task<IReadOnlyList<PeluqueriaLucia.Domain.Agenda.SmsEntrante>> EntrantesAsync(CancellationToken ct) => Task.FromResult<IReadOnlyList<PeluqueriaLucia.Domain.Agenda.SmsEntrante>>([]);
-    public Task ProcesarColaAsync(CancellationToken ct) => Task.CompletedTask;
+    public bool Configurado => false;
+    public Task<Comunicaciones.Correo.ResultadoEnvio> EnviarAsync(Comunicaciones.Correo.CorreoSaliente correo, CancellationToken ct = default)
+        => throw new InvalidOperationException("Las pruebas web no envían correos reales.");
 }
-
 public sealed class SeguridadWebTests(SeguridadWebFixture fixture) : IClassFixture<SeguridadWebFixture>
 {
     private static async Task<string> TokenAsync(HttpClient cliente, string ruta)
@@ -121,6 +118,23 @@ public sealed class SeguridadWebTests(SeguridadWebFixture fixture) : IClassFixtu
         using var estado = System.Text.Json.JsonDocument.Parse(await respuesta.Content.ReadAsStringAsync());
         Assert.Single(estado.RootElement.EnumerateObject());
         return estado.RootElement.GetProperty("sesionId").GetGuid();
+    }
+
+    [Fact]
+    public async Task Autocompletar_contacto_exige_sesion_y_antifalsificacion_y_reutiliza_ficha()
+    {
+        using var cliente=fixture.Fabrica.Cliente();Assert.Equal(HttpStatusCode.Redirect,(await EntrarAsync(cliente)).StatusCode);
+        var sufijo=Guid.NewGuid().ToString("N");var email=sufijo+"@example.test";var telefono="+346"+Random.Shared.Next(10000000,99999999);
+        await using var db=fixture.Bd.Contexto();
+        var existente=PeluqueriaLucia.Domain.Clientes.Cliente.Crear("Ana","Prueba",email,telefono,PeluqueriaLucia.Domain.Comun.Sexo.Mujer,DateTime.UtcNow);db.Add(existente);await db.SaveChangesAsync();
+        var datos=new Dictionary<string,string>{["telefono"]=telefono,["email"]=email};
+        Assert.Equal(HttpStatusCode.BadRequest,(await cliente.PostAsync("/admin/Clientes/Reconocer",new FormUrlEncodedContent(datos))).StatusCode);
+        datos["__RequestVerificationToken"]=await TokenAsync(cliente,"/admin/Clientes/Nuevo");
+        var respuesta=await cliente.PostAsync("/admin/Clientes/Reconocer",new FormUrlEncodedContent(datos));Assert.Equal(HttpStatusCode.OK,respuesta.StatusCode);
+        using var json=System.Text.Json.JsonDocument.Parse(await respuesta.Content.ReadAsStringAsync());Assert.Equal(existente.Id,json.RootElement.GetProperty("id").GetInt32());Assert.Equal("Prueba",json.RootElement.GetProperty("apellido").GetString());
+        var guardado=await cliente.PostAsync("/admin/Clientes/Nuevo",new FormUrlEncodedContent(new Dictionary<string,string>{["__RequestVerificationToken"]=datos["__RequestVerificationToken"],["Nombre"]="Ana revisada",["Apellido"]="Prueba",["Telefono"]=telefono,["Email"]=email,["Sexo"]="Mujer"}));
+        Assert.Equal(HttpStatusCode.Redirect,guardado.StatusCode);Assert.Contains(existente.Id.ToString(),guardado.Headers.Location!.ToString());
+        Assert.Equal(1,await db.Clientes.CountAsync(x=>x.Email==email));Assert.Equal("Ana revisada",(await db.Clientes.AsNoTracking().SingleAsync(x=>x.Id==existente.Id)).Nombre);
     }
 
     [Fact]

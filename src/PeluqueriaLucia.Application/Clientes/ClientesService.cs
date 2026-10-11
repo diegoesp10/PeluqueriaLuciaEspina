@@ -5,7 +5,9 @@ using PeluqueriaLucia.Domain.Comun;
 
 namespace PeluqueriaLucia.Application.Clientes;
 
-public sealed record DatosCliente(string Nombre, string Apellido, string? Email, string? Telefono, Sexo Sexo);
+public sealed record DatosCliente(string Nombre, string Apellido, string? Email, string? Telefono, Sexo Sexo, string? Apodo = null);
+
+public sealed record ClienteReconocido(int Id, string Nombre, string Apellido, Sexo Sexo, string? Apodo);
 
 public sealed class ClientesService(IClienteRepositorio clientes, IUnidadDeTrabajo unidadDeTrabajo, TimeProvider reloj)
 {
@@ -20,6 +22,19 @@ public sealed class ClientesService(IClienteRepositorio clientes, IUnidadDeTraba
     public async Task<IReadOnlyList<Cliente>> SugerirAsync(string? texto, CancellationToken ct = default) =>
         (await clientes.BuscarAsync(texto, null, 1, MaximoSugerencias, ct)).Elementos;
 
+    public async Task<ClienteReconocido?> ReconocerAsync(string? telefono, string? email, CancellationToken ct = default)
+    {
+        var movil = Agenda.AgendaService.NormalizarTelefono(telefono); var correo = Agenda.AgendaService.NormalizarCorreo(email);
+        if (movil is null || correo is null) return null;
+        var candidatos = await clientes.BuscarPorContactoAsync(movil,correo,ct);
+        if (candidatos.Count != 1) return null;
+        var c = candidatos[0];
+        return Agenda.AgendaService.NormalizarTelefono(c.Telefono) == movil && string.Equals(c.Email?.Trim(),correo,StringComparison.OrdinalIgnoreCase)
+            ? new(c.Id,c.Nombre,c.Apellido,c.Sexo,c.Apodo) : null;
+    }
+
+    public Task<bool> TieneCitasAsync(int id, CancellationToken ct = default) => clientes.TieneCitasAsync(id,ct);
+
     public Task<Cliente?> ObtenerAsync(int id, CancellationToken ct = default) => clientes.ObtenerAsync(id, ct);
 
     public Task<Resultado<int>> CrearAsync(DatosCliente datos, CancellationToken ct = default) =>
@@ -29,6 +44,7 @@ public sealed class ClientesService(IClienteRepositorio clientes, IUnidadDeTraba
                 return duplicado;
 
             var cliente = Cliente.Crear(datos.Nombre, datos.Apellido, datos.Email, datos.Telefono, datos.Sexo, reloj.GetLocalNow().DateTime);
+            cliente.CambiarApodo(datos.Apodo);
             clientes.Agregar(cliente);
             await unidadDeTrabajo.GuardarCambiosAsync(ct);
             return Resultado.Ok(cliente.Id);
@@ -43,6 +59,7 @@ public sealed class ClientesService(IClienteRepositorio clientes, IUnidadDeTraba
             if (await BuscarDuplicadoAsync(datos, id, ct) is { } duplicado)
                 return duplicado;
 
+            cliente.CambiarApodo(datos.Apodo);
             cliente.Actualizar(datos.Nombre, datos.Apellido, datos.Email, datos.Telefono, datos.Sexo);
             await unidadDeTrabajo.GuardarCambiosAsync(ct);
             return Resultado.Ok(cliente.Id);
@@ -53,8 +70,8 @@ public sealed class ClientesService(IClienteRepositorio clientes, IUnidadDeTraba
         var cliente = await clientes.ObtenerAsync(id, ct);
         if (cliente is null)
             return Error.NoEncontrado("El cliente");
-        if (await clientes.TieneVisitasAsync(id, ct))
-            return new Error($"{cliente.NombreCompleto} tiene visitas registradas y no se puede eliminar.");
+        if (await clientes.TieneVisitasAsync(id, ct) || await clientes.TieneCitasAsync(id, ct))
+            return new Error($"{cliente.NombreCompleto} tiene visitas o citas registradas y no se puede eliminar.");
 
         clientes.Eliminar(cliente);
         await unidadDeTrabajo.GuardarCambiosAsync(ct);

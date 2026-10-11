@@ -14,6 +14,7 @@
             <span class="avatar avatar-lg @Formato.Tinte(c.Sexo)">@c.Iniciales</span>
             <div>
                 <h1>@c.NombreCompleto</h1>
+                @if(!string.IsNullOrEmpty(c.Apodo)){<p class="subtitle">Apodo: @c.Apodo</p>}
                 <p class="subtitle">@Formato.Texto(c.Sexo) · Cliente desde @c.FechaCreacion.ToString("MMMM 'de' yyyy", Formato.Espanol)</p>
             </div>
         </div>
@@ -23,6 +24,14 @@
         </div>
     </header>
 
+    @if(c.PendienteCompletar){<div class="agenda-avisos" role="status"><strong>Ficha creada desde una cita aceptada</strong><p>Apodo: @c.Apodo. Completa el nombre, los apellidos y los datos que falten desde Editar.</p></div>}
+    <section class="section cliente-faltas"><div class="section-head"><h2>Inasistencias · @c.NumeroFaltas</h2></div><p class="muted">Registro privado de administración. Solo se cuentan las faltas que siguen activas.</p>
+    @foreach(var falta in c.Faltas.OrderByDescending(x=>x.InicioCita)){
+        <article class="card"><h3>@falta.InicioCita.ToString("dd/MM/yyyy HH:mm") · @(falta.AnuladaUtc is null ? "No acudió" : "Falta corregida")</h3><p>@falta.Nota</p><p class="nota">Registrada por el administrador #@falta.AdministradorId · @falta.RegistradaUtc.ToString("dd/MM/yyyy HH:mm") UTC</p>
+        @if(falta.AnuladaUtc is null){<form method="post" action="/admin/agenda/corregir-falta">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@falta.Id" /><input type="hidden" name="clienteId" value="@c.Id" /><div class="agenda-gestion"><label>Motivo de la corrección<input name="motivo" maxlength="500" required /></label></div><div class="agenda-botones"><button class="btn btn-gray">Corregir falta</button></div></form>}
+        else{<p class="nota">Corrección por el administrador #@falta.AnuladaPorId · @falta.AnuladaUtc?.ToString("dd/MM/yyyy HH:mm") UTC: @falta.MotivoAnulacion</p>}
+        </article>
+    }</section>
     <div class="detalle-grid">
         <section>
             <div class="section-head"><h2>Contacto</h2></div>
@@ -51,7 +60,7 @@
                 </div>
             </div>
 
-            @if (r.Visitas == 0)
+            @if (r.Visitas == 0 && !Model.TieneCitas)
             {
                 <form class="section" method="post" asp-action="Eliminar" asp-route-id="@c.Id"
                       data-confirmar="@c.NombreCompleto se borrará de tus clientes. No se puede deshacer.">

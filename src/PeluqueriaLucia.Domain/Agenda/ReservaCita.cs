@@ -1,7 +1,8 @@
 namespace PeluqueriaLucia.Domain.Agenda;
 
-public enum EstadoCita { Pendiente, Confirmada, Rechazada, Cancelada, Completada }
-public enum EstadoSms { Pendiente, Enviando, AceptadoProveedor, Error, Incierto, Manual, Obsoleto, Entregado }
+public enum EstadoCita { Pendiente = 0, Confirmada = 1, Rechazada = 2, Cancelada = 3, Completada = 4, PendienteAceptacion = 5, NoPresentada = 6 }
+public enum CanalConfirmacion { Correo = 0, WhatsApp = 1 }
+public enum EstadoNotificacion { Pendiente, Enviando, AceptadoServidor, Error, Incierto, Manual, Obsoleto }
 
 /// <summary>Horas locales del salón; fechas de auditoría UTC. Una solicitud no es una cita confirmada.</summary>
 public sealed class ReservaCita
@@ -12,6 +13,13 @@ public sealed class ReservaCita
     public DateTime Fin { get; set; }
     public string Nombre { get; set; } = "";
     public string Telefono { get; set; } = "";
+    public string Correo { get; set; } = "";
+    public CanalConfirmacion Canal { get; set; }
+    public string? ConfirmacionHash { get; set; }
+    public DateTime? AceptadaUtc { get; set; }
+    public int? ClienteId { get; set; }
+    public PeluqueriaLucia.Domain.Clientes.Cliente? Cliente { get; set; }
+    public bool PendienteVinculacion { get; set; }
     public int? ServicioId { get; set; }
     public string ServicioNombre { get; set; } = "Consulta con el equipo";
     public EstadoCita Estado { get; set; }
@@ -28,6 +36,7 @@ public sealed class ReservaCita
 public sealed class TramoAgenda
 {
     public int Id { get; set; }
+    public int IntervaloMinutos { get; set; } = 15;
     public DayOfWeek Dia { get; set; }
     public TimeOnly Desde { get; set; }
     public TimeOnly Hasta { get; set; }
@@ -42,19 +51,12 @@ public sealed class MensajeCita
 {
     public Guid Id { get; set; }
     public Guid ReservaId { get; set; }
-    public string Telefono { get; set; } = "";
+    public string Destinatario { get; set; } = "";
+    public CanalConfirmacion Canal { get; set; }
+    public string? TokenProtegido { get; set; }
     public string Texto { get; set; } = "";
-    public EstadoSms Estado { get; set; }
+    public EstadoNotificacion Estado { get; set; }
     public DateTime CreadoUtc { get; set; }
     public DateTime? ProcesadoUtc { get; set; }
-    public string? ProveedorId { get; set; }
     public byte[] Version { get; set; } = [];
-}
-public sealed class SmsEntrante
-{
-    public Guid Id { get; set; }
-    public string ProveedorId { get; set; } = "";
-    public string Telefono { get; set; } = "";
-    public string Texto { get; set; } = "";
-    public DateTime RecibidoUtc { get; set; }
 }

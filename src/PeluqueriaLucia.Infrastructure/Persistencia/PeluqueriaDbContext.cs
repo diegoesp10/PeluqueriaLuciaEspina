@@ -22,7 +22,6 @@ public sealed class PeluqueriaDbContext(DbContextOptions<PeluqueriaDbContext> op
     public DbSet<PeluqueriaLucia.Domain.Agenda.TramoAgenda> TramosAgenda => Set<PeluqueriaLucia.Domain.Agenda.TramoAgenda>();
     public DbSet<PeluqueriaLucia.Domain.Agenda.CierreAgenda> CierresAgenda => Set<PeluqueriaLucia.Domain.Agenda.CierreAgenda>();
     public DbSet<PeluqueriaLucia.Domain.Agenda.MensajeCita> MensajesCitas => Set<PeluqueriaLucia.Domain.Agenda.MensajeCita>();
-    public DbSet<PeluqueriaLucia.Domain.Agenda.SmsEntrante> SmsEntrantes => Set<PeluqueriaLucia.Domain.Agenda.SmsEntrante>();
 
     public DbSet<Servicio> Servicios => Set<Servicio>();
 

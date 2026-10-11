@@ -27,9 +27,11 @@ public static class DependencyInjection
         services.AddScoped<IMfaRepositorio, MfaRepositorio>();
         services.AddSingleton<IProtectorSecretos, ProtectorSecretos>();
         services.AddScoped<IContenidoRepositorio, ContenidoRepositorio>();
-        services.AddScoped<PeluqueriaLucia.Application.Agenda.IAgendaService, AgendaService>();
-        services.AddScoped<PeluqueriaLucia.Application.Agenda.ISmsCitas, SmsCitas>();
-        services.AddHttpClient("sms-citas", c => c.Timeout = TimeSpan.FromSeconds(20));
+        services.AddScoped<PeluqueriaLucia.Application.Agenda.IRepositorioAgenda, RepositorioAgenda>();
+        services.AddSingleton<Comunicaciones.Correo.IConfiguracionSmtp, ConfiguracionCorreo>();
+        services.AddSingleton<Comunicaciones.Correo.IEnviadorCorreo, Comunicaciones.Correo.EnviadorCorreoSmtp>();
+        services.AddSingleton<Comunicaciones.WhatsApp.IWhatsAppManual, Comunicaciones.WhatsApp.WhatsAppManual>();
+        services.AddSingleton<PeluqueriaLucia.Application.Agenda.IUrlPublica, UrlPublica>();
         services.AddSingleton<IFotosResenas, FotosResenas>();
         services.AddOptions<OpcionesFotosResenas>().Bind(configuracion.GetSection("FotosResenas"));
 

@@ -11,7 +11,10 @@ public static class DependencyInjection
     public static IServiceCollection AddAplicacion(this IServiceCollection services)
     {
         services.AddSingleton(TimeProvider.System);
+        services.AddScoped<Agenda.IAgendaService, Agenda.AgendaService>();
+        services.AddScoped<Agenda.IComunicacionesCitas, Agenda.ComunicacionesCitas>();
         services.AddScoped<ClientesService>();
+        services.AddScoped<Agenda.ClientesAgendaService>();
         services.AddScoped<CatalogoService>();
         services.AddScoped<VisitasService>();
         services.AddScoped<AccesoService>();

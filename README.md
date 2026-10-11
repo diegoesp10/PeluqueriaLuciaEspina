@@ -89,4 +89,4 @@ En el primer acceso, escanea el QR con Microsoft Authenticator (**Añadir cuenta
 
 ## Agenda y conexión
 
-La rama agenda incorpora reservas públicas en /citas y su gestión en /admin/agenda. Consulta [docs/AGENDA.md](docs/AGENDA.md) para horarios y activación de SMS, y [docs/CONEXION-Y-ERRORES.md](docs/CONEXION-Y-ERRORES.md) para el servicio SQL del almacén de credenciales de Windows, reconstrucción del catálogo y errores genéricos.
+La rama agenda incorpora reservas públicas en /citas y su gestión en /admin/agenda. Consulta [docs/AGENDA.md](docs/AGENDA.md) para horarios, correo SMTP, WhatsApp manual y bibliotecas reutilizables, y [docs/CONEXION-Y-ERRORES.md](docs/CONEXION-Y-ERRORES.md) para el servicio SQL del almacén de credenciales de Windows, reconstrucción del catálogo y errores genéricos.
