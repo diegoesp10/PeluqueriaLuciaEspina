@@ -15,6 +15,7 @@ public static class DependencyInjection
         services.AddScoped<Agenda.IComunicacionesCitas, Agenda.ComunicacionesCitas>();
         services.AddScoped<ClientesService>();
         services.AddScoped<Agenda.ClientesAgendaService>();
+        services.AddScoped<Agenda.VerificacionContactoService>();
         services.AddScoped<CatalogoService>();
         services.AddScoped<VisitasService>();
         services.AddScoped<AccesoService>();

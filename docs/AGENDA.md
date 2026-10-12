@@ -92,3 +92,16 @@ En Agenda → Horarios y días de cierre, cada tramo semanal tiene un `Intervalo
 El motor comprueba todo el intervalo `[Inicio, Fin)`: un trabajo de 10:00 a 11:00 bloquea cualquier propuesta que se solape y permite comenzar a las 11:00 si el servicio completo cabe en horario y no hay otra reserva. Las solicitudes vigentes y las propuestas pendientes de aceptación también retienen su duración. Las horas bloqueadas aparecen como «Ocupado», sin datos personales. Un cambio de duración que choque con otra reserva se rechaza; no cancela citas ajenas automáticamente.
 
 Nuevo cliente comienza por teléfono y correo. Su coincidencia exacta reconoce una única ficha y autocompleta nombre, apellidos, sexo y apodo. Guardar verifica ambos contactos de nuevo en el servidor y actualiza esa ficha, evitando duplicados. La consulta es un POST protegido por sesión administrativa, MFA y antifalsificación; no se publica ningún endpoint anónimo de reconocimiento. En el formulario público también se pide primero teléfono y correo, y después nombre o apodo, sin exponer datos de fichas existentes.
+
+
+## Datos personales en la reserva pública
+
+El formulario exige teléfono, correo, nombre o apodo, apellidos y sexo (Mujer, Hombre u Otro). Apellidos y sexo se conservan en la solicitud y se copian a una nueva ficha pendiente de revisar únicamente después de aceptar la cita. No sobrescriben fichas existentes.
+
+Conocer un teléfono no autoriza a consultar datos de clientes: al salir del campo se solicita un código enviado exclusivamente al correo ya guardado en una ficha inequívoca. La respuesta nunca confirma si ese teléfono existe ni indica el correo destinatario. Introducir el código correcto permite autocompletar nombre, apellidos, correo y sexo. Un teléfono ambiguo o sin correo requiere rellenar los datos manualmente.
+
+El autocompletado se habilita cuando el transporte SMTP esté configurado y activado. Mientras tanto el formulario funciona con entrada manual. La biblioteca independiente Comunicaciones.Correo sigue siendo el transporte; VerificacionContactoService contiene las reglas y el proceso existente de correo atiende también esta cola.
+
+Cada desafío caduca a los diez minutos, admite cinco intentos y es de un solo uso. Solicitar otro código invalida el anterior. Se limitan las solicitudes por IP y por teléfono; los códigos y la clave utilizada en su hash se cifran con Data Protection. Los endpoints son POST con antifalsificación y respuestas sin caché. Un cambio del contacto registrado invalida la verificación. Los resultados de envío inciertos no se reintentan automáticamente. No hay envíos de SMS ni consulta pública de fichas sin verificación.
+
+La migración DatosClienteYVerificacionPublica amplía Nombre sin recortar datos y añade Apellido, Sexo y VerificacionesContacto. Las reservas históricas conservan su información anterior y las columnas nuevas vacías; se completan desde administración, sin inventar datos personales.

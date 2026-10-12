@@ -13,7 +13,9 @@ internal sealed class ReservaCitaConfiguracion : IEntityTypeConfiguration<Reserv
         b.ToTable("ReservasCitas"); b.Property(x => x.Id).ValueGeneratedNever();
         b.HasIndex(x => x.SolicitudId).IsUnique(); b.HasIndex(x => new { x.Inicio, x.Estado });
         b.HasIndex(x => new { x.Telefono, x.CreadaUtc }); b.HasIndex(x => new { x.IpHash, x.CreadaUtc });
-        b.Property(x => x.Nombre).HasMaxLength(80); b.Property(x => x.Telefono).HasMaxLength(16).IsUnicode(false);
+        b.Property(x => x.Apellido).HasMaxLength(100);
+        b.ToTable(t => t.HasCheckConstraint("CK_ReservasCitas_Sexo", "[Sexo] IS NULL OR [Sexo] IN (0,1,2)"));
+        b.Property(x => x.Nombre).HasMaxLength(100); b.Property(x => x.Telefono).HasMaxLength(16).IsUnicode(false);
         b.Property(x => x.Correo).HasMaxLength(254);
         b.Property(x => x.ConfirmacionHash).HasMaxLength(64).IsUnicode(false);
         b.HasIndex(x => x.ConfirmacionHash).IsUnique().HasFilter("[ConfirmacionHash] IS NOT NULL");

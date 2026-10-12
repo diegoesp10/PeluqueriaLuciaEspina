@@ -27,7 +27,7 @@
         </div>
         <p class="nota">Horario del salón · Oviedo. La disponibilidad se comprueba de nuevo al enviar.</p>
     </div>
-    <form method="post" action="/citas" class="card agenda-formulario">
+    <form method="post" action="/citas" class="card agenda-formulario" data-contacto-publico="@(ViewData["ContactoVerificable"] is true ? "true" : "false")">
         @Html.AntiForgeryToken()
         <h2>@seleccion.ToString("dddd, d 'de' MMMM")</h2>
         <p>Tu cuidado empieza aquí.</p>
@@ -41,7 +41,16 @@
         @if(Model.Disponibilidad.Horas.Count==0){<div class="agenda-sin-huecos">Este día no tiene huecos disponibles para el cuidado elegido. Prueba otro día.</div>}
         <div class="form-field"><label asp-for="Formulario.Telefono">Móvil de contacto</label><input asp-for="Formulario.Telefono" type="tel" autocomplete="tel" inputmode="tel" maxlength="30" placeholder="612 345 678" required /><small>Móvil español, con o sin +34. Te llamaremos para validar la reserva.</small></div>
         <div class="form-field"><label asp-for="Formulario.Correo">Correo electrónico</label><input asp-for="Formulario.Correo" type="email" autocomplete="email" maxlength="254" placeholder="tu@correo.es" required /><small>Necesitamos tu teléfono y correo para gestionar la reserva.</small></div>
-        <div class="form-field"><label asp-for="Formulario.Nombre">Tu nombre o apodo</label><input asp-for="Formulario.Nombre" autocomplete="nickname" maxlength="80" required /></div>
+        <section class="agenda-verificar-contacto" aria-label="Autocompletar tus datos">
+            @if(ViewData["ContactoVerificable"] is true){
+                <p class="nota">Al introducir tu teléfono, podrás verificar un código enviado al correo de tu ficha y autocompletar tus datos. Si es tu primera visita, rellénalos manualmente.</p>
+                <div data-contacto-desafio hidden><div class="form-field"><label for="codigo-contacto">Código recibido por correo</label><input id="codigo-contacto" inputmode="numeric" autocomplete="one-time-code" maxlength="6" /><small>Caduca en 10 minutos. Comprueba también el correo no deseado.</small></div><div class="agenda-botones"><button type="button" class="btn btn-gray" data-contacto-verificar>Verificar y autocompletar</button><button type="button" class="btn btn-gray" data-contacto-solicitar>Solicitar otro código</button></div></div>
+            }else{<p class="nota">Puedes completar tus datos manualmente. El autocompletado por verificación de correo no está disponible temporalmente.</p>}
+            <p class="nota" role="status" aria-live="polite" data-contacto-estado hidden></p>
+        </section>
+        <div class="form-field"><label asp-for="Formulario.Nombre">Nombre o apodo</label><input asp-for="Formulario.Nombre" autocomplete="given-name" maxlength="100" required /></div>
+        <div class="form-field"><label asp-for="Formulario.Apellido">Apellidos</label><input asp-for="Formulario.Apellido" autocomplete="family-name" maxlength="100" required /></div>
+        <fieldset class="agenda-horas"><legend>Sexo</legend>@foreach(var sexo in new[]{PeluqueriaLucia.Domain.Comun.Sexo.Mujer,PeluqueriaLucia.Domain.Comun.Sexo.Hombre,PeluqueriaLucia.Domain.Comun.Sexo.Otro}){<label><input asp-for="Formulario.Sexo" id="sexo-agenda-@sexo" type="radio" value="@sexo" required /><span>@sexo</span></label>}</fieldset>
         <fieldset class="agenda-horas"><legend>¿Dónde prefieres recibir la propuesta y confirmar tu cita?</legend>
             <label><input asp-for="Formulario.Canal" id="canal-correo" type="radio" value="Correo" required /><span>Correo electrónico</span></label>
             <label><input asp-for="Formulario.Canal" id="canal-whatsapp" type="radio" value="WhatsApp" required /><span>WhatsApp</span></label>
@@ -51,3 +60,7 @@
         <p class="nota">El equipo revisará tu solicitud y te enviará una propuesta por el canal elegido. La cita quedará confirmada cuando la aceptes en el enlace recibido. Las solicitudes sin revisar caducan en 24 horas. Tus datos nunca se muestran al público.</p>
     </form>
 </section>
+
+@section Scripts {
+    <script src="~/js/contacto-publico.js" asp-append-version="true"></script>
+}

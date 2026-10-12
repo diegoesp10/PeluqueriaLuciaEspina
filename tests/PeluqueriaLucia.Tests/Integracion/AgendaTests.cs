@@ -12,7 +12,7 @@ public sealed class AgendaTests
     private static AgendaService Crear(PeluqueriaDbContext db, TimeProvider reloj) => new(new RepositorioAgenda(db),
         new PeluqueriaLucia.Infrastructure.Seguridad.ProtectorSecretos(new Microsoft.AspNetCore.DataProtection.EphemeralDataProtectionProvider()), reloj);
     private static readonly DateOnly Dia=new(2026,10,12);
-    private static SolicitarCita Datos(TimeOnly hora,string telefono="612345678", Guid? solicitud=null) => new(solicitud??Guid.NewGuid(),Dia,hora,telefono,"Ana prueba",null,"ip-prueba","ana@example.test",CanalConfirmacion.Correo);
+    private static SolicitarCita Datos(TimeOnly hora,string telefono="612345678", Guid? solicitud=null) => new(solicitud??Guid.NewGuid(),Dia,hora,telefono,"Ana prueba",null,"ip-prueba","ana@example.test",CanalConfirmacion.Correo,"Prueba",PeluqueriaLucia.Domain.Comun.Sexo.Otro);
 
     [Theory]
     [InlineData("612 345 678","+34612345678")]
@@ -23,6 +23,16 @@ public sealed class AgendaTests
     [InlineData("+34612345678<script>",null)]
     public void Telefono_exige_movil_espanol_y_normaliza(string telefono,string? esperado) => Assert.Equal(esperado,AgendaService.NormalizarTelefono(telefono));
 
+    [Fact]
+    public async Task Solicitud_exige_apellidos_y_sexo_valido()
+    {
+        await using var bd=await BaseDeDatosPrueba.CrearAsync();await using var db=bd.Contexto();var agenda=Crear(db,new Reloj());
+        var datos=Datos(new(10,0));
+        Assert.False((await agenda.SolicitarAsync(datos with { Apellido="" },default)).Exito);
+        Assert.False((await agenda.SolicitarAsync(datos with { Sexo=null },default)).Exito);
+        Assert.False((await agenda.SolicitarAsync(datos with { Sexo=(PeluqueriaLucia.Domain.Comun.Sexo)99 },default)).Exito);
+        Assert.Empty(await db.ReservasCitas.ToListAsync());
+    }
     [Fact]
     public async Task Dos_peticiones_simultaneas_no_ocupan_el_mismo_hueco()
     {

@@ -15,6 +15,7 @@ internal sealed class EnvioCorreosCitas(IServiceScopeFactory scopes, ILogger<Env
                 try
                 {
                     await using var scope = scopes.CreateAsyncScope();
+                    await scope.ServiceProvider.GetRequiredService<VerificacionContactoService>().ProcesarColaAsync(stoppingToken);
                     await scope.ServiceProvider.GetRequiredService<IComunicacionesCitas>().ProcesarColaAsync(stoppingToken);
                 }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { break; }

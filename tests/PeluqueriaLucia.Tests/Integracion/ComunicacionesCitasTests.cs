@@ -30,11 +30,11 @@ public sealed class ComunicacionesCitasTests
         public ProtectorSecretos Protector { get; } = new(new EphemeralDataProtectionProvider());
         public AgendaService Agenda => new(new RepositorioAgenda(db), Protector, Reloj);
         public ComunicacionesCitas Comunicaciones => new(new RepositorioAgenda(db), Protector, Correo, new WhatsAppManual(), new Url(), Reloj);
-        public async Task<(Guid Id, string Token)> ProponerAsync(CanalConfirmacion canal)
+        public async Task<(Guid Id, string Token)> ProponerAsync(CanalConfirmacion canal, string? apellido=null, PeluqueriaLucia.Domain.Comun.Sexo? sexo=null)
         {
             var admin = Administrador.Crear("comunicaciones", "hash-prueba", Reloj.Ahora.UtcDateTime);
             db.Add(admin); await db.SaveChangesAsync();
-            var reserva = await Agenda.SolicitarAsync(new(Guid.NewGuid(), new(2026,10,12), new(10,0), "612345678", "Ana", null, "ip", "ana@example.test", canal), default);
+            var reserva = await Agenda.SolicitarAsync(new(Guid.NewGuid(), new(2026,10,12), new(10,0), "612345678", "Ana", null, "ip", "ana@example.test", canal,apellido ?? "Prueba",sexo ?? PeluqueriaLucia.Domain.Comun.Sexo.Otro), default);
             Assert.True(reserva.Exito, reserva.Error?.Mensaje);
             var r = await db.ReservasCitas.AsNoTracking().SingleAsync(x => x.Id == reserva.Valor);
             Assert.True((await Agenda.GestionarAsync(new(r.Id, Convert.ToBase64String(r.Version), EstadoCita.Confirmada, 30, true, null, admin.Id), default)).Exito);
@@ -72,6 +72,14 @@ public sealed class ComunicacionesCitasTests
         Assert.Equal(clienteId, (await db.ReservasCitas.AsNoTracking().SingleAsync()).ClienteId);
     }
     [Fact]
+    public async Task Apellidos_y_sexo_de_solicitud_se_guardan_solo_al_aceptar()
+    {
+        await using var bd=await BaseDeDatosPrueba.CrearAsync();await using var db=bd.Contexto();var c=new Contexto(db);
+        var (_,token)=await c.ProponerAsync(CanalConfirmacion.Correo,"García",PeluqueriaLucia.Domain.Comun.Sexo.Mujer);
+        Assert.Empty(await db.Clientes.ToListAsync()); Assert.True((await c.Comunicaciones.AceptarAsync(token,default)).Exito);
+        var cliente=await db.Clientes.AsNoTracking().SingleAsync();Assert.Equal("García",cliente.Apellido);Assert.Equal(PeluqueriaLucia.Domain.Comun.Sexo.Mujer,cliente.Sexo);Assert.True(cliente.PendienteCompletar);
+    }
+    [Fact]
     public async Task Reconocimiento_administrativo_exige_ambos_contactos_y_devuelve_datos_de_ficha()
     {
         await using var bd=await BaseDeDatosPrueba.CrearAsync();await using var db=bd.Contexto();var c=new Contexto(db);
@@ -100,7 +108,7 @@ public sealed class ComunicacionesCitasTests
         await using var bd = await BaseDeDatosPrueba.CrearAsync(); await using var db = bd.Contexto(); var c = new Contexto(db);
         var (_, token1) = await c.ProponerAsync(CanalConfirmacion.Correo);
         var admin = await db.Administradores.AsNoTracking().SingleAsync();
-        var solicitud = await c.Agenda.SolicitarAsync(new(Guid.NewGuid(),new(2026,10,12),new(10,30),"612345678","Otro apodo",null,"otra-ip","ana@example.test",CanalConfirmacion.WhatsApp),default);
+        var solicitud = await c.Agenda.SolicitarAsync(new(Guid.NewGuid(),new(2026,10,12),new(10,30),"612345678","Otro apodo",null,"otra-ip","ana@example.test",CanalConfirmacion.WhatsApp,"Prueba",PeluqueriaLucia.Domain.Comun.Sexo.Otro),default);
         Assert.True(solicitud.Exito,solicitud.Error?.Mensaje);
         var segunda = await db.ReservasCitas.AsNoTracking().SingleAsync(x=>x.Id==solicitud.Valor);
         Assert.True((await c.Agenda.GestionarAsync(new(segunda.Id,Convert.ToBase64String(segunda.Version),EstadoCita.Confirmada,30,true,null,admin.Id),default)).Exito);

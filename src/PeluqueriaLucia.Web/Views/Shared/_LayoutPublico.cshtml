@@ -48,5 +48,6 @@
     <script src="~/js/app.js" asp-append-version="true"></script>
     <script src="~/js/fechas.js" asp-append-version="true"></script>
     @if (ViewData["ControlSesion"] is true) { <partial name="_ControlSesion" /> }
+    @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

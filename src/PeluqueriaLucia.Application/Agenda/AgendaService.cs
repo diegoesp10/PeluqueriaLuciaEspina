@@ -67,7 +67,8 @@ public sealed class AgendaService(IRepositorioAgenda datos, IProtectorSecretos s
         if (telefono is null) return new Error("Introduce un móvil español válido: nueve cifras, empezando por 6 o 7.", "Telefono");
         if (correo is null) return new Error("Introduce un correo electrónico válido.", "Correo");
         if (!Enum.IsDefined(d.Canal)) return new Error("Elige correo electrónico o WhatsApp.", "Canal");
-        if (d.SolicitudId == Guid.Empty || string.IsNullOrWhiteSpace(d.Nombre) || d.Nombre.Length > 80) return new Error("Revisa los datos de la solicitud.");
+        if (d.SolicitudId == Guid.Empty || string.IsNullOrWhiteSpace(d.Nombre) || d.Nombre.Length > 100) return new Error("Revisa los datos de la solicitud.");
+        if (string.IsNullOrWhiteSpace(d.Apellido) || d.Apellido.Length > 100 || d.Sexo is null || !Enum.IsDefined(d.Sexo.Value)) return new Error("Revisa los apellidos y el sexo.");
         var previa = await datos.BuscarAsync<ReservaCita>(x => x.SolicitudId == d.SolicitudId, ct);
         if (previa is not null) return previa.Telefono == telefono && previa.Correo == correo && previa.Canal == d.Canal ? Resultado.Ok(previa.Id) : new Error("La solicitud no es válida. Recarga el formulario.");
         var ip = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(d.Ip)));
@@ -80,7 +81,7 @@ public sealed class AgendaService(IRepositorioAgenda datos, IProtectorSecretos s
         var servicio = d.ServicioId is null ? null : await datos.BuscarAsync<Servicio>(x => x.Id == d.ServicioId, ct);
         var cita = new ReservaCita { Id = Guid.NewGuid(), SolicitudId = d.SolicitudId, Inicio = d.Dia.ToDateTime(d.Hora),
             Fin = d.Dia.ToDateTime(d.Hora).AddMinutes(disponibles.Minutos), Telefono = telefono, Correo = correo, Canal = d.Canal,
-            Nombre = d.Nombre?.Trim() ?? "", ServicioId = d.ServicioId, ServicioNombre = servicio?.Nombre ?? "Consulta con el equipo",
+            Nombre = d.Nombre?.Trim() ?? "", Apellido = d.Apellido?.Trim() ?? "", Sexo = d.Sexo, ServicioId = d.ServicioId, ServicioNombre = servicio?.Nombre ?? "Consulta con el equipo",
             Estado = EstadoCita.Pendiente, CreadaUtc = Utc, ActualizadaUtc = Utc, CaducaUtc = Utc.AddHours(24), IpHash = ip };
         datos.Agregar(cita); return Resultado.Ok(cita.Id);
     }, ct);

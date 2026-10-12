@@ -17,7 +17,7 @@ public sealed class ClientesAgendaService(IRepositorioAgenda datos, TimeProvider
         { r.ClienteId = exactos[0].Id; r.PendienteVinculacion = false; return; }
         if (candidatos.Count > 0) { r.PendienteVinculacion = true; return; }
         var cliente = Cliente.CrearDesdeReserva(string.IsNullOrWhiteSpace(r.Nombre) ? "Cliente de la agenda" : r.Nombre,
-            r.Correo, r.Telefono, utc);
+            r.Correo, r.Telefono, utc, r.Apellido, r.Sexo);
         datos.Agregar(cliente); r.Cliente = cliente; r.PendienteVinculacion = false;
     }
 

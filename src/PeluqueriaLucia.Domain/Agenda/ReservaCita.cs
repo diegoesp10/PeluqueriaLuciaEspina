@@ -12,6 +12,8 @@ public sealed class ReservaCita
     public DateTime Inicio { get; set; }
     public DateTime Fin { get; set; }
     public string Nombre { get; set; } = "";
+    public string Apellido { get; set; } = "";
+    public PeluqueriaLucia.Domain.Comun.Sexo? Sexo { get; set; }
     public string Telefono { get; set; } = "";
     public string Correo { get; set; } = "";
     public CanalConfirmacion Canal { get; set; }
