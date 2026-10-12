@@ -1,8 +1,7 @@
 namespace PeluqueriaLucia.Web.Publico;
 
 /// <summary>
-/// Datos de la web pública, leídos de contenido-publico.json. Se pueden cambiar (horario, precios, textos) sin
-/// recompilar: la aplicación recarga el fichero al guardarlo.
+/// Textos y contacto públicos, leídos de contenido-publico.json. Los servicios y sus precios proceden del catálogo SQL.
 /// </summary>
 public sealed class ContenidoPublico
 {

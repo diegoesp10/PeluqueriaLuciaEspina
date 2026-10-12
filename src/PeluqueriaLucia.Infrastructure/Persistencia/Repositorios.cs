@@ -12,11 +12,11 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia;
 internal sealed class ClienteRepositorio(PeluqueriaDbContext db) : IClienteRepositorio
 {
     public Task<Cliente?> ObtenerAsync(int id, CancellationToken ct) =>
-        db.Clientes.FirstOrDefaultAsync(c => c.Id == id, ct);
+        db.Clientes.Include(c => c.Faltas).FirstOrDefaultAsync(c => c.Id == id, ct);
 
     public async Task<Pagina<Cliente>> BuscarAsync(string? texto, Sexo? sexo, int pagina, int tamano, CancellationToken ct)
     {
-        var consulta = db.Clientes.AsNoTracking();
+        var consulta = db.Clientes.AsNoTracking().Include(c => c.Faltas).AsQueryable();
         if (sexo is { } s)
             consulta = consulta.Where(c => c.Sexo == s);
 
@@ -27,13 +27,14 @@ internal sealed class ClienteRepositorio(PeluqueriaDbContext db) : IClienteRepos
             consulta = consulta.Where(c =>
                 EF.Functions.Like(c.Nombre, patron, "\\")
                 || EF.Functions.Like(c.Apellido, patron, "\\")
+                || (c.Apodo != null && EF.Functions.Like(c.Apodo, patron, "\\"))
                 || (c.Telefono != null && EF.Functions.Like(c.Telefono, patron, "\\"))
                 || (c.Email != null && EF.Functions.Like(c.Email, patron, "\\")));
         }
 
         var total = await consulta.CountAsync(ct);
         var elementos = await consulta
-            .OrderBy(c => c.Nombre).ThenBy(c => c.Apellido).ThenBy(c => c.Id)
+            .OrderByDescending(c => c.PendienteCompletar).ThenBy(c => c.Nombre).ThenBy(c => c.Apellido).ThenBy(c => c.Id)
             .Skip((pagina - 1) * tamano)
             .Take(tamano)
             .ToListAsync(ct);
@@ -47,6 +48,8 @@ internal sealed class ClienteRepositorio(PeluqueriaDbContext db) : IClienteRepos
         db.Clientes.AnyAsync(c => c.Telefono == telefono && (excluirId == null || c.Id != excluirId), ct);
 
     public Task<bool> TieneVisitasAsync(int id, CancellationToken ct) => db.Visitas.AnyAsync(v => v.ClienteId == id, ct);
+    public Task<List<Cliente>> BuscarPorContactoAsync(string telefono, string correo, CancellationToken ct) => ConsultaContactos.Candidatos(db.Clientes.AsNoTracking(),telefono,correo).ToListAsync(ct);
+    public Task<bool> TieneCitasAsync(int id, CancellationToken ct) => db.ReservasCitas.AnyAsync(v => v.ClienteId == id, ct);
 
     public void Agregar(Cliente cliente) => db.Clientes.Add(cliente);
 

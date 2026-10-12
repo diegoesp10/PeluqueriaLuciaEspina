@@ -22,18 +22,38 @@
         <h1>@ViewData["Title"]</h1>
     </header>
 
-    <form class="form" method="post" asp-action="@(nuevo ? "Nuevo" : "Editar")" asp-route-id="@Model.Id" novalidate>
+    <form class="form" method="post" asp-action="@(nuevo ? "Nuevo" : "Editar")" asp-route-id="@Model.Id" data-cliente-reconocer="@(nuevo ? Url.Action("Reconocer") : null)" novalidate>
         @if (Model.VolverAVisita)
         {
             <input type="hidden" name="visita" value="true" />
         }
         <div asp-validation-summary="ModelOnly"></div>
 
+        <div class="cliente-reconocido" data-cliente-estado role="status" aria-live="polite" hidden></div>
+        <div>
+            <div class="section-head"><h2>Contacto (opcional)</h2></div>
+            <div class="fields">
+                <div class="fields-2">
+                    <div class="field">
+                        <label for="Telefono">Teléfono</label>
+                        <input class="input" id="Telefono" name="Telefono" type="tel" autofocus="@nuevo" value="@f.Telefono" autocomplete="off" />
+                        @Html.ValidationMessage("Telefono")
+                    </div>
+                    <div class="field">
+                        <label for="Email">Correo electrónico</label>
+                        <input class="input" id="Email" name="Email" type="email" value="@f.Email" autocomplete="off" />
+                        @Html.ValidationMessage("Email")
+                    </div>
+                </div>
+            </div>
+            <p class="section-foot">Sirven para encontrar al cliente más rápido. No puede haber dos clientes con el mismo teléfono o email.</p>
+        </div>
+
         <div class="fields">
             <div class="fields-2">
                 <div class="field">
                     <label for="Nombre">Nombre</label>
-                    <input class="input" id="Nombre" name="Nombre" value="@f.Nombre" autocomplete="off" maxlength="100" required autofocus="@nuevo" />
+                    <input class="input" id="Nombre" name="Nombre" value="@f.Nombre" autocomplete="off" maxlength="100" required />
                     @Html.ValidationMessage("Nombre")
                 </div>
                 <div class="field">
@@ -43,6 +63,7 @@
                 </div>
             </div>
 
+            <div class="field"><label for="Apodo">Apodo</label><input class="input" id="Apodo" name="Apodo" value="@f.Apodo" maxlength="80" autocomplete="nickname" />@Html.ValidationMessage("Apodo")</div>
             <fieldset class="field">
                 <legend class="field-label">Sexo</legend>
                 <div class="segmented segmented-lg segmented-block">
@@ -55,27 +76,13 @@
             </fieldset>
         </div>
 
-        <div>
-            <div class="section-head"><h2>Contacto (opcional)</h2></div>
-            <div class="fields">
-                <div class="fields-2">
-                    <div class="field">
-                        <label for="Telefono">Teléfono</label>
-                        <input class="input" id="Telefono" name="Telefono" type="tel" value="@f.Telefono" autocomplete="off" />
-                        @Html.ValidationMessage("Telefono")
-                    </div>
-                    <div class="field">
-                        <label for="Email">Email</label>
-                        <input class="input" id="Email" name="Email" type="email" value="@f.Email" autocomplete="off" />
-                        @Html.ValidationMessage("Email")
-                    </div>
-                </div>
-            </div>
-            <p class="section-foot">Sirven para encontrar al cliente más rápido. No puede haber dos clientes con el mismo teléfono o email.</p>
-        </div>
 
         <div class="acciones acciones-form">
             <button class="btn btn-primary btn-lg">@(nuevo ? (Model.VolverAVisita ? "Crear y seguir con la visita" : "Crear cliente") : "Guardar cambios")</button>
         </div>
     </form>
 </div>
+
+@section Scripts {
+    <script src="~/js/cliente-contacto.js" asp-append-version="true"></script>
+}

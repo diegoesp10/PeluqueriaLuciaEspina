@@ -2,7 +2,7 @@
 
 La web y las herramientas de Entity Framework utilizan `ServicioConexionSql`. No leen `ConnectionStrings` desde appsettings, variables de configuración ni User Secrets. No hay contraseñas en el repositorio.
 
-En Windows ejecutar bajo el mismo usuario que ejecutará Visual Studio o la web:
+En Development, si no hay credencial, se puede usar SQL local con autenticación Windows, sin contraseña. Fuera de Development se exige configurar el servicio. En Windows ejecutar bajo el mismo usuario que ejecutará Visual Studio o la web:
 
 ```powershell
 dotnet run --project src/PeluqueriaLucia.Web -- configurar-conexion
@@ -20,7 +20,7 @@ La migración `CatalogoInicialCompleto` incorpora la copia del catálogo del 10/
 dotnet ef database update --project src/PeluqueriaLucia.Infrastructure --startup-project src/PeluqueriaLucia.Web
 ```
 
-Una base vacía se reconstruye completa. Borrar tablas conservando `__EFMigrationsHistory` no permite reconstruirlas: EF considera esas migraciones ya aplicadas. No se incluyen clientes, visitas, contraseñas ni MFA en la semilla. Después de recrear toda la base hay que crear el administrador con el comando `administrador` y vincular su Authenticator.
+Una base vacía se reconstruye completa. Borrar tablas conservando `__EFMigrationsHistory` no permite reconstruirlas: EF considera esas migraciones ya aplicadas. No se incluyen clientes, visitas, contraseñas ni MFA en la semilla. Después de recrear toda la base hay que crear el administrador con el comando `administrador-nuevo` (solo crea, nunca modifica cuentas existentes) y vincular su Authenticator. El comando `administrador` permite restablecer una cuenta existente desde el servidor.
 
 # Errores
 

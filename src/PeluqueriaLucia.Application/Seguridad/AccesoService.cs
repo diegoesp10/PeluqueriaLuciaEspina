@@ -246,7 +246,7 @@ public sealed class AccesoService(
     /// Crea el administrador, o le pone una contraseña nueva si ya existe (cerrando todas sus sesiones).
     /// Solo se usa desde la línea de comandos del servidor, nunca desde la web.
     /// </summary>
-    public async Task<Resultado<bool>> EstablecerAdministradorAsync(string usuario, string contrasena, CancellationToken ct = default)
+    public async Task<Resultado<bool>> EstablecerAdministradorAsync(string usuario, string contrasena, CancellationToken ct = default, bool soloCrear = false)
     {
         var nombre = Administrador.NormalizarUsuario(usuario);
         if (ValidarContrasena(nombre, contrasena) is { } error)
@@ -255,6 +255,7 @@ public sealed class AccesoService(
         return await Resultado.ProtegerAsync<bool>(async () =>
         {
             var existente = await administradores.ObtenerPorUsuarioAsync(nombre, ct);
+            if (soloCrear && existente is not null) return new Error("El administrador ya existe. No se han cambiado su contraseña ni sus sesiones.");
             if (existente is null)
             {
                 administradores.Agregar(Administrador.Crear(nombre, hasher.Calcular(contrasena), Ahora));

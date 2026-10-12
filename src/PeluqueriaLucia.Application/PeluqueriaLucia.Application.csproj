@@ -1,5 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <ProjectReference Include="..\Comunicaciones.Correo\Comunicaciones.Correo.csproj" />
+    <ProjectReference Include="..\Comunicaciones.WhatsApp\Comunicaciones.WhatsApp.csproj" />
     <ProjectReference Include="..\PeluqueriaLucia.Domain\PeluqueriaLucia.Domain.csproj" />
   </ItemGroup>
   <ItemGroup>

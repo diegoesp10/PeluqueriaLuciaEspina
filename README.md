@@ -86,3 +86,7 @@ En el primer acceso, escanea el QR con Microsoft Authenticator (**Añadir cuenta
 
 3. **Revisa el código generado.** Nada de `DropTable`, `DropColumn` ni `RenameColumn` sobre datos existentes. Una columna nueva obligatoria lleva valor por defecto o un `UPDATE` que la rellene. Ese `UPDATE` va dentro de `EXEC(N'…')`, para que se compile cuando las columnas nuevas ya existen.
 4. `dotnet test`: la prueba `El_modelo_coincide_con_las_migraciones` falla si se te olvida el paso 2, y las de `MigracionTests` comprueban la actualización desde la versión anterior.
+
+## Agenda y conexión
+
+La rama agenda incorpora reservas públicas en /citas y su gestión en /admin/agenda. Consulta [docs/AGENDA.md](docs/AGENDA.md) para horarios, correo SMTP, WhatsApp manual y bibliotecas reutilizables, y [docs/CONEXION-Y-ERRORES.md](docs/CONEXION-Y-ERRORES.md) para el servicio SQL del almacén de credenciales de Windows, reconstrucción del catálogo y errores genéricos.

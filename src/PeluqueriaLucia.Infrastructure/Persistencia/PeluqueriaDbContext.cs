@@ -18,6 +18,10 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia;
 public sealed class PeluqueriaDbContext(DbContextOptions<PeluqueriaDbContext> options) : DbContext(options), IUnidadDeTrabajo, IDataProtectionKeyContext
 {
     public DbSet<Cliente> Clientes => Set<Cliente>();
+    public DbSet<PeluqueriaLucia.Domain.Agenda.ReservaCita> ReservasCitas => Set<PeluqueriaLucia.Domain.Agenda.ReservaCita>();
+    public DbSet<PeluqueriaLucia.Domain.Agenda.TramoAgenda> TramosAgenda => Set<PeluqueriaLucia.Domain.Agenda.TramoAgenda>();
+    public DbSet<PeluqueriaLucia.Domain.Agenda.CierreAgenda> CierresAgenda => Set<PeluqueriaLucia.Domain.Agenda.CierreAgenda>();
+    public DbSet<PeluqueriaLucia.Domain.Agenda.MensajeCita> MensajesCitas => Set<PeluqueriaLucia.Domain.Agenda.MensajeCita>();
 
     public DbSet<Servicio> Servicios => Set<Servicio>();
 

@@ -24,6 +24,20 @@ public sealed class Cliente
 
     public DateTime FechaCreacion { get; private set; }
 
+    public string? Apodo { get; private set; }
+    public bool PendienteCompletar { get; private set; }
+    public ICollection<FaltaAsistencia> Faltas { get; private set; } = new List<FaltaAsistencia>();
+    public int NumeroFaltas => Faltas.Count(x => x.AnuladaUtc is null);
+
+    public void CambiarApodo(string? apodo)
+    {
+        if (apodo?.Length > 80) throw new ReglaDeNegocioException("El apodo admite hasta 80 caracteres.", nameof(Apodo));
+        Apodo = Texto.Opcional(apodo);
+    }
+
+    public static Cliente CrearDesdeReserva(string apodo, string email, string telefono, DateTime ahora, string? apellido = null, Sexo? sexo = null) => new()
+    { Nombre = Texto.Obligatorio(apodo, LongitudNombre, "El nombre", nameof(Nombre)), Apodo = apodo.Trim().Length <= 80 ? apodo.Trim() : null, Email = email, Telefono = telefono, Apellido = Texto.Opcional(apellido) ?? "", Sexo = sexo is { } valor && Enum.IsDefined(valor) ? valor : Sexo.Otro, FechaCreacion = ahora, PendienteCompletar = true };
+
     public string NombreCompleto => $"{Nombre} {Apellido}".Trim();
 
     public string Iniciales =>
@@ -41,6 +55,7 @@ public sealed class Cliente
     {
         Nombre = Texto.Obligatorio(nombre, LongitudNombre, "El nombre", nameof(Nombre));
         Apellido = Texto.Obligatorio(apellido, LongitudNombre, "El apellido", nameof(Apellido));
+        PendienteCompletar = false;
         Email = Texto.Opcional(email);
         Telefono = Texto.Opcional(telefono);
         Sexo = Enum.IsDefined(sexo) ? sexo : throw new ReglaDeNegocioException("El sexo no es válido.", nameof(Sexo));

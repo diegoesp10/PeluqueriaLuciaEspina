@@ -44,6 +44,7 @@ public static class PresentacionServiceCollectionExtensions
             : Path.GetFullPath(o.Carpeta, environment.ContentRootPath));
 
         services.AddHostedService<ArranqueBaseDeDatos>();
+        services.AddHostedService<EnvioCorreosCitas>();
         services.PostConfigure<OpcionesFotosResenas>(o => o.Carpeta = string.IsNullOrWhiteSpace(o.Carpeta)
             ? Path.Combine(environment.ContentRootPath, "AlmacenResenas") : Path.GetFullPath(o.Carpeta, environment.ContentRootPath));
         return services;

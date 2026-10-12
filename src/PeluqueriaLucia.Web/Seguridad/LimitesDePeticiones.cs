@@ -15,6 +15,9 @@ public static class LimitesDePeticiones
     public const string Panel = "panel";
     public const string Acceso = "acceso";
     public const string Resenas = "resenas";
+    public const string Reservas = "reservas";
+    public const string ContactoPublico = "contacto-publico";
+    public const string VerificacionContacto = "verificacion-contacto";
 
     public static IServiceCollection AddLimitesDePeticiones(this IServiceCollection services)
     {
@@ -30,6 +33,9 @@ public static class LimitesDePeticiones
             o.AddPolicy(Publico, c => PorIp(c, Publico, limites.PublicoPorMinuto, TimeSpan.FromMinutes(1)));
             o.AddPolicy(Panel, c => PorIp(c, Panel, limites.PanelPorMinuto, TimeSpan.FromMinutes(1)));
             o.AddPolicy(Resenas, c => PorIp(c, Resenas, 6, TimeSpan.FromHours(1)));
+            o.AddPolicy(ContactoPublico, c => PorIp(c, ContactoPublico, 5, TimeSpan.FromHours(1)));
+            o.AddPolicy(VerificacionContacto, c => PorIp(c, VerificacionContacto, 30, TimeSpan.FromMinutes(15)));
+            o.AddPolicy(Reservas, c => PorIp(c, Reservas, 5, TimeSpan.FromHours(1)));
             o.AddPolicy(Acceso, c => HttpMethods.IsPost(c.Request.Method)
                 ? PorIp(c, Acceso, limites.AccesoPorCuartoDeHora, TimeSpan.FromMinutes(15))
                 : PorIp(c, Publico, limites.PublicoPorMinuto, TimeSpan.FromMinutes(1)));
@@ -54,7 +60,8 @@ public static class LimitesDePeticiones
         var ip = IpCliente.De(http);
         http.RequestServices.GetRequiredService<MonitorPeticiones>().AnotarRechazo(ip);
         http.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(LimitesDePeticiones))
-            .LogWarning("Límite de peticiones superado por {Ip} en {Ruta}", ip, http.Request.Path);
+            .LogWarning("Límite de peticiones superado por {Ip} en {Ruta}", ip,
+                http.Request.Path.StartsWithSegments("/citas/confirmar") ? "/citas/confirmar/[privado]" : http.Request.Path.ToString());
 
         var esperaPorDefecto = HttpMethods.IsPost(http.Request.Method) &&
             http.GetEndpoint()?.Metadata.GetMetadata<EnableRateLimitingAttribute>()?.PolicyName == Acceso ? 900 : 60;

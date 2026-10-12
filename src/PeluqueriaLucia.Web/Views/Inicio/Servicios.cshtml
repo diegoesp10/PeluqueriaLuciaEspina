@@ -2,12 +2,12 @@
 @{ ViewData["Title"] = "Servicios y tratamientos"; }
 <section class="seccion-publica portada-servicios">
     <div><p class="etiqueta">EL ARTE DE CUIDAR TU CABELLO</p><h1>Pequeños cuidados.<br /><em>Grandes sensaciones.</em></h1></div>
-    <div class="servicios-intro"><p class="intro">Cortes, color y bienestar capilar. Encuentra tu próximo momento con Lucía.</p><div class="botones"><a class="btn btn-primary" href="@Model.Reservas" target="_blank" rel="noopener noreferrer">Reservar mi cuidado ↗</a><a class="enlace-flecha" href="@Model.TelefonoEnlace">¿Te ayudamos a elegir? →</a></div><p class="nota">Nuestra carta de cuidados, actualizada por el salón. Confirma los detalles y la disponibilidad al reservar.</p></div>
+    <div class="servicios-intro"><p class="intro">Cortes, color y bienestar capilar. El equipo del salón te ayudará a encontrar el cuidado que necesitas.</p><div class="botones"><a class="btn btn-primary" href="/citas">Reservar mi cuidado ↗</a><a class="enlace-flecha" href="@Model.TelefonoEnlace">Consultar con el equipo →</a></div><p class="nota">La carta de cuidados, actualizada por el equipo del salón. Confirma los detalles y la disponibilidad al reservar.</p></div>
 </section>
 <div class="catalogo-publico seccion-publica">
-    <aside><nav aria-label="Categorías de servicios">@foreach(var categoria in Model.Categorias) { <a href="#@categoria.Id">@categoria.Nombre <span aria-hidden="true">↗</span></a> }</nav><a class="btn btn-primary" href="@Model.Reservas" target="_blank" rel="noopener noreferrer">Reservar cita ↗</a></aside>
+    <aside><nav aria-label="Categorías de servicios">@foreach(var categoria in Model.Categorias) { <a href="#@categoria.Id">@categoria.Nombre <span aria-hidden="true">↗</span></a> }</nav><a class="btn btn-primary" href="/citas">Reservar cita ↗</a></aside>
     <div>@foreach (var categoria in Model.Categorias) {
         <section class="categoria-publica" id="@categoria.Id"><h2>@categoria.Nombre</h2><div class="lista-servicios">@foreach (var servicio in categoria.Servicios) { <article class="servicio-publico"><div><h3>@servicio.Nombre</h3>@if(servicio.Detalle is not null) { <p>@servicio.Detalle</p> }<small>@servicio.Duracion</small></div><strong>@servicio.Precio</strong></article> }</div></section>
     }</div>
 </div>
-<section class="cita-publica"><p class="etiqueta">TE AYUDAMOS A ELEGIR</p><h2>Tu cabello es único.<br /><em>Su cuidado también.</em></h2><a class="btn btn-light" href="@Model.TelefonoEnlace">Habla con Lucía →</a></section>
+<section class="cita-publica"><p class="etiqueta">EL EQUIPO TE AYUDA A ELEGIR</p><h2>Tu cabello es único.<br /><em>Su cuidado también.</em></h2><a class="btn btn-light" href="@Model.TelefonoEnlace">Contactar con el equipo →</a></section>

@@ -27,10 +27,12 @@ public sealed class ClienteFormulario
     [Required(ErrorMessage = "Elige el sexo.")]
     public Sexo? Sexo { get; set; }
 
-    public DatosCliente ADatos() => new(Nombre, Apellido, Email, Telefono, Sexo ?? Domain.Comun.Sexo.Otro);
+    [StringLength(80)] public string? Apodo { get; set; }
+
+    public DatosCliente ADatos() => new(Nombre, Apellido, Email, Telefono, Sexo ?? Domain.Comun.Sexo.Otro, Apodo);
 
     public static ClienteFormulario Desde(Cliente c) =>
-        new() { Nombre = c.Nombre, Apellido = c.Apellido, Email = c.Email, Telefono = c.Telefono, Sexo = c.Sexo };
+        new() { Nombre = c.Nombre, Apellido = c.Apellido, Email = c.Email, Telefono = c.Telefono, Sexo = c.Sexo, Apodo = c.Apodo };
 }
 
 /// <param name="VolverAVisita">El alta se abrió desde «Nueva visita»: al guardar se vuelve allí con el cliente elegido.</param>
@@ -38,7 +40,7 @@ public sealed record ClienteEdicionModelo(int? Id, ClienteFormulario Formulario,
 
 public sealed record ClientesIndiceModelo(Pagina<Cliente> Pagina, string? Texto, Sexo? Sexo);
 
-public sealed record ClienteDetalleModelo(Cliente Cliente, ResumenVisitas Resumen, Pagina<Visita> Visitas, DateOnly Hoy);
+public sealed record ClienteDetalleModelo(Cliente Cliente, ResumenVisitas Resumen, Pagina<Visita> Visitas, DateOnly Hoy, bool TieneCitas = false);
 
 /// <summary>Sugerencia del buscador de clientes (JSON).</summary>
 public sealed record ClienteSugerencia(int Id, string Nombre, string? Detalle, string Iniciales, int Sexo);

@@ -1,0 +1,91 @@
+using Microsoft.AspNetCore.Mvc;
+using PeluqueriaLucia.Application.Agenda;
+using PeluqueriaLucia.Application.Clientes;
+using PeluqueriaLucia.Application.Comun;
+using PeluqueriaLucia.Domain.Agenda;
+using PeluqueriaLucia.Web.Infraestructura;
+using PeluqueriaLucia.Web.Models;
+
+namespace PeluqueriaLucia.Web.Areas.Admin.Controllers;
+
+public sealed class AgendaController(IAgendaService agenda, IComunicacionesCitas comunicaciones, ClientesAgendaService clientesAgenda, ClientesService clientes) : AdminController
+{
+    [HttpGet("/admin/agenda")]
+    public async Task<IActionResult> Index(DateOnly? dia, CancellationToken ct)
+    {
+        var d = dia is null || dia < agenda.Hoy.AddDays(-365) || dia > agenda.Hoy.AddDays(365) ? agenda.Hoy : dia.Value;
+        var citas=(await agenda.ListarAsync(d, d.AddDays(6), ct)).Concat(await agenda.PendientesAsync(ct)).DistinctBy(x=>x.Id).OrderBy(x=>x.Inicio).ToList();
+        ViewData["ClientesPendientes"] = await clientesAgenda.PendientesAsync(ct);
+        var conflictos = await clientesAgenda.ConflictosAsync(ct);
+        ViewData["ConflictosClientes"] = conflictos;
+        var candidatos = new Dictionary<Guid, List<PeluqueriaLucia.Domain.Clientes.Cliente>>();
+        foreach(var conflicto in conflictos) candidatos[conflicto.Id] = await clientesAgenda.CandidatosAsync(conflicto,ct);
+        ViewData["CandidatosClientes"] = candidatos;
+        return View(new AgendaPanel(d, citas, await comunicaciones.ListarAsync(ct), comunicaciones.CorreoConfigurado, comunicaciones.EnlaceConfigurado, await agenda.AvisosAsync(ct)));
+    }
+    [HttpGet("/admin/agenda/avisos"), ResponseCache(NoStore=true, Location=ResponseCacheLocation.None)]
+    public async Task<IActionResult> Avisos(CancellationToken ct) => Json(await agenda.AvisosAsync(ct));
+    [HttpPost("/admin/agenda/gestionar")]
+    public async Task<IActionResult> Gestionar(Guid id, string version, EstadoCita estado, int minutos, bool telefonoValidado, string? nota, DateOnly? dia, CancellationToken ct, bool confirmarDirecto = false)
+    {
+        if (!ModelState.IsValid) this.AvisarError("Revisa los datos de la reserva.");
+        else Avisar(await agenda.GestionarAsync(new(id,version,estado,minutos,telefonoValidado,nota,AdministradorId,confirmarDirecto),ct), "Reserva actualizada.");
+        return RedirectToAction(nameof(Index),new { dia=dia?.ToString("yyyy-MM-dd") });
+    }
+    /// <summary>Cita dada por teléfono o en persona, o tiempo bloqueado. Busca la ficha del cliente sin JavaScript.</summary>
+    [HttpGet("/admin/agenda/nueva")]
+    public async Task<IActionResult> Nueva(DateOnly? dia, TimeOnly? hora, int? clienteId, string? q, bool bloqueo, CancellationToken ct)
+    {
+        var formulario = new CitaManualFormulario { Dia = dia ?? agenda.Hoy, Hora = hora, ClienteId = clienteId, Bloqueo = bloqueo };
+        return View(await PaginaNuevaAsync(formulario, q, ct));
+    }
+    [HttpPost("/admin/agenda/nueva")]
+    public async Task<IActionResult> Nueva(CitaManualFormulario formulario, CancellationToken ct)
+    {
+        if (ModelState.IsValid)
+        {
+            var f = formulario;
+            var resultado = await agenda.CrearCitaAsync(new(f.Dia!.Value, f.Hora!.Value, f.Minutos, f.Bloqueo ? null : f.ClienteId,
+                f.Nombre, f.Telefono, f.Bloqueo ? null : f.ServicioId, f.Nota, f.Bloqueo, AdministradorId), ct);
+            if (resultado.Exito)
+            {
+                this.AvisarExito(f.Bloqueo ? "Tiempo bloqueado en la agenda." : "Cita guardada en la agenda.");
+                return RedirectToAction(nameof(Index), new { dia = f.Dia.Value.ToString("yyyy-MM-dd") });
+            }
+            ModelState.AddModelError(resultado.Error!.Campo ?? string.Empty, resultado.Error.Mensaje);
+        }
+        return View(await PaginaNuevaAsync(formulario, null, ct));
+    }
+    private async Task<CitaManualPagina> PaginaNuevaAsync(CitaManualFormulario f, string? q, CancellationToken ct)
+    {
+        var cliente = f.ClienteId is { } id ? await clientes.ObtenerAsync(id, ct) : null;
+        var encontrados = string.IsNullOrWhiteSpace(q) ? [] : await clientes.SugerirAsync(q, ct);
+        var dia = f.Dia is { } d ? await agenda.DisponibilidadAsync(d, null, ct) : null;
+        return new(f, cliente, q, encontrados, await agenda.ServiciosPanelAsync(ct), dia);
+    }
+    [HttpGet("/admin/agenda/horarios")]
+    public async Task<IActionResult> Horarios(CancellationToken ct) => View(new HorariosPagina(await agenda.HorariosAsync(ct),await agenda.CierresAsync(ct),agenda.Hoy));
+    [HttpPost("/admin/agenda/horarios")]
+    public async Task<IActionResult> Horario(int id, DayOfWeek dia, TimeOnly desde, TimeOnly hasta, CancellationToken ct, int intervaloMinutos = 15)
+    { if (ModelState.IsValid) Avisar(await agenda.GuardarHorarioAsync(id,dia,desde,hasta,ct,intervaloMinutos),"Horario guardado."); else this.AvisarError("Revisa las horas."); return RedirectToAction(nameof(Horarios)); }
+    [HttpPost("/admin/agenda/eliminar-horario")]
+    public async Task<IActionResult> EliminarHorario(int id,CancellationToken ct) { Avisar(await agenda.EliminarHorarioAsync(id,ct),"Tramo eliminado."); return RedirectToAction(nameof(Horarios)); }
+    [HttpPost("/admin/agenda/cerrar-dia")]
+    public async Task<IActionResult> CerrarDia(DateOnly dia,string? motivo,CancellationToken ct) { if(ModelState.IsValid) Avisar(await agenda.CerrarDiaAsync(dia,motivo??"",ct),"Día cerrado."); return RedirectToAction(nameof(Horarios)); }
+    [HttpPost("/admin/agenda/abrir-dia")]
+    public async Task<IActionResult> AbrirDia(int id,CancellationToken ct) { Avisar(await agenda.AbrirDiaAsync(id,ct),"Día reabierto."); return RedirectToAction(nameof(Horarios)); }
+    [HttpPost("/admin/agenda/whatsapp-enviado")]
+    public async Task<IActionResult> WhatsAppEnviado(Guid id,CancellationToken ct) { Avisar(await comunicaciones.MarcarWhatsAppAsync(id,ct),"Mensaje marcado como enviado. La cita sigue pendiente de aceptación del cliente."); return RedirectToAction(nameof(Index)); }
+    [HttpPost("/admin/agenda/reintentar-correo")]
+    public async Task<IActionResult> ReintentarCorreo(Guid id,CancellationToken ct) { Avisar(await comunicaciones.ReintentarCorreoAsync(id,ct),"Correo preparado para reintentar."); return RedirectToAction(nameof(Index)); }
+    [HttpPost("/admin/agenda/falta")]
+    public async Task<IActionResult> Falta(Guid id, string version, string? nota, CancellationToken ct)
+    { if (ModelState.IsValid) Avisar(await clientesAgenda.RegistrarFaltaAsync(id,version,nota,AdministradorId,ct),"Falta registrada en el historial del cliente."); else this.AvisarError("Revisa los datos."); return RedirectToAction(nameof(Index)); }
+    [HttpPost("/admin/agenda/corregir-falta")]
+    public async Task<IActionResult> CorregirFalta(int id, string? motivo, int clienteId, CancellationToken ct)
+    { if (ModelState.IsValid) Avisar(await clientesAgenda.CorregirFaltaAsync(id,motivo,AdministradorId,ct),"Falta corregida. Se conserva el registro de la rectificación."); else this.AvisarError("Revisa los datos."); return RedirectToAction("Detalle","Clientes",new { id=clienteId }); }
+    [HttpPost("/admin/agenda/vincular-cliente")]
+    public async Task<IActionResult> VincularCliente(Guid id, string version, int clienteId, bool contactoVerificado, CancellationToken ct)
+    { if (ModelState.IsValid) Avisar(await clientesAgenda.ResolverAsync(id,version,clienteId,contactoVerificado,AdministradorId,ct),"Cita vinculada a la ficha revisada."); else this.AvisarError("Revisa los datos."); return RedirectToAction(nameof(Index)); }
+    private void Avisar(Resultado r,string mensaje) { if(r.Exito) this.AvisarExito(mensaje); else this.AvisarError(r.Error!.Mensaje); }
+}

@@ -35,8 +35,12 @@ public sealed class ClientesController(ClientesService clientes, VisitasService 
         var filtro = FiltroVisitas.DeCliente(id);
         var historial = await visitas.ListarAsync(filtro, pagina, ct);
         var resumen = await visitas.ResumirAsync(filtro, ct);
-        return View(new ClienteDetalleModelo(cliente, resumen, historial, DateOnly.FromDateTime(reloj.GetLocalNow().DateTime)));
+        return View(new ClienteDetalleModelo(cliente, resumen, historial, DateOnly.FromDateTime(reloj.GetLocalNow().DateTime), await clientes.TieneCitasAsync(id,ct)));
     }
+
+    [HttpPost, RequestSizeLimit(4096)]
+    public async Task<IActionResult> Reconocer(string? telefono, string? email, CancellationToken ct) =>
+        Json(await clientes.ReconocerAsync(telefono,email,ct));
 
     [HttpGet]
     public IActionResult Nuevo(bool visita = false) =>
@@ -47,7 +51,9 @@ public sealed class ClientesController(ClientesService clientes, VisitasService 
     {
         if (ModelState.IsValid)
         {
-            var resultado = await clientes.CrearAsync(formulario.ADatos(), ct);
+            var reconocida = await clientes.ReconocerAsync(formulario.Telefono, formulario.Email, ct);
+            var resultado = reconocida is null ? await clientes.CrearAsync(formulario.ADatos(), ct)
+                : await clientes.ActualizarAsync(reconocida.Id, formulario.ADatos(), ct);
             if (resultado.Exito)
             {
                 this.AvisarExito($"{formulario.Nombre} ya está en tus clientes.");

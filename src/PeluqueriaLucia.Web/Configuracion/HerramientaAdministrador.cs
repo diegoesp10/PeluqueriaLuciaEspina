@@ -12,12 +12,12 @@ public static class HerramientaAdministrador
 {
     public const string Comando = "administrador";
 
-    public static bool EsComando(string[] args) => args.Length > 0 && (args[0] == Comando || args[0] == "recuperar-mfa");
+    public static bool EsComando(string[] args) => args.Length > 0 && (args[0] == Comando || args[0] == "administrador-nuevo" || args[0] == "recuperar-mfa");
 
-    public static async Task<int> EjecutarAsync(IServiceProvider servicios, bool recuperarMfa = false)
+    public static async Task<int> EjecutarAsync(IServiceProvider servicios, bool recuperarMfa = false, bool soloCrear = false)
     {
         Console.WriteLine("Administrador del panel de Peluquería Lucía");
-        Console.WriteLine("Si el usuario ya existe, se le pondrá la contraseña nueva y se cerrarán todas sus sesiones.");
+        Console.WriteLine(soloCrear ? "Solo crea el usuario si no existe. No cambia contraseñas ni sesiones existentes." : "Si el usuario ya existe, se le pondrá la contraseña nueva y se cerrarán todas sus sesiones.");
         Console.WriteLine();
 
         Console.Write("Usuario: ");
@@ -38,7 +38,7 @@ public static class HerramientaAdministrador
         }
 
         await using var scope = servicios.CreateAsyncScope();
-        var resultado = await scope.ServiceProvider.GetRequiredService<AccesoService>().EstablecerAdministradorAsync(usuario, contrasena);
+        var resultado = await scope.ServiceProvider.GetRequiredService<AccesoService>().EstablecerAdministradorAsync(usuario, contrasena, soloCrear: soloCrear);
         if (!resultado.Exito)
         {
             Console.Error.WriteLine(resultado.Error!.Mensaje);

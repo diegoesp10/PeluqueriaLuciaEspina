@@ -20,6 +20,10 @@ public interface IClienteRepositorio
 
     Task<bool> TieneVisitasAsync(int id, CancellationToken ct = default);
 
+    Task<List<Cliente>> BuscarPorContactoAsync(string telefono, string correo, CancellationToken ct = default);
+
+    Task<bool> TieneCitasAsync(int id, CancellationToken ct = default);
+
     void Agregar(Cliente cliente);
 
     void Eliminar(Cliente cliente);
