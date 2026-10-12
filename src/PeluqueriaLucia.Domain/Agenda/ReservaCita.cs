@@ -2,6 +2,8 @@ namespace PeluqueriaLucia.Domain.Agenda;
 
 public enum EstadoCita { Pendiente = 0, Confirmada = 1, Rechazada = 2, Cancelada = 3, Completada = 4, PendienteAceptacion = 5, NoPresentada = 6 }
 public enum CanalConfirmacion { Correo = 0, WhatsApp = 1 }
+/// <summary>Web: solicitud del formulario público. Panel: cita dada por el salón (teléfono, en persona). Bloqueo: tiempo reservado sin cliente.</summary>
+public enum OrigenCita { Web = 0, Panel = 1, Bloqueo = 2 }
 public enum EstadoNotificacion { Pendiente, Enviando, AceptadoServidor, Error, Incierto, Manual, Obsoleto }
 
 /// <summary>Horas locales del salón; fechas de auditoría UTC. Una solicitud no es una cita confirmada.</summary>
@@ -17,6 +19,7 @@ public sealed class ReservaCita
     public string Telefono { get; set; } = "";
     public string Correo { get; set; } = "";
     public CanalConfirmacion Canal { get; set; }
+    public OrigenCita Origen { get; set; }
     public string? ConfirmacionHash { get; set; }
     public DateTime? AceptadaUtc { get; set; }
     public int? ClienteId { get; set; }

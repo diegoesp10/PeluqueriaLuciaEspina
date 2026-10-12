@@ -180,6 +180,9 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<int>("Origen")
+                        .HasColumnType("int");
+
                     b.Property<bool>("PendienteVinculacion")
                         .HasColumnType("bit");
 
@@ -236,6 +239,8 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
                     b.ToTable("ReservasCitas", null, t =>
                         {
                             t.HasCheckConstraint("CK_ReservasCitas_Intervalo", "[Fin] > [Inicio]");
+
+                            t.HasCheckConstraint("CK_ReservasCitas_Origen", "[Origen] IN (0,1,2)");
 
                             t.HasCheckConstraint("CK_ReservasCitas_Sexo", "[Sexo] IS NULL OR [Sexo] IN (0,1,2)");
                         });

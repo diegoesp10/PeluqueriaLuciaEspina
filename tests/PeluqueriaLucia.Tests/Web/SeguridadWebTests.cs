@@ -121,6 +121,25 @@ public sealed class SeguridadWebTests(SeguridadWebFixture fixture) : IClassFixtu
     }
 
     [Fact]
+    public async Task Nueva_cita_del_salon_busca_la_ficha_y_aparece_en_la_agenda()
+    {
+        using var cliente=fixture.Fabrica.Cliente();Assert.Equal(HttpStatusCode.Redirect,(await EntrarAsync(cliente)).StatusCode);
+        var sufijo=Guid.NewGuid().ToString("N")[..8];
+        await using var db=fixture.Bd.Contexto();
+        var ficha=PeluqueriaLucia.Domain.Clientes.Cliente.Crear("Lola"+sufijo,"Agenda",null,null,PeluqueriaLucia.Domain.Comun.Sexo.Mujer,DateTime.UtcNow);db.Add(ficha);await db.SaveChangesAsync();
+        var dia=DateOnly.FromDateTime(DateTime.Today).AddDays(Random.Shared.Next(100,300)).ToString("yyyy-MM-dd");
+        var busqueda=await cliente.GetStringAsync($"/admin/agenda/nueva?dia={dia}&q=Lola{sufijo}");
+        Assert.Contains($"clienteId={ficha.Id}",busqueda);
+        var token=await TokenAsync(cliente,$"/admin/agenda/nueva?dia={dia}&clienteId={ficha.Id}");
+        Assert.Equal(HttpStatusCode.BadRequest,(await cliente.PostAsync("/admin/agenda/nueva",new FormUrlEncodedContent(new Dictionary<string,string>{["Dia"]=dia,["Hora"]="21:00"}))).StatusCode);
+        var guardada=await cliente.PostAsync("/admin/agenda/nueva",new FormUrlEncodedContent(new Dictionary<string,string>
+            {["__RequestVerificationToken"]=token,["Dia"]=dia,["Hora"]="21:00",["Minutos"]="45",["ClienteId"]=ficha.Id.ToString(),["Bloqueo"]="false"}));
+        Assert.Equal(HttpStatusCode.Redirect,guardada.StatusCode);
+        var agenda=await cliente.GetStringAsync("/admin/agenda?dia="+dia);
+        Assert.Contains("Lola"+sufijo,agenda);Assert.Contains("Dada en el salón",agenda);Assert.Contains($"/admin/Visitas/Nueva?clienteId={ficha.Id}",agenda);
+    }
+
+    [Fact]
     public async Task Autocompletar_contacto_exige_sesion_y_antifalsificacion_y_reutiliza_ficha()
     {
         using var cliente=fixture.Fabrica.Cliente();Assert.Equal(HttpStatusCode.Redirect,(await EntrarAsync(cliente)).StatusCode);

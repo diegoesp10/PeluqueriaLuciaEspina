@@ -116,4 +116,56 @@ public sealed class AgendaTests
         Assert.True((await agenda.SolicitarAsync(Datos(new(10,0)),default)).Exito);
         Assert.False((await agenda.CerrarDiaAsync(Dia,"Vacaciones",default)).Exito);
     }
+
+    [Fact]
+    public async Task Cita_del_salon_nace_confirmada_ocupa_el_hueco_y_no_admite_solapes()
+    {
+        await using var bd=await BaseDeDatosPrueba.CrearAsync(); await using var db=bd.Contexto(); var reloj=new Reloj(); var agenda=Crear(db,reloj);
+        var admin=Administrador.Crear("salon","hash-prueba",reloj.Ahora.UtcDateTime); db.Add(admin);
+        var cliente=PeluqueriaLucia.Domain.Clientes.Cliente.Crear("Marta","López","marta@example.test","612 000 111",PeluqueriaLucia.Domain.Comun.Sexo.Mujer,reloj.Ahora.UtcDateTime); db.Add(cliente);
+        await db.SaveChangesAsync();
+        var cita=await agenda.CrearCitaAsync(new(Dia,new(10,0),60,cliente.Id,null,null,null,"Trae foto",false,admin.Id),default);
+        Assert.True(cita.Exito);
+        var r=await db.ReservasCitas.AsNoTracking().SingleAsync();
+        Assert.Equal((EstadoCita.Confirmada,OrigenCita.Panel,cliente.Id,"+34612000111"),(r.Estado,r.Origen,r.ClienteId!.Value,r.Telefono));
+        Assert.Empty(await db.MensajesCitas.ToListAsync());
+        Assert.DoesNotContain(new TimeOnly(10,30),(await agenda.DisponibilidadAsync(Dia,null,default)).Horas);
+        Assert.False((await agenda.SolicitarAsync(Datos(new(10,30)),default)).Exito);
+        var solape=await agenda.CrearCitaAsync(new(Dia,new(10,45),30,null,"Otra","600000000",null,null,false,admin.Id),default);
+        Assert.False(solape.Exito); Assert.Contains("10:00",solape.Error!.Mensaje);
+        // Fuera del horario público también se puede anotar (horas extra), pero no en un día cerrado.
+        Assert.True((await agenda.CrearCitaAsync(new(Dia,new(20,0),30,null,"Vecina",null,null,null,false,admin.Id),default)).Exito);
+        Assert.True((await agenda.CerrarDiaAsync(Dia.AddDays(1),"Festivo",default)).Exito);
+        Assert.False((await agenda.CrearCitaAsync(new(Dia.AddDays(1),new(10,0),30,null,"Ana",null,null,null,false,admin.Id),default)).Exito);
+    }
+
+    [Fact]
+    public async Task Bloqueo_quita_horas_de_la_web_y_al_quitarlo_se_liberan()
+    {
+        await using var bd=await BaseDeDatosPrueba.CrearAsync(); await using var db=bd.Contexto(); var reloj=new Reloj(); var agenda=Crear(db,reloj);
+        var admin=Administrador.Crear("bloqueos","hash-prueba",reloj.Ahora.UtcDateTime); db.Add(admin); await db.SaveChangesAsync();
+        Assert.True((await agenda.CrearCitaAsync(new(Dia,new(11,0),45,null,"Médico",null,null,null,true,admin.Id),default)).Exito);
+        Assert.DoesNotContain(new TimeOnly(11,15),(await agenda.DisponibilidadAsync(Dia,null,default)).Horas);
+        var r=await db.ReservasCitas.AsNoTracking().SingleAsync();
+        Assert.Equal((OrigenCita.Bloqueo,"Médico"),(r.Origen,r.Nombre));
+        Assert.True((await agenda.GestionarAsync(new(r.Id,Convert.ToBase64String(r.Version),EstadoCita.Cancelada,45,false,null,admin.Id),default)).Exito);
+        Assert.Contains(new TimeOnly(11,15),(await agenda.DisponibilidadAsync(Dia,null,default)).Horas);
+        Assert.Empty(await db.MensajesCitas.ToListAsync());
+    }
+
+    [Fact]
+    public async Task Confirmar_directo_salta_el_enlace_crea_la_ficha_y_solo_informa()
+    {
+        await using var bd=await BaseDeDatosPrueba.CrearAsync(); await using var db=bd.Contexto(); var reloj=new Reloj(); var agenda=Crear(db,reloj);
+        var admin=Administrador.Crear("directo","hash-prueba",reloj.Ahora.UtcDateTime); db.Add(admin); await db.SaveChangesAsync();
+        var solicitud=await agenda.SolicitarAsync(Datos(new(10,0)),default);
+        var r=await db.ReservasCitas.AsNoTracking().SingleAsync(x=>x.Id==solicitud.Valor);
+        Assert.False((await agenda.GestionarAsync(new(r.Id,Convert.ToBase64String(r.Version),EstadoCita.Confirmada,30,false,null,admin.Id,true),default)).Exito);
+        Assert.True((await agenda.GestionarAsync(new(r.Id,Convert.ToBase64String(r.Version),EstadoCita.Confirmada,30,true,null,admin.Id,true),default)).Exito);
+        r=await db.ReservasCitas.AsNoTracking().SingleAsync(x=>x.Id==solicitud.Valor);
+        Assert.Equal(EstadoCita.Confirmada,r.Estado); Assert.Null(r.ConfirmacionHash); Assert.NotNull(r.ClienteId);
+        Assert.True((await db.Clientes.AsNoTracking().SingleAsync(x=>x.Id==r.ClienteId)).PendienteCompletar);
+        var aviso=await db.MensajesCitas.AsNoTracking().SingleAsync();
+        Assert.Null(aviso.TokenProtegido); Assert.Contains("queda confirmada",aviso.Texto);
+    }
 }

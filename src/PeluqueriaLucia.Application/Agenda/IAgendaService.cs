@@ -6,7 +6,10 @@ namespace PeluqueriaLucia.Application.Agenda;
 public sealed record ServicioAgenda(int Id, string Nombre, int Minutos);
 public sealed record DisponibilidadAgenda(DateOnly Dia, int Minutos, IReadOnlyList<TimeOnly> Horas, IReadOnlyList<TimeOnly>? Ocupadas = null);
 public sealed record SolicitarCita(Guid SolicitudId, DateOnly Dia, TimeOnly Hora, string Telefono, string? Nombre, int? ServicioId, string Ip, string Correo, CanalConfirmacion Canal, string? Apellido = null, PeluqueriaLucia.Domain.Comun.Sexo? Sexo = null);
-public sealed record GestionarCita(Guid Id, string Version, EstadoCita Estado, int Minutos, bool TelefonoValidado, string? Nota, int AdministradorId);
+/// <param name="ConfirmarDirecto">La cita ya se ha acordado por teléfono: se confirma sin esperar al enlace de aceptación.</param>
+public sealed record GestionarCita(Guid Id, string Version, EstadoCita Estado, int Minutos, bool TelefonoValidado, string? Nota, int AdministradorId, bool ConfirmarDirecto = false);
+/// <summary>Cita que da el propio salón (teléfono, en persona) o tiempo bloqueado sin cliente. Nace confirmada.</summary>
+public sealed record CitaManual(DateOnly Dia, TimeOnly Hora, int? Minutos, int? ClienteId, string? Nombre, string? Telefono, int? ServicioId, string? Nota, bool Bloqueo, int AdministradorId);
 public sealed record AvisoAgenda(int Pendientes, DateTime? UltimaUtc);
 public interface IAgendaService
 {
@@ -15,6 +18,8 @@ public interface IAgendaService
     Task<DisponibilidadAgenda> DisponibilidadAsync(DateOnly dia, int? servicioId, CancellationToken ct);
     Task<Resultado<Guid>> SolicitarAsync(SolicitarCita datos, CancellationToken ct);
     Task<Resultado> GestionarAsync(GestionarCita datos, CancellationToken ct);
+    Task<IReadOnlyList<ServicioAgenda>> ServiciosPanelAsync(CancellationToken ct);
+    Task<Resultado<Guid>> CrearCitaAsync(CitaManual datos, CancellationToken ct);
     Task<IReadOnlyList<ReservaCita>> ListarAsync(DateOnly desde, DateOnly hasta, CancellationToken ct);
     Task<IReadOnlyList<MensajeCita>> MensajesAsync(CancellationToken ct);
     Task<AvisoAgenda> AvisosAsync(CancellationToken ct);

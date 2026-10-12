@@ -45,3 +45,16 @@
 .agenda-tramo-editable { display: grid; gap: 16px; padding: 24px 0; }
 .agenda-tramo-editable > form { width: 100%; }
 .cliente-reconocido:not([hidden]) { padding: 18px 20px; border-radius: 16px; background: var(--fill); line-height: 1.5; }
+
+/* Citas del salón y bloqueos de tiempo. */
+.agenda-bloqueo { background: var(--fill); border-style: dashed; }
+.agenda-cita-hora .badge + .badge { margin-top: -2px; }
+.page-head .agenda-botones { justify-content: flex-end; }
+.cita-cliente { margin: 24px 0; }
+.cita-buscar { display: flex; gap: 12px; }
+.cita-buscar > .input { flex: 1; min-width: 0; }
+.cita-encontrados { margin-top: 12px; }
+.cita-encontrados .row { text-decoration: none; color: inherit; }
+.cita-huecos { padding: 16px 20px; border-radius: 16px; background: var(--fill); }
+.cita-huecos-lista { margin-top: 8px; font-variant-numeric: tabular-nums; line-height: 1.8; }
+@media(max-width:800px){ .page-head .agenda-botones { justify-content: stretch; } }

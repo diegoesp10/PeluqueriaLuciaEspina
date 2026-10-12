@@ -25,6 +25,7 @@ internal sealed class ReservaCitaConfiguracion : IEntityTypeConfiguration<Reserv
         b.HasOne<Servicio>().WithMany().HasForeignKey(x => x.ServicioId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne<Administrador>().WithMany().HasForeignKey(x => x.AdministradorId).OnDelete(DeleteBehavior.Restrict);
         b.ToTable(t => t.HasCheckConstraint("CK_ReservasCitas_Intervalo", "[Fin] > [Inicio]"));
+        b.ToTable(t => t.HasCheckConstraint("CK_ReservasCitas_Origen", "[Origen] IN (0,1,2)"));
     }
 }
 internal sealed class TramoAgendaConfiguracion : IEntityTypeConfiguration<TramoAgenda>

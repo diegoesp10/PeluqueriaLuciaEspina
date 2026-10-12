@@ -105,3 +105,16 @@ El autocompletado se habilita cuando el transporte SMTP esté configurado y acti
 Cada desafío caduca a los diez minutos, admite cinco intentos y es de un solo uso. Solicitar otro código invalida el anterior. Se limitan las solicitudes por IP y por teléfono; los códigos y la clave utilizada en su hash se cifran con Data Protection. Los endpoints son POST con antifalsificación y respuestas sin caché. Un cambio del contacto registrado invalida la verificación. Los resultados de envío inciertos no se reintentan automáticamente. No hay envíos de SMS ni consulta pública de fichas sin verificación.
 
 La migración DatosClienteYVerificacionPublica amplía Nombre sin recortar datos y añade Apellido, Sexo y VerificacionesContacto. Las reservas históricas conservan su información anterior y las columnas nuevas vacías; se completan desde administración, sin inventar datos personales.
+
+
+## Citas del salón, bloqueos y confirmación directa
+
+**Nueva cita** (`/admin/agenda/nueva`) anota las citas dadas por teléfono o en persona. Se busca la ficha por nombre, teléfono o correo; si no tiene ficha basta con un nombre y, opcionalmente, un teléfono (se admiten fijos). Nace confirmada, no envía avisos y se marca «Dada en el salón». La duración por defecto es la del servicio (o 30 minutos). Puede quedar fuera del horario público (horas extra), pero no puede solaparse con otra cita ni caer en un día cerrado.
+
+**Bloquear tiempo** reserva un rato sin cliente (descanso, médico, formación). La web deja de ofrecer esas horas; «Quitar bloqueo» las libera.
+
+En una solicitud de la web, **Confirmar ya (acordada por teléfono)** confirma la cita sin esperar al enlace de aceptación, una vez validado el teléfono. Crea o vincula la ficha igual que la aceptación y deja en Comunicaciones un aviso informativo sin enlace. También sirve para reservas antiguas sin correo.
+
+Las citas confirmadas o completadas con ficha muestran **Registrar visita**, que abre Nueva visita con el cliente elegido.
+
+La migración `OrigenDeLasCitas` añade la columna `Origen` a `ReservasCitas` (0 web, 1 salón, 2 bloqueo). Las reservas existentes quedan como web. No borra ni modifica datos.

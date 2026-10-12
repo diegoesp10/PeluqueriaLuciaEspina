@@ -95,29 +95,51 @@ public sealed class AgendaService(IRepositorioAgenda datos, IProtectorSecretos s
         if (r.Estado is EstadoCita.Rechazada or EstadoCita.Cancelada or EstadoCita.Completada or EstadoCita.NoPresentada) return new Error("Esta reserva ya está cerrada.");
         if (await datos.ExisteAsync<MensajeCita>(x => x.ReservaId == r.Id && x.Estado == EstadoNotificacion.Enviando, ct)) return new Error("Se está enviando el aviso. Espera unos segundos antes de cambiar la cita.");
         var fin = r.Fin;
+        var web = r.Origen == OrigenCita.Web;
         if (d.Estado == EstadoCita.Confirmada)
         {
-            if (!d.TelefonoValidado) return new Error("Confirma que has contactado con el teléfono y validado la solicitud.");
-            if (NormalizarCorreo(r.Correo) is null) return new Error("Esta reserva antigua no tiene correo. Contacta con el cliente y solicita una nueva reserva con sus datos completos.");
-            if (r.Inicio <= Ahora || (r.Estado != EstadoCita.Confirmada && r.CaducaUtc <= Utc)) return new Error("La solicitud ha caducado. Acuerda otra hora con el cliente.");
+            if (web)
+            {
+                if (!d.TelefonoValidado) return new Error("Confirma que has contactado con el teléfono y validado la solicitud.");
+                if (!d.ConfirmarDirecto && NormalizarCorreo(r.Correo) is null) return new Error("Esta reserva antigua no tiene correo. Confírmala directamente si ya la has acordado por teléfono.");
+                if (r.Inicio <= Ahora || (r.Estado != EstadoCita.Confirmada && r.CaducaUtc <= Utc)) return new Error("La solicitud ha caducado. Acuerda otra hora con el cliente.");
+            }
             if (d.Minutos is < 5 or > 600) return new Error("La duración debe ser de 5 a 600 minutos.");
             fin = r.Inicio.AddMinutes(d.Minutos); var dia = DateOnly.FromDateTime(r.Inicio);
             if (Zona.IsInvalidTime(r.Inicio) || Zona.IsAmbiguousTime(r.Inicio) || Zona.IsInvalidTime(fin) || Zona.IsAmbiguousTime(fin)) return new Error("El intervalo coincide con un cambio de hora. Acuerda otro horario.");
-            if (DateOnly.FromDateTime(fin) != dia || await datos.ExisteAsync<CierreAgenda>(x => x.Dia == dia, ct) ||
-                !await datos.ExisteAsync<TramoAgenda>(x => x.Dia == dia.DayOfWeek && x.Desde <= TimeOnly.FromDateTime(r.Inicio) && x.Hasta >= TimeOnly.FromDateTime(fin), ct)) return new Error("La duración queda fuera del horario de apertura.");
+            // Las citas que da el salón pueden salirse del horario público (horas extra), pero nunca del día.
+            if (DateOnly.FromDateTime(fin) != dia || (web && (await datos.ExisteAsync<CierreAgenda>(x => x.Dia == dia, ct) ||
+                !await datos.ExisteAsync<TramoAgenda>(x => x.Dia == dia.DayOfWeek && x.Desde <= TimeOnly.FromDateTime(r.Inicio) && x.Hasta >= TimeOnly.FromDateTime(fin), ct)))) return new Error("La duración queda fuera del horario de apertura.");
             if ((await OcupadasAsync(r.Inicio, fin, ct)).Any(x => x.Id != r.Id)) return new Error("La duración se solapa con otra reserva. Ajusta el tiempo o rechaza la solicitud.");
         }
         else if (d.Estado == EstadoCita.Completada && (r.Estado != EstadoCita.Confirmada || r.Inicio > Ahora)) return new Error("Solo puedes completar una cita confirmada que ya haya comenzado.");
         else if (d.Estado == EstadoCita.Rechazada && r.Estado != EstadoCita.Pendiente) return new Error("Una cita propuesta o confirmada se cancela, no se rechaza.");
 
-        var cambio = fin != r.Fin || (d.Estado == EstadoCita.Confirmada ? r.Estado == EstadoCita.Pendiente : r.Estado != d.Estado);
+        if (!web)
+        {
+            // Citas del salón y bloqueos: sin propuestas ni avisos automáticos; se hablan directamente con el cliente.
+            if (d.Estado == EstadoCita.Rechazada) return new Error("Una cita del salón se cancela, no se rechaza.");
+            r.Fin = fin; r.Estado = d.Estado; r.NotaInterna = d.Nota?.Trim() ?? ""; r.AdministradorId = d.AdministradorId; r.ActualizadaUtc = Utc;
+            return Resultado.Ok();
+        }
+        var directo = d.Estado == EstadoCita.Confirmada && d.ConfirmarDirecto && r.Estado != EstadoCita.Confirmada;
+        var cambio = directo || fin != r.Fin || (d.Estado == EstadoCita.Confirmada ? r.Estado == EstadoCita.Pendiente : r.Estado != d.Estado);
         r.Fin = fin; r.TelefonoValidado = d.TelefonoValidado;
         r.NotaInterna = d.Nota?.Trim() ?? ""; r.AdministradorId = d.AdministradorId; r.ActualizadaUtc = Utc;
         if (cambio)
         {
             foreach (var anterior in await datos.ListarAsync<MensajeCita>(x => x.ReservaId == r.Id && x.Estado != EstadoNotificacion.Obsoleto, ct)) anterior.Estado = EstadoNotificacion.Obsoleto;
             r.ConfirmacionHash = null;
-            if (d.Estado == EstadoCita.Confirmada)
+            if (directo)
+            {
+                await ClientesAgendaService.VincularAsync(datos, r, Utc, ct);
+                r.Estado = EstadoCita.Confirmada;
+                if (NormalizarCorreo(r.Correo) is not null || r.Canal == CanalConfirmacion.WhatsApp)
+                    datos.Agregar(new MensajeCita { Id = Guid.NewGuid(), ReservaId = r.Id, Canal = r.Canal,
+                        Destinatario = r.Canal == CanalConfirmacion.Correo ? r.Correo : r.Telefono, CreadoUtc = Utc, Estado = EstadoNotificacion.Pendiente,
+                        Texto = $"Tu cita del {r.Inicio:dd/MM/yyyy} a las {r.Inicio:HH:mm} para {r.ServicioNombre} queda confirmada, tal como la hemos hablado. Si necesitas cambiarla, contacta con el equipo." });
+            }
+            else if (d.Estado == EstadoCita.Confirmada)
             {
                 var token = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
                 r.AceptadaUtc = null;
@@ -141,6 +163,63 @@ public sealed class AgendaService(IRepositorioAgenda datos, IProtectorSecretos s
         }
         return Resultado.Ok();
     }, ct);
+
+    public async Task<IReadOnlyList<ServicioAgenda>> ServiciosPanelAsync(CancellationToken ct) =>
+        (await datos.ListarAsync<Servicio>(x => x.Activo, ct)).OrderBy(x => x.Nombre)
+            .Select(x => new ServicioAgenda(x.Id, x.Nombre, x.DuracionMinutos)).ToList();
+
+    public Task<Resultado<Guid>> CrearCitaAsync(CitaManual d, CancellationToken ct) => datos.ExclusivoAsync<Resultado<Guid>>(async () =>
+    {
+        if (d.Dia < Hoy.AddDays(-30) || d.Dia > Hoy.AddDays(365)) return new Error("Elige un día entre el último mes y el próximo año.", "Dia");
+        if (d.Nota?.Length > 500) return new Error("La nota admite hasta 500 caracteres.", "Nota");
+        var servicio = d.Bloqueo || d.ServicioId is null ? null : await datos.BuscarAsync<Servicio>(x => x.Id == d.ServicioId && x.Activo, ct);
+        if (!d.Bloqueo && d.ServicioId is not null && servicio is null) return new Error("El servicio ya no está disponible.", "ServicioId");
+        var minutos = d.Minutos ?? (servicio is { DuracionMinutos: > 0 } ? servicio.DuracionMinutos : 30);
+        if (minutos is < 5 or > 600) return new Error("La duración debe ser de 5 a 600 minutos.", "Minutos");
+        var inicio = d.Dia.ToDateTime(d.Hora); var fin = inicio.AddMinutes(minutos);
+        if (DateOnly.FromDateTime(fin) != d.Dia) return new Error("La cita debe terminar el mismo día.", "Minutos");
+        if (Zona.IsInvalidTime(inicio) || Zona.IsAmbiguousTime(inicio) || Zona.IsInvalidTime(fin) || Zona.IsAmbiguousTime(fin)) return new Error("El intervalo coincide con un cambio de hora. Elige otra hora.", "Hora");
+        if (await datos.ExisteAsync<CierreAgenda>(x => x.Dia == d.Dia, ct)) return new Error("Ese día está cerrado. Reábrelo en Horarios si vas a trabajar.", "Dia");
+        var solape = (await OcupadasAsync(inicio, fin, ct)).OrderBy(x => x.Inicio).FirstOrDefault();
+        if (solape is not null) return new Error($"Se solapa con «{(solape.Nombre + " " + solape.Apellido).Trim()}» de {solape.Inicio:HH:mm} a {solape.Fin:HH:mm}.", "Hora");
+
+        var cita = new ReservaCita { Id = Guid.NewGuid(), SolicitudId = Guid.NewGuid(), Inicio = inicio, Fin = fin, Estado = EstadoCita.Confirmada,
+            Origen = d.Bloqueo ? OrigenCita.Bloqueo : OrigenCita.Panel, TelefonoValidado = true, AdministradorId = d.AdministradorId,
+            NotaInterna = d.Nota?.Trim() ?? "", CreadaUtc = Utc, ActualizadaUtc = Utc, CaducaUtc = Utc, IpHash = "" };
+        if (d.Bloqueo)
+        {
+            cita.Nombre = string.IsNullOrWhiteSpace(d.Nombre) ? "Tiempo reservado" : d.Nombre.Trim();
+            if (cita.Nombre.Length > 100) return new Error("El motivo admite hasta 100 caracteres.", "Nombre");
+            cita.ServicioNombre = "Bloqueo";
+        }
+        else if (d.ClienteId is not null)
+        {
+            var cliente = await datos.BuscarAsync<PeluqueriaLucia.Domain.Clientes.Cliente>(x => x.Id == d.ClienteId, ct);
+            if (cliente is null) return new Error("El cliente no existe.", "ClienteId");
+            cita.ClienteId = cliente.Id; cita.Nombre = cliente.Nombre; cita.Apellido = cliente.Apellido; cita.Sexo = cliente.Sexo;
+            cita.Telefono = TelefonoDeContacto(cliente.Telefono) ?? ""; cita.Correo = NormalizarCorreo(cliente.Email) ?? "";
+        }
+        else
+        {
+            if (string.IsNullOrWhiteSpace(d.Nombre) || d.Nombre.Trim().Length > 100) return new Error("Escribe el nombre del cliente o elige su ficha.", "Nombre");
+            var telefono = TelefonoDeContacto(d.Telefono);
+            if (!string.IsNullOrWhiteSpace(d.Telefono) && telefono is null) return new Error("Revisa el teléfono.", "Telefono");
+            cita.Nombre = d.Nombre.Trim(); cita.Telefono = telefono ?? "";
+        }
+        if (!d.Bloqueo) cita.ServicioNombre = servicio?.Nombre ?? "Sin servicio indicado";
+        cita.ServicioId = servicio?.Id;
+        datos.Agregar(cita);
+        return Resultado.Ok(cita.Id);
+    }, ct);
+
+    /// <summary>Móviles en formato +34; fijos y extranjeros tal cual si son solo cifras (hasta 16).</summary>
+    private static string? TelefonoDeContacto(string? valor)
+    {
+        if (string.IsNullOrWhiteSpace(valor)) return null;
+        if (NormalizarTelefono(valor) is { } movil) return movil;
+        var limpio = Regex.Replace(valor, "[ ()-]", "");
+        return Regex.IsMatch(limpio, @"^\+?[0-9]{6,15}$") ? limpio : null;
+    }
 
     public async Task<IReadOnlyList<ReservaCita>> ListarAsync(DateOnly desde, DateOnly hasta, CancellationToken ct)
     {
