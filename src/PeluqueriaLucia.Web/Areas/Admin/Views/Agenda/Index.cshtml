@@ -1,5 +1,8 @@
 @model PeluqueriaLucia.Web.Models.AgendaPanel
 @using PeluqueriaLucia.Domain.Agenda
+@section Scripts {
+    <script src="~/js/agenda-navegacion.js" asp-append-version="true"></script>
+}
 @{ViewData["Title"]="Agenda de citas";}
 <header class="page-head"><div><p class="etiqueta">ESPACIO PROFESIONAL</p><h1>Agenda de citas</h1><p class="subtitle">Solicitudes, tiempos de cuidado y conversaciones con tus clientes.</p></div><div class="agenda-botones"><a class="btn btn-primary" href="/admin/agenda/nueva?dia=@Model.Dia.ToString("yyyy-MM-dd")">Nueva cita</a><a class="btn btn-gray" href="/admin/agenda/nueva?dia=@Model.Dia.ToString("yyyy-MM-dd")&bloqueo=true">Bloquear tiempo</a><a class="btn btn-gray" href="/admin/agenda/horarios">Horarios y días de cierre</a></div></header>
 <div class="agenda-avisos" role="status"><strong>@Model.Avisos.Pendientes solicitudes pendientes</strong><p>Se muestran las citas de la semana y todas las solicitudes pendientes, aunque sean de otra semana. Valida el teléfono, prepara la propuesta y espera a que el cliente la acepte.</p></div>

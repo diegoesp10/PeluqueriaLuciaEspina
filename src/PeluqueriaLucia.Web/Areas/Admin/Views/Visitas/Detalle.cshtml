@@ -12,7 +12,7 @@
         <div class="titulo-con-avatar">
             <span class="avatar avatar-lg @(cliente is null ? "tint-gray" : Formato.Tinte(cliente.Sexo))">@(cliente?.Iniciales ?? "?")</span>
             <div>
-                <h1>@(cliente?.NombreCompleto ?? "Cliente eliminado")</h1>
+                <h1>@(cliente?.NombreCompleto ?? "Sin cliente")</h1>
                 <p class="subtitle">@Formato.FechaLarga(DateOnly.FromDateTime(v.Fecha)) · @Formato.Hora(v.Fecha)</p>
             </div>
         </div>

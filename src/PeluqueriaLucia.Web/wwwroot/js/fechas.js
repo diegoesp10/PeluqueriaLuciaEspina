@@ -37,7 +37,7 @@
       anio.addEventListener('change',() => {
         if (!anio.checkValidity() || !anio.value) return;
         vista = fechaEn(Number(anio.value),vista.getMonth());
-        if (anual) { aplicar(`${iso(vista).slice(0,4)}-01-01`); cerrar(); boton.focus(); }
+        if (anual) { aplicar(`${iso(vista).slice(0,4)}-01-01`); cerrar(); boton.focus({preventScroll:true}); }
         else { pintar(); panel.querySelector('input[type=number]').focus({preventScroll:true}); }
       });
       if (!mensual && !anual) {
@@ -71,7 +71,7 @@
         const texto = anual ? String(fecha.getFullYear()) : mensual ? new Intl.DateTimeFormat('es-ES',{month:'short'}).format(fecha) : String(i+1);
         const b = crearBoton(texto,anual ? `Año ${texto}` : new Intl.DateTimeFormat('es-ES',{day:'numeric',month:'long',year:'numeric'}).format(fecha),() => {
           aplicar(conHora ? `${valor}T${input.value.slice(11,16) || '12:00'}` : valor);
-          if (!conHora) { cerrar(); boton.focus(); } else pintar();
+          if (!conHora) { cerrar(); boton.focus({preventScroll:true}); } else pintar();
         });
         if (anual ? input.value.slice(0,4) === valor.slice(0,4) : input.value.startsWith(valor)) { b.classList.add('is-active'); b.setAttribute('aria-pressed','true'); }
         if (anual ? fecha.getFullYear() === hoy().getFullYear() : valor === (mensual ? iso(hoy()).slice(0,7) : iso(hoy()))) b.classList.add('es-hoy');
@@ -84,7 +84,7 @@
         const hora = document.createElement('input'); hora.type = 'time'; hora.className = 'input'; hora.value = input.value.slice(11,16) || '12:00';
         hora.addEventListener('change',() => { if(hora.value) aplicar(`${iso(seleccion())}T${hora.value}`); }); label.append(hora); panel.append(label);
       }
-      const pie = document.createElement('div'); pie.className = 'fecha-pie'; pie.append(crearBoton(anual ? 'Este año' : mensual ? 'Este mes' : 'Hoy','Seleccionar periodo actual',() => { aplicar(conHora ? `${iso(hoy())}T${input.value.slice(11,16) || '12:00'}` : anual ? `${hoy().getFullYear()}-01-01` : mensual ? iso(hoy()).slice(0,7) : iso(hoy())); cerrar(); boton.focus(); }),crearBoton('Listo','Cerrar calendario',() => { cerrar(); boton.focus(); })); panel.append(pie);
+      const pie = document.createElement('div'); pie.className = 'fecha-pie'; pie.append(crearBoton(anual ? 'Este año' : mensual ? 'Este mes' : 'Hoy','Seleccionar periodo actual',() => { aplicar(conHora ? `${iso(hoy())}T${input.value.slice(11,16) || '12:00'}` : anual ? `${hoy().getFullYear()}-01-01` : mensual ? iso(hoy()).slice(0,7) : iso(hoy())); cerrar(); boton.focus({preventScroll:true}); }),crearBoton('Listo','Cerrar calendario',() => { cerrar(); boton.focus({preventScroll:true}); })); panel.append(pie);
       if (!panel.hidden) colocar();
     };
     boton.addEventListener('click',() => { if (!panel.hidden) { cerrar(); return; } vista = seleccion(); pintar(); panel.hidden = false; colocar(); boton.setAttribute('aria-expanded','true'); panel.querySelector('.is-active')?.focus({preventScroll:true}); });
@@ -94,11 +94,11 @@
     input.addEventListener('change',rotular);
     document.addEventListener('pointerdown',(e) => { if(!contenedor.contains(e.target)) cerrar(); });
     contenedor.addEventListener('keydown',(e) => {
-      if(e.key === 'Escape') { cerrar(); boton.focus(); }
+      if(e.key === 'Escape') { cerrar(); boton.focus({preventScroll:true}); }
       const dias = [...panel.querySelectorAll('.fecha-dias button:not(:disabled), .fecha-meses button:not(:disabled)')];
       const posicion = dias.indexOf(document.activeElement); const paso = mensual ? 3 : 7;
       const avance = {ArrowRight:1,ArrowLeft:-1,ArrowDown:paso,ArrowUp:-paso}[e.key];
-      if(posicion >= 0 && avance) { e.preventDefault(); dias[Math.max(0,Math.min(dias.length-1,posicion+avance))].focus(); }
+      if(posicion >= 0 && avance) { e.preventDefault(); dias[Math.max(0,Math.min(dias.length-1,posicion+avance))].focus({preventScroll:true}); }
     });
     rotular();
   });

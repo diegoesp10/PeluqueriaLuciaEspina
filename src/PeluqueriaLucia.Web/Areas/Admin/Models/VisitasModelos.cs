@@ -106,8 +106,10 @@ public sealed record VisitaDetalleModelo(Visita Visita, CobroFormulario Cobro);
 
 public sealed record TicketModelo(Visita Visita, DatosNegocio Negocio, string? CodigoOpinion = null)
 {
+    public decimal TipoImpuesto => Visita.PorcentajeIva ?? Negocio.TipoImpuesto;
+
     /// <summary>Base imponible y cuota a partir del total con impuestos incluidos.</summary>
-    public decimal Base => decimal.Round(Visita.Total / (1 + Negocio.TipoImpuesto / 100m), 2, MidpointRounding.AwayFromZero);
+    public decimal Base => decimal.Round(Visita.Total / (1 + TipoImpuesto / 100m), 2, MidpointRounding.AwayFromZero);
 
     public decimal Cuota => Visita.Total - Base;
 }

@@ -50,7 +50,7 @@
 
         <table>
             <thead><tr><th>Tipo imp.</th><th class="importe">Base</th><th class="importe">Cuota</th></tr></thead>
-            <tbody><tr><td>@n.TipoImpuesto.ToString("0.##", Formato.Espanol) %</td><td class="importe">@Importe(Model.Base)</td><td class="importe">@Importe(Model.Cuota)</td></tr></tbody>
+            <tbody><tr><td>@Model.TipoImpuesto.ToString("0.##", Formato.Espanol) %</td><td class="importe">@Importe(Model.Base)</td><td class="importe">@Importe(Model.Cuota)</td></tr></tbody>
         </table>
 
         <hr />

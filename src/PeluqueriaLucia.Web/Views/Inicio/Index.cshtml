@@ -9,9 +9,14 @@
         <p class="detalle-hero">COLORACIÓN VEGETAL <span>·</span> CUIDADO CAPILAR <span>·</span> TRATO CERCANO</p>
     </div>
     <div class="hero-foto">
-        <img src="~/publico/salon.jpg" asp-append-version="true" alt="Interior del salón Lucía Peluquería Ecológica en Oviedo" width="640" height="427" fetchpriority="high" />
-        <img class="hero-emblema" src="~/Img/Icono.jpg" alt="" width="120" height="120" />
-        <div class="foto-sello"><span>Un pequeño refugio</span><strong>para sentirte tú.</strong></div>
+        <figure class="hero-foto-marco">
+            <img class="hero-imagen" src="~/publico/fachada-lucia.png" asp-append-version="true" alt="Fachada y entrada de Lucía Peluquería Ecológica en Oviedo" width="1369" height="1306" fetchpriority="high" />
+            <figcaption class="hero-foto-pie">
+                <img class="hero-emblema" src="~/Img/Icono.jpg" alt="" width="48" height="48" />
+                <div><span class="hero-foto-etiqueta">TU RINCÓN EN OVIEDO</span><strong>El cuidado empieza aquí.</strong><span class="hero-foto-direccion">@Model.Direccion</span></div>
+                <a class="hero-mapa" href="@Model.Mapa" target="_blank" rel="noopener noreferrer" aria-label="Cómo llegar al salón Lucía en Oviedo"><span aria-hidden="true">↗</span></a>
+            </figcaption>
+        </figure>
     </div>
 </section>
 <div class="franja-publica"><span>Color de origen vegetal</span><span aria-hidden="true">✳</span><span>Cuidado y bienestar capilar</span><span aria-hidden="true">✳</span><span>Tu estilo, a tu ritmo</span></div>

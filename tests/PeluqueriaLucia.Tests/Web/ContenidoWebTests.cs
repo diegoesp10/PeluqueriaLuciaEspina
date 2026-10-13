@@ -102,13 +102,30 @@ public sealed class ContenidoWebTests(SeguridadWebFixture fixture) : IClassFixtu
         Assert.Equal(HttpStatusCode.Redirect,(await admin.PostAsync("/admin/Catalogo/Nuevo",new FormUrlEncodedContent(datos))).StatusCode);
         var anterior=await Visita(true);await using var db=fixture.Bd.Contexto();var cliente=(await db.Visitas.FindAsync(anterior))!.ClienteId;
         var servicio=await db.Servicios.SingleAsync(x=>x.Nombre==datos["Nombre"]);
-        var registro=new Dictionary<string,string> { ["ClienteId"]=cliente.ToString(),["Fecha"]=DateTime.Now.ToString("yyyy-MM-ddTHH:mm"),["Servicios"]=servicio.Id.ToString(),["FormaPago"]="Efectivo",["__RequestVerificationToken"]=await Token(admin,"/admin/Visitas/Nueva") };
+        var registro=new Dictionary<string,string> { ["ClienteId"]=cliente!.Value.ToString(),["Fecha"]=DateTime.Now.ToString("yyyy-MM-ddTHH:mm"),["Servicios"]=servicio.Id.ToString(),["FormaPago"]="Efectivo",["__RequestVerificationToken"]=await Token(admin,"/admin/Visitas/Nueva") };
         var sinPrecio=await admin.PostAsync("/admin/Visitas/Nueva",new FormUrlEncodedContent(registro));Assert.Equal(HttpStatusCode.OK,sinPrecio.StatusCode);Assert.Contains("Indica un precio",await sinPrecio.Content.ReadAsStringAsync());
         registro[$"Precios[{servicio.Id}]"]="67,50";
         Assert.Equal(HttpStatusCode.Redirect,(await admin.PostAsync("/admin/Visitas/Nueva",new FormUrlEncodedContent(registro))).StatusCode);
         var linea=await db.Set<LineaVisita>().SingleAsync(x=>x.ServicioId==servicio.Id);Assert.Equal(67.50m,linea.Precio);
         servicio.Actualizar(servicio.Nombre,80,servicio.Sexo);await db.SaveChangesAsync();db.ChangeTracker.Clear();
         Assert.Equal(67.50m,(await db.Set<LineaVisita>().FindAsync(linea.Id))!.Precio);
+    }
+
+    [Fact]
+    public async Task Ticket_importado_sin_cliente_muestra_el_iva_historico()
+    {
+        var id = await Visita(true);
+        await fixture.Bd.EjecutarAsync($"UPDATE ServiciosClientes SET ClienteId=NULL,PorcentajeIva=0 WHERE Id={id};");
+        using var fabrica = new FabricaWeb(fixture.Bd.Cadena);
+        using var admin = fabrica.Cliente();
+        await Entrar(admin);
+        var detalle = WebUtility.HtmlDecode(await admin.GetStringAsync($"/admin/Visitas/Detalle/{id}"));
+        Assert.Contains("Sin cliente", detalle);
+        var ticket = WebUtility.HtmlDecode(await admin.GetStringAsync($"/admin/Visitas/Ticket/{id}"));
+        Assert.Contains("<td>0 %</td>", ticket);
+        Assert.DoesNotContain("<td>21 %</td>", ticket);
+        Assert.Contains("18,50", ticket);
+        Assert.Equal(HttpStatusCode.OK, (await admin.GetAsync("/admin/Visitas?periodo=Todo")).StatusCode);
     }
 
     [Fact]

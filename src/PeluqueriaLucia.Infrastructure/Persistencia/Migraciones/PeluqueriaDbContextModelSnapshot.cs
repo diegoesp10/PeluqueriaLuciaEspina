@@ -903,7 +903,7 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("ClienteId")
+                    b.Property<int?>("ClienteId")
                         .HasColumnType("int");
 
                     b.Property<int>("Estado")
@@ -915,6 +915,9 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
                     b.Property<int>("FormaPago")
                         .HasColumnType("int")
                         .HasColumnName("OpcionPago");
+
+                    b.Property<decimal?>("PorcentajeIva")
+                        .HasColumnType("decimal(5,2)");
 
                     b.Property<decimal?>("TotalEfectivo")
                         .HasColumnType("decimal(18,2)");
@@ -1067,8 +1070,7 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
                     b.HasOne("PeluqueriaLucia.Domain.Clientes.Cliente", "Cliente")
                         .WithMany()
                         .HasForeignKey("ClienteId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Cliente");
                 });
