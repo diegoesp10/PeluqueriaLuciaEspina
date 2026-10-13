@@ -50,7 +50,7 @@ Decisiones importantes:
 
 ## Diseño
 
-Una identidad compartida para la web, el login y la administración: crema, verde bosque y oliva, títulos en Georgia y controles claros con tipografía del sistema. Conserva las superficies agrupadas, los controles segmentados y la suavidad del panel inspirado en Apple, adaptados a la marca del salón. El login se presenta en una tarjeta centrada y las pantallas de contenido aprovechan todo el ancho. Día, noche y automático comparten la misma elección entre ambas capas; en móvil, las opciones de cuenta y apariencia están en el menú Cuenta. Los tokens y componentes comunes están en `wwwroot/css/tokens.css` y `componentes.css`. Criterios para futuras pantallas en [docs/DISENO.md](docs/DISENO.md). Avisos legales en [NOTICE.md](NOTICE.md).
+Una identidad compartida para la web, el login y la administración: crema, verde bosque y oliva, tipografía Source Serif 4 en toda la aplicación. Conserva las superficies agrupadas, los controles segmentados y la suavidad del panel inspirado en Apple, adaptados a la marca del salón. El login se presenta en una tarjeta centrada y las pantallas de contenido aprovechan todo el ancho. Día, noche y automático comparten la misma elección entre ambas capas; en móvil, las opciones de cuenta y apariencia están en el menú Cuenta. Los tokens y componentes comunes están en `wwwroot/css/tokens.css` y `componentes.css`. Criterios para futuras pantallas en [docs/DISENO.md](docs/DISENO.md). Avisos legales en [NOTICE.md](NOTICE.md).
 
 ## Desarrollo
 

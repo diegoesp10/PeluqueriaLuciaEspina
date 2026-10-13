@@ -106,7 +106,7 @@ public sealed class ComunicacionesCitas(IRepositorioAgenda datos, IProtectorSecr
                 m.Estado = EstadoNotificacion.Enviando; m.ProcesadoUtc = Utc;
                 var boton = m.TokenProtegido is null ? "" : "<p><a href=\"" + WebUtility.HtmlEncode(texto[(texto.LastIndexOf("\n\n", StringComparison.Ordinal) + 2)..]) + "\" style=\"display:inline-block;padding:14px 24px;border-radius:12px;background:#183a35;color:#fff;text-decoration:none\">Revisar y aceptar cita</a></p>";
                 return new CorreoSaliente(m.Destinatario, "Tu cita en el salón", texto,
-                    "<html lang=\"es\"><body style=\"background:#f4f1e9;color:#183a35;font-family:Arial,sans-serif;padding:24px\"><h1>Tu próxima cita</h1><p>" + WebUtility.HtmlEncode(m.Texto) + "</p>" + boton + "<p>El equipo del salón</p></body></html>");
+                    "<html lang=\"es\"><body style=\"background:#f4f1e9;color:#183a35;font-family:'Source Serif 4',Georgia,serif;padding:24px\"><h1>Tu próxima cita</h1><p>" + WebUtility.HtmlEncode(m.Texto) + "</p>" + boton + "<p>El equipo del salón</p></body></html>");
             }, ct);
             if (mensaje is null) continue;
             ResultadoEnvio resultado;

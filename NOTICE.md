@@ -9,7 +9,7 @@ Las [Human Interface Guidelines](https://developer.apple.com/design/human-interf
 | No se usa | Qué se usa en su lugar |
 |---|---|
 | Logotipos o iconos de Apple | El logotipo propio de la peluquería (`wwwroot/Img`) |
-| Tipografía San Francisco empaquetada | Georgia para títulos y la fuente del sistema del equipo para los controles: SF si ya está instalada en un Mac, Segoe UI en Windows. No se incluye ningún fichero de fuentes |
+| Tipografía San Francisco empaquetada | Source Serif 4 (Adobe, licencia SIL OFL) en toda la aplicación, servida desde el propio sitio |
 | SF Symbols | Iconos de línea en SVG al estilo de Lucide (licencia ISC), en `Infraestructura/IconoTagHelper.cs` |
 | Capturas, textos o pantallas concretas de Apple | Nada: composición, textos y estilos son propios |
 
@@ -25,6 +25,7 @@ Las [Human Interface Guidelines](https://developer.apple.com/design/human-interf
 | [SkiaSharp](https://github.com/mono/SkiaSharp) (normalización de fotos) | MIT; incluye Skia, BSD y licencias de sus dependencias nativas |
 | [GSAP](https://gsap.com) 3.15.0 con ScrollTrigger y SplitText (animaciones de la web pública, `wwwroot/lib/gsap`) | [Standard «no charge» license](https://gsap.com/standard-license) de GreenSock; el aviso de copyright va en la cabecera de cada fichero |
 | [Lenis](https://github.com/darkroomengineering/lenis) 1.3.26 (scroll suave, `wwwroot/lib/lenis`) | MIT, texto en `wwwroot/lib/lenis/LICENSE` |
+| [Source Serif 4](https://github.com/adobe-fonts/source-serif) (tipografía de toda la aplicación, `wwwroot/fonts/source-serif-4`), diseñada por Frank Grießhammer para Adobe | SIL Open Font License 1.1, texto en `wwwroot/fonts/source-serif-4/LICENSE` |
 
 La foto de la fachada (`wwwroot/publico/fachada-lucia.png`) y el logo pertenecen al salón.
 

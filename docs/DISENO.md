@@ -19,8 +19,8 @@ Los colores se definen exclusivamente en `wwwroot/css/tokens.css`, que cargan am
 
 ## Tipografía y composición
 
-- Georgia para el nombre del salón, los títulos de página y los mensajes de bienvenida. Usar peso normal, espaciado contenido y cursiva oliva con moderación.
-- La fuente del sistema para formularios, navegación, listas y datos. Los importes usan números tabulares y tipografía sin serif para facilitar su lectura.
+- Una sola familia en toda la aplicación: **Source Serif 4** (Frank Grießhammer, Adobe; licencia SIL OFL), servida desde `wwwroot/fonts` y declarada en `css/fuentes.css`. Es variable en tamaño óptico: los titulares usan el corte fino y el texto de formularios y tablas el robusto, sin configurar nada. No usar Times New Roman ni fuentes externas.
+- Títulos, nombre del salón y bienvenidas en peso normal, con espaciado contenido y cursiva oliva con moderación. Formularios, navegación, listas y datos con la misma familia; los importes usan números tabulares para alinearse.
 - Etiquetas de sección pequeñas, con separación entre letras. El texto secundario mantiene un contraste legible.
 - En pantallas anchas, las secciones ocupan el ancho disponible con márgenes interiores fluidos. Distribuir el contenido en columnas útiles, sin encerrar toda la página en una columna central.
 - Los formularios de gestión mantienen un ancho de lectura cómodo y se alinean con el contenido. El login es la excepción deliberada: una única tarjeta centrada, de hasta 480 px.
