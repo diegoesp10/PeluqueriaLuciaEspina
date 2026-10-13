@@ -771,7 +771,19 @@ input[type='datetime-local'].input {
 .btn-light:hover { background:color-mix(in oklab,var(--cream) 92%,var(--olive)); }
 .row-body { flex:1; min-width:0; overflow-wrap:anywhere; }
 .fondo-identidad { position:relative; isolation:isolate; }
-.fondo-identidad::before { content:''; position:fixed; z-index:-1; right:var(--page-gutter,24px); top:150px; width:min(38vw,560px,calc(100dvh - 180px)); aspect-ratio:1; background:url('../Img/Icono.jpg') center/contain no-repeat; opacity:.07; pointer-events:none; }
+/* Marca de agua del logo detrás del contenido: esquinas redondeadas y bordes que se funden con el fondo.
+   La web pública la mueve con GSAP a través de las variables --marca-* (movimiento.js); el panel la deja quieta. */
+.fondo-identidad::before {
+  content:''; position:fixed; z-index:-1; right:var(--page-gutter,24px); top:150px;
+  width:min(38vw,560px,calc(100dvh - 180px)); aspect-ratio:1;
+  background:url('../Img/Icono.jpg') center/cover no-repeat;
+  border-radius:28%;
+  -webkit-mask-image:radial-gradient(farthest-corner, #000 72%, transparent 100%);
+  mask-image:radial-gradient(farthest-corner, #000 72%, transparent 100%);
+  opacity:var(--marca-opacidad,.07); pointer-events:none;
+  transform:translate3d(var(--marca-x,0), var(--marca-y,0), 0) rotate(var(--marca-giro,0deg)) scale(var(--marca-escala,1));
+  transform-origin:50% 50%; will-change:transform;
+}
 @media print { .fondo-identidad::before { display:none; } }
 .fecha-control { position:relative; min-width:0; }
 .fecha-original { position:absolute; width:1px !important; height:1px; opacity:0; pointer-events:none; padding:0; border:0; }

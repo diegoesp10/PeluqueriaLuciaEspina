@@ -121,6 +121,19 @@
     }),
   );
 
+  // ── Marca de agua del logo (pseudo-elemento ::before de main): GSAP mueve sus variables CSS ──
+  const marca = document.querySelector('.fondo-identidad');
+  if (marca) {
+    // Valores de partida con sus unidades, para que GSAP pueda interpolar las variables
+    gsap.set(marca, { '--marca-x': '0vw', '--marca-y': '0vh', '--marca-giro': '0deg' });
+    // Aparece despacio desde un poco más pequeña, como si se revelara detrás del contenido
+    gsap.fromTo(marca, { '--marca-opacidad': 0, '--marca-escala': 0.88 }, { '--marca-opacidad': 0.07, '--marca-escala': 1, duration: 2.2, ease: 'expo.out' });
+    // Respira muy lentamente
+    gsap.to(marca, { '--marca-giro': '3deg', duration: 9, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+    // Con el scroll se desplaza más despacio que la página y gira un poco (parallax)
+    gsap.to(marca, { '--marca-y': '-12vh', '--marca-x': '-2vw', ease: 'none', scrollTrigger: { trigger: document.body, start: 'top top', end: 'bottom bottom', scrub: 2 } });
+  }
+
   // ── Detalles ──
   animar('[data-flotar]', { y: -10, rotation: 2.5, duration: 3.2, ease: 'sine.inOut', yoyo: true, repeat: -1 });
   todos('[data-giro]').forEach((estrella) =>
