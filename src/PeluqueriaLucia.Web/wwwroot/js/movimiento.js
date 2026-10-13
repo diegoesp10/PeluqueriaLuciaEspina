@@ -30,6 +30,8 @@
     lenis.on('scroll', ScrollTrigger.update);
     gsap.ticker.add((tiempo) => lenis.raf(tiempo * 1000));
     gsap.ticker.lagSmoothing(0);
+    // Con el menú hamburguesa abierto la página de detrás no se desplaza (ver app.js)
+    document.addEventListener('menu-cambio', ({ detail }) => (detail.abierto ? lenis.stop() : lenis.start()));
   }
 
   // ── Estado inicial: GSAP toma el control de lo que estaba oculto por la clase .anima ──

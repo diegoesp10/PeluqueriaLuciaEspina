@@ -25,7 +25,7 @@ Los colores se definen exclusivamente en `wwwroot/css/tokens.css`, que cargan am
 - En pantallas anchas, las secciones ocupan el ancho disponible con márgenes interiores fluidos. Distribuir el contenido en columnas útiles, sin encerrar toda la página en una columna central.
 - Los formularios de gestión mantienen un ancho de lectura cómodo y se alinean con el contenido. El login es la excepción deliberada: una única tarjeta centrada, de hasta 480 px.
 - En móvil, apilar las columnas; conservar botones, navegación y etiquetas completas sin desplazamiento horizontal.
-- Dar presencia al logo original: emblema mayor en la navegación, sello sobre la foto del salón y firma en el pie. Usar una marca de fondo tenue detrás del contenido, sin capturar clics ni aparecer en tickets impresos.
+- Dar presencia al logo original: emblema mayor en la navegación, firma junto al pie de la fotografía y en el pie de página. La portada usa la fachada real (`publico/fachada-lucia.png`) completa, en un marco suave con ubicación y acceso al mapa; conservar el rótulo y la entrada visibles. Usar una marca de fondo tenue detrás del contenido, sin capturar clics ni aparecer en tickets impresos.
 
 ## Componentes comunes
 
@@ -36,6 +36,8 @@ Las tarjetas tienen esquinas de 24 px, campos de 14 px y botones de forma ovalad
 Los errores se muestran junto al formulario, con mensajes en español. El foco de teclado permanece visible. Se respeta la preferencia de movimiento reducido. El selector Automática/Día/Noche y el script inicial son compartidos y mantienen la misma elección al pasar de la web al panel.
 
 El calendario comparte los campos y colores del resto de la aplicación. Permite elegir mes y año directamente, además del día. El listado y la exportación de visitas ofrecen **Día, Mes, Año y Todo**; el periodo anual incluye del 1 de enero al 31 de diciembre. Los formularios de clientes, visitas y servicios se centran dentro del espacio disponible del panel.
+
+En pantallas grandes, la foto de portada se limita a 560 px dentro de una composición centrada de hasta 1760 px. La agenda pública limita su calendario a 460 px y el selector emergente a 304 px; en móvil conservan su ancho adaptable. Cambiar el día, el mes o la semana y consultar disponibilidad conserva la posición de lectura. Cerrar o elegir una fecha devuelve el foco sin desplazar la página.
 
 ## Pantallas
 

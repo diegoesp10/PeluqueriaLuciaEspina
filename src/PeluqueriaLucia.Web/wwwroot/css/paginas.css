@@ -360,7 +360,7 @@
 .panel-bienvenida h1 em { color:var(--olive); font-weight:400; }
 .panel-bienvenida .subtitle { color:var(--label-2); margin-bottom:24px; }
 .panel-fecha { color:var(--olive); font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.09em; }
-.panel-foto { height:230px; width:100%; object-fit:cover; object-position:center; border-radius:100px 100px var(--r-ctl) var(--r-ctl); }
+.panel-foto { width:min(100%,320px); height:auto; aspect-ratio:1369/1306; justify-self:end; border:8px solid var(--sand); border-radius:var(--r-card); }
 .panel-grid { display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr); gap:28px; }
 .panel-grid .row-title { flex:1; }
 .panel-grid .row>svg { color:var(--olive); }

@@ -36,23 +36,34 @@
   );
   aplicarTema(leerTema());
 
-  // ── Menú del panel en móvil (hamburguesa). Sin JavaScript se abre con el ancla #menu-principal ──
-  const menu = document.getElementById('menu-principal');
+  // ── Menú hamburguesa en móvil (panel y web pública). El botón [data-menu-abrir] abre el menú de su aria-controls;
+  //    sin JavaScript se abre igual con su ancla (#menu-…) y la regla :target ──
   const botonMenu = document.querySelector('[data-menu-abrir]');
+  const menu = botonMenu && document.getElementById(botonMenu.getAttribute('aria-controls'));
   if (menu && botonMenu) {
     const raiz = document.documentElement;
     const movil = matchMedia('(max-width: 900px)');
+    const textos = (() => {
+      try {
+        return JSON.parse(document.getElementById('textos-js')?.textContent ?? '{}');
+      } catch {
+        return {};
+      }
+    })();
     const abierto = () => raiz.classList.contains('menu-abierto');
     const enfocables = () =>
       [...menu.querySelectorAll('a[href], button:not([disabled]), input, select')].filter((e) => e.offsetParent !== null);
     const marcar = (estado) => {
       raiz.classList.toggle('menu-abierto', estado);
       botonMenu.setAttribute('aria-expanded', String(estado));
-      botonMenu.querySelector('.sr-only').textContent = estado ? 'Cerrar menú' : 'Abrir menú';
+      const etiqueta = estado ? 'Cerrar menú' : 'Abrir menú';
+      botonMenu.querySelector('.sr-only').textContent = textos[etiqueta] ?? etiqueta;
+      // El scroll suave de la web pública (movimiento.js) se detiene mientras el menú está abierto
+      document.dispatchEvent(new CustomEvent('menu-cambio', { detail: { abierto: estado } }));
     };
     const abrir = () => {
       marcar(true);
-      (menu.querySelector('.nav-item.is-active') ?? enfocables()[0])?.focus({ preventScroll: true });
+      (menu.querySelector('.nav-item.is-active, [aria-current="page"]') ?? enfocables()[0])?.focus({ preventScroll: true });
     };
     const cerrar = (devolverFoco = true) => {
       if (!abierto()) return;
@@ -97,7 +108,7 @@
     // Al girar la tableta o ensanchar la ventana vuelve la barra lateral fija
     movil.addEventListener('change', () => cerrar(false));
     // Quien llegó con el ancla (sin JavaScript al principio) se queda con la URL limpia
-    if (location.hash === '#menu-principal') history.replaceState(null, '', location.pathname + location.search);
+    if (location.hash === `#${menu.id}`) history.replaceState(null, '', location.pathname + location.search);
     // Volver con «atrás» desde otra página no debe encontrar el menú abierto
     window.addEventListener('pageshow', () => marcar(false));
   }

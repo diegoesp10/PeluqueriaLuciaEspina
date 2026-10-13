@@ -8,10 +8,15 @@
         <div class="botones" data-anima="subir"><a class="btn btn-primary" asp-controller="Agenda" asp-action="Index" data-magnetico>@T["Encuentra tu momento"] <span aria-hidden="true">↗</span></a><a class="enlace-flecha" asp-action="Servicios">@T["Nuestros servicios"] →</a></div>
         <p class="detalle-hero" data-anima="subir">@T["COLORACIÓN VEGETAL"] <span>·</span> @T["CUIDADO CAPILAR"] <span>·</span> @T["TRATO CERCANO"]</p>
     </div>
-    <div class="hero-foto">
-        <div class="hero-marco" data-anima="revelar"><img src="~/publico/salon.jpg" asp-append-version="true" alt="@T["Interior del salón Lucía Peluquería Ecológica en Oviedo"]" width="640" height="427" fetchpriority="high" data-parallax="12" /></div>
-        <img class="hero-emblema" src="~/Img/Icono.jpg" alt="" width="120" height="120" data-flotar />
-        <div class="foto-sello" data-anima="subir"><span>@T["Un pequeño refugio"]</span><strong>@T["para sentirte tú."]</strong></div>
+    <div class="hero-foto" data-anima="subir">
+        <figure class="hero-foto-marco">
+            <img class="hero-imagen" src="~/publico/fachada-lucia.png" asp-append-version="true" alt="@T["Fachada y entrada de Lucía Peluquería Ecológica en Oviedo"]" width="1369" height="1306" fetchpriority="high" />
+            <figcaption class="hero-foto-pie">
+                <img class="hero-emblema" src="~/Img/Icono.jpg" alt="" width="48" height="48" />
+                <div><span class="hero-foto-etiqueta">@T["TU RINCÓN EN OVIEDO"]</span><strong>@T["El cuidado empieza aquí."]</strong><span class="hero-foto-direccion">@Model.Direccion</span></div>
+                <a class="hero-mapa" href="@Model.Mapa" target="_blank" rel="noopener noreferrer" aria-label="@T["Cómo llegar al salón Lucía en Oviedo"]"><span aria-hidden="true">↗</span></a>
+            </figcaption>
+        </figure>
     </div>
 </section>
 <div class="franja-publica" data-marquesina>

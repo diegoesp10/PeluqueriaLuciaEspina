@@ -17,7 +17,7 @@ public sealed class Visita
 
     public DateTime Fecha { get; private set; }
 
-    public int ClienteId { get; private set; }
+    public int? ClienteId { get; private set; }
 
     public Cliente? Cliente { get; private set; }
 
@@ -29,6 +29,9 @@ public sealed class Visita
     public decimal? TotalEfectivo { get; private set; }
 
     public decimal? TotalTarjeta { get; private set; }
+
+    /// <summary>Tipo de IVA conservado de los tickets antiguos; null utiliza la configuración del negocio.</summary>
+    public decimal? PorcentajeIva { get; private set; }
 
     public IReadOnlyList<LineaVisita> Lineas => _lineas;
 

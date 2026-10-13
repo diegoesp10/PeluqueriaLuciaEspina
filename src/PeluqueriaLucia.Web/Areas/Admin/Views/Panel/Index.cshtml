@@ -2,7 +2,7 @@
 @{ ViewData["Title"] = "Panel de administración"; var r = Model.Resumen; }
 <section class="panel-bienvenida" aria-labelledby="titulo-panel">
     <div><p class="panel-fecha">@Model.Hoy.ToString("dddd, d 'de' MMMM", Formato.Espanol)</p><h1 id="titulo-panel">Hola, @User.Identity?.Name.<br /><em>Este es tu salón hoy.</em></h1><p class="subtitle">Un espacio para cuidar de tus clientes y de cada detalle.</p><a class="btn btn-primary" asp-controller="Visitas" asp-action="Nueva"><icono nombre="mas" tamano="18" /> Nueva visita</a></div>
-    <img class="panel-foto" src="~/publico/salon.jpg" alt="Interior de Lucía Peluquería Ecológica" width="640" height="427" />
+    <img class="panel-foto" src="~/publico/fachada-lucia.png" asp-append-version="true" alt="Fachada de Lucía Peluquería Ecológica" width="1369" height="1306" />
 </section>
 <section class="stats" aria-label="Resumen de hoy">
     <div class="stat tint-blue"><span class="stat-label"><icono nombre="euro" tamano="16" /> Facturado hoy</span><strong class="stat-value">@Formato.Euros(r.Facturado)</strong><span class="stat-foot">@r.Servicios servicios</span></div>

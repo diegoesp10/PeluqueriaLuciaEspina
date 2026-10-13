@@ -20,7 +20,7 @@
         ["sinConexion"] = T["No hay conexión con el salón. Revisa tu conexión a internet y vuelve a intentarlo."],
     };
     // Calendario (fechas.js): la clave es el texto en español
-    foreach (var clave in new[] { "Elegir fecha", "Año", "Mes", "Periodo anterior", "Periodo siguiente", "Este año", "Este mes", "Hoy", "Seleccionar periodo actual", "Listo", "Cerrar calendario" })
+    foreach (var clave in new[] { "Abrir menú", "Cerrar menú", "Elegir fecha", "Año", "Mes", "Periodo anterior", "Periodo siguiente", "Este año", "Este mes", "Hoy", "Seleccionar periodo actual", "Listo", "Cerrar calendario" })
         textosJs[clave] = T[clave];
 }
 <!DOCTYPE html>
@@ -67,19 +67,31 @@
             <img src="~/Img/Icono.jpg" alt="@T["Logo de Lucía"]" width="64" height="64" />
             <span><strong>Lucía</strong><small>@T["PELUQUERÍA ECOLÓGICA"]</small></span>
         </a>
-        <nav aria-label="@T["Navegación principal"]">
+        @* En escritorio, enlaces en línea; en móvil, menú lateral que abre el botón hamburguesa (sin JavaScript, por :target) *@
+        <nav class="menu-publico" id="menu-publico" data-lenis-prevent aria-label="@T["Navegación principal"]">
+            <a class="menu-publico-cerrar" href="#" data-menu-cerrar aria-label="@T["Cerrar menú"]"><icono nombre="cerrar" tamano="20" /></a>
+            <p class="menu-publico-titulo" aria-hidden="true">Lucía</p>
             <a asp-area="" asp-controller="Inicio" asp-action="Index" aria-current="@(enSalon ? "page" : null)">@T["El salón"]</a>
             <a asp-area="" asp-controller="Inicio" asp-action="Servicios" aria-current="@(enServicios ? "page" : null)">@T["Servicios"]</a>
             <a asp-area="" asp-controller="Opiniones" asp-action="Index" aria-current="@(controlador == "Opiniones" ? "page" : null)">@T["Opiniones"]</a>
             <a asp-area="" asp-controller="Agenda" asp-action="Index" aria-current="@(controlador == "Agenda" ? "page" : null)">@T["Citas"]</a>
             <a href="@(raiz)#contacto">@T["Contacto"]</a>
+            <div class="menu-publico-pie">
+                <a class="btn btn-primary btn-block" asp-area="" asp-controller="Agenda" asp-action="Index">@T["Reservar cita"] <span aria-hidden="true">↗</span></a>
+                <a class="menu-publico-telefono" href="@n.TelefonoEnlace">@n.Telefono</a>
+                <p>@n.Direccion · @n.Ciudad</p>
+            </div>
         </nav>
+        <a class="menu-fondo" href="#" data-menu-cerrar tabindex="-1" aria-hidden="true"></a>
         <div class="cabecera-acciones">
             <div class="selector-idioma" role="group" aria-label="Idioma · Language">
                 <a href="@Idioma.UrlEn(Context, Idioma.Espanol)" hreflang="es" lang="es" aria-current="@(idioma == Idioma.Espanol ? "true" : null)" title="Español">ES</a>
                 <a href="@Idioma.UrlEn(Context, Idioma.Ingles)" hreflang="en" lang="en" aria-current="@(idioma == Idioma.Ingles ? "true" : null)" title="English">EN</a>
             </div>
-            <a class="btn btn-primary" asp-area="" asp-controller="Agenda" asp-action="Index" data-magnetico>@T["Reservar cita"] <span aria-hidden="true">↗</span></a>
+            <a class="btn btn-primary cabecera-reservar" asp-area="" asp-controller="Agenda" asp-action="Index" data-magnetico>@T["Reservar cita"] <span aria-hidden="true">↗</span></a>
+            <a class="boton-menu" href="#menu-publico" aria-controls="menu-publico" aria-expanded="false" data-menu-abrir>
+                <icono nombre="menu" tamano="22" /><span class="sr-only">@T["Abrir menú"]</span>
+            </a>
         </div>
     </header>
     <main class="fondo-identidad" id="contenido">@RenderBody()</main>
