@@ -22,6 +22,9 @@
   }
   gsap.registerPlugin(ScrollTrigger, ...(SplitText ? [SplitText] : []));
   const todos = (selector) => gsap.utils.toArray(selector);
+  // Cada página tiene solo parte de los elementos animables: sin esto GSAP avisa en consola de «target not found»
+  const poner = (objetivos, vars) => { const lista = todos(objetivos); if (lista.length) gsap.set(lista, vars); };
+  const animar = (objetivos, vars) => { const lista = todos(objetivos); if (lista.length) gsap.to(lista, vars); };
 
   // ── Scroll suave, sincronizado con ScrollTrigger ──
   let lenis = null;
@@ -39,20 +42,20 @@
   const grupos = todos('[data-anima-grupo]');
   const revelar = todos('[data-anima="revelar"]');
   const titulos = todos('[data-dividir]');
-  gsap.set(subir, { autoAlpha: 0, y: 36 });
-  grupos.forEach((grupo) => gsap.set(grupo.children, { autoAlpha: 0, y: 48 }));
-  gsap.set(revelar, { clipPath: 'inset(100% 0% 0% 0%)' });
-  gsap.set(titulos, { autoAlpha: 0 });
+  poner(subir, { autoAlpha: 0, y: 36 });
+  grupos.forEach((grupo) => poner(grupo.children, { autoAlpha: 0, y: 48 }));
+  poner(revelar, { clipPath: 'inset(100% 0% 0% 0%)' });
+  poner(titulos, { autoAlpha: 0 });
   mostrarTodo();
 
   // ── Apariciones al entrar en pantalla ──
-  ScrollTrigger.batch(subir, {
+  if (subir.length) ScrollTrigger.batch(subir, {
     start: 'top 90%',
     once: true,
     onEnter: (elementos) =>
       gsap.to(elementos, { autoAlpha: 1, y: 0, duration: 0.9, ease: 'power3.out', stagger: 0.08, overwrite: true }),
   });
-  grupos.forEach((grupo) =>
+  grupos.filter((grupo) => grupo.children.length).forEach((grupo) =>
     ScrollTrigger.create({
       trigger: grupo,
       start: 'top 88%',
@@ -103,9 +106,9 @@
 
   // ── Fondo vivo: las hojas giran y derivan con el scroll; las manchas respiran solas ──
   const recorrido = { trigger: document.body, start: 'top top', end: 'bottom bottom', scrub: 1.5 };
-  gsap.to('.fondo-hoja-1', { y: '-55vh', rotation: 40, ease: 'none', scrollTrigger: recorrido });
-  gsap.to('.fondo-hoja-2', { y: '70vh', x: '-18vw', rotation: -70, ease: 'none', scrollTrigger: { ...recorrido } });
-  gsap.to('.fondo-hoja-3', { y: '-40vh', rotation: 110, ease: 'none', scrollTrigger: { ...recorrido } });
+  animar('.fondo-hoja-1', { y: '-55vh', rotation: 40, ease: 'none', scrollTrigger: recorrido });
+  animar('.fondo-hoja-2', { y: '70vh', x: '-18vw', rotation: -70, ease: 'none', scrollTrigger: { ...recorrido } });
+  animar('.fondo-hoja-3', { y: '-40vh', rotation: 110, ease: 'none', scrollTrigger: { ...recorrido } });
   todos('.fondo-mancha').forEach((mancha, i) =>
     gsap.to(mancha, {
       x: gsap.utils.random(-80, 80),
@@ -119,7 +122,7 @@
   );
 
   // ── Detalles ──
-  gsap.to('[data-flotar]', { y: -10, rotation: 2.5, duration: 3.2, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+  animar('[data-flotar]', { y: -10, rotation: 2.5, duration: 3.2, ease: 'sine.inOut', yoyo: true, repeat: -1 });
   todos('[data-giro]').forEach((estrella) =>
     gsap.to(estrella, {
       rotation: 140 * (Number(estrella.dataset.giro) || 1),
@@ -177,7 +180,7 @@
   const cifras = todos('[data-error-numero] span');
   if (cifras.length) {
     gsap.from(cifras, { yPercent: -130, rotation: () => gsap.utils.random(-30, 30), autoAlpha: 0, duration: 1.3, ease: 'bounce.out', stagger: 0.12 });
-    gsap.to('.error-hoja', { rotation: 14, y: -12, duration: 2.6, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+    animar('.error-hoja', { rotation: 14, y: -12, duration: 2.6, ease: 'sine.inOut', yoyo: true, repeat: -1 });
   }
 
   // Las fotos cambian la altura de la página al cargar: recalcular posiciones
