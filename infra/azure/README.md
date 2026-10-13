@@ -22,7 +22,7 @@ az deployment group create `
 La plantilla es la que genera el portal y solo cubre el plan y la Web App. Para automatizar todo el entorno faltaría añadir:
 
 - **Configuración de la Web App** que se hace después a mano: identidad administrada asignada por el sistema, TLS mínimo 1.2 y las variables `ASPNETCORE_ENVIRONMENT=Production` y `TZ=Europe/Madrid` (en `siteConfig.appSettings`).
-- **Azure SQL**: servidor `sql-lucia-peluqueria` con autenticación solo de Microsoft Entra, base `DB-Pruebas` (oferta gratuita) y la de producción `PeluqueriaLucia` (Basic 5 DTU), intercalación `Modern_Spanish_CI_AS`, reglas de firewall.
+- **Azure SQL**: servidor `sql-lucia-peluqueria` con autenticación solo de Microsoft Entra, base de producción `PeluqueriaLuciaProd` (Basic 5 DTU; la oferta gratuita no está disponible en Spain Central), intercalación `Modern_Spanish_CI_AS`, reglas de firewall.
 - **Key Vault** `kv-lucia-peluqueria` con permisos por roles, la clave `proteccion-datos` y las asignaciones de rol para la identidad de la Web App.
 - **Dominio y certificado** de Cloudflare (`luciapeluqueriaecologica.com`).
 
