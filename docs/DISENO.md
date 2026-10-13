@@ -59,3 +59,16 @@ La web pública se mueve con [GSAP](https://gsap.com) (ScrollTrigger y SplitText
 - Con «reducir movimiento» del sistema, o si una librería no carga, no se anima nada y todo el contenido se ve desde el principio. Un script del `<head>` oculta lo animable solo mientras se prepara la página, con un máximo de 3 segundos.
 - Movimientos lentos y suaves (`power3`, `expo`), como el resto de la marca. Nada de rebotes salvo en la página de error.
 - Al añadir una página pública: usa los mismos atributos y revisa que se lea bien con el movimiento reducido.
+
+## Favicon e iconos
+
+La cabeza del logo, en crema sobre el azul noche del logo (`#081c26`), con esquinas suaves. El texto «LUCÍA» no se incluye porque no se lee a 16 px. Se generan a partir de `wwwroot/Img/Icono_bn.png`:
+
+| Fichero | Uso |
+|---|---|
+| `favicon.ico` (16, 32 y 48 px) | Pestañas, Bing y Google (exige 48 px o múltiplo) |
+| `iconos/favicon-96.png`, `iconos/icono-192.png` | Pestañas de alta densidad y resultados de búsqueda |
+| `iconos/apple-touch-icon.png` (180 px, opaco) | Acceso directo en iPhone y iPad |
+| `iconos/icono-512.png`, `iconos/icono-mascara-512.png` | `site.webmanifest`, Android y `og:image` |
+
+Los enlaza el partial `Views/Shared/_Iconos.cshtml` en la web pública y en el panel. La portada declara además el logo y la foto de la fachada en los datos estructurados (`HairSalon`) para Google.

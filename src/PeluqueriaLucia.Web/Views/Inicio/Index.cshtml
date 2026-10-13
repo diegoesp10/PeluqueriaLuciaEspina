@@ -52,6 +52,8 @@
     {
         ["@context"] = "https://schema.org", ["@type"] = "HairSalon", ["name"] = Model.Nombre, ["telephone"] = "+34 " + Model.Telefono,
         ["url"] = Context.Request.Scheme + "://" + Context.Request.Host + Url.Content("~/"),
+        ["logo"] = Context.Request.Scheme + "://" + Context.Request.Host + Idioma.SinIdioma(Context, "/iconos/icono-512.png"),
+        ["image"] = Context.Request.Scheme + "://" + Context.Request.Host + Idioma.SinIdioma(Context, "/publico/fachada-lucia.png"),
         ["address"] = new Dictionary<string, string> { ["@type"] = "PostalAddress", ["streetAddress"] = Model.Direccion, ["postalCode"] = Model.CodigoPostal, ["addressLocality"] = Model.Ciudad, ["addressCountry"] = "ES" },
     })</script>
 }

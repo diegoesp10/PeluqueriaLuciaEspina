@@ -51,7 +51,7 @@ public static class CanalDePeticionesExtensions
         // Los recursos públicos funcionan también al ejecutar la publicación bajo Development.
         // No servir por este canal las fotos internas /imagenes: pasan por su controlador protegido.
         app.UseWhen(c => c.Request.Path.StartsWithSegments("/css") || c.Request.Path.StartsWithSegments("/js") ||
-            c.Request.Path.StartsWithSegments("/Img") || c.Request.Path.StartsWithSegments("/lib") || c.Request.Path.StartsWithSegments("/publico") || c.Request.Path == "/favicon.ico",
+            c.Request.Path.StartsWithSegments("/Img") || c.Request.Path.StartsWithSegments("/lib") || c.Request.Path.StartsWithSegments("/iconos") || c.Request.Path == "/site.webmanifest" || c.Request.Path.StartsWithSegments("/publico") || c.Request.Path == "/favicon.ico",
             recursos => recursos.UseStaticFiles());
 
         app.UseRouting();

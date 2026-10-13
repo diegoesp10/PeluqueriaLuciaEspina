@@ -42,7 +42,8 @@
     <meta property="og:title" content="@ViewData["Title"] · @n.Nombre" />
     <meta property="og:description" content="@descripcion" />
     <meta property="og:locale" content="@(idioma == Idioma.Ingles ? "en_GB" : "es_ES")" />
-    <link rel="icon" href="~/favicon.ico" />
+    <meta property="og:image" content="@(absoluta + Idioma.SinIdioma(Context, "/iconos/icono-512.png"))" />
+    <partial name="_Iconos" />
     <link rel="stylesheet" href="~/lib/lenis/lenis.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/tokens.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/base.css" asp-append-version="true" />

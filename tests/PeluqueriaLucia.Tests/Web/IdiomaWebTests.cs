@@ -98,6 +98,25 @@ public sealed class IdiomaWebTests
     }
 
     [Fact]
+    public async Task Favicon_iconos_y_manifiesto_se_enlazan_y_se_sirven()
+    {
+        await using var bd = await BaseDeDatosPrueba.CrearAsync(); await using var fabrica = new FabricaWeb(bd.Cadena); using var cliente = fabrica.Cliente();
+        foreach (var pagina in new[] { "/", "/en/servicios" })
+        {
+            var html = await cliente.GetStringAsync(pagina);
+            Assert.Contains("rel=\"icon\" href=\"", html); Assert.Contains("rel=\"apple-touch-icon\"", html); Assert.Contains("rel=\"manifest\"", html);
+            Assert.Contains("og:image\" content=\"https://localhost/iconos/icono-512.png\"", html);
+        }
+        foreach (var (ruta, tipo) in new[] { ("/favicon.ico", "image/x-icon"), ("/iconos/favicon-96.png", "image/png"), ("/iconos/icono-192.png", "image/png"),
+            ("/iconos/icono-512.png", "image/png"), ("/iconos/icono-mascara-512.png", "image/png"), ("/iconos/apple-touch-icon.png", "image/png"), ("/site.webmanifest", "application/manifest+json") })
+        {
+            var respuesta = await cliente.GetAsync(ruta);
+            Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+            Assert.Equal(tipo, respuesta.Content.Headers.ContentType!.MediaType);
+        }
+    }
+
+    [Fact]
     public async Task Las_librerias_de_movimiento_se_sirven_desde_el_propio_sitio()
     {
         await using var bd = await BaseDeDatosPrueba.CrearAsync(); await using var fabrica = new FabricaWeb(bd.Cadena); using var cliente = fabrica.Cliente();
