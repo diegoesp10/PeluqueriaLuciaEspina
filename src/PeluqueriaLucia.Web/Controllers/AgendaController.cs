@@ -65,5 +65,12 @@ public sealed class AgendaController(IAgendaService agenda, IComunicacionesCitas
         return r.Exito ? Json(r.Valor) : BadRequest(new { mensaje=textos[r.Error!.Mensaje] });
     }
     private DateOnly Limitar(DateOnly? dia) => dia is null || dia < agenda.Hoy || dia > agenda.Hoy.AddDays(90) ? agenda.Hoy : dia.Value;
-    private async Task<ReservaPagina> PaginaAsync(ReservaFormulario f, CancellationToken ct) => new(f, await agenda.ServiciosAsync(ct), await agenda.DisponibilidadAsync(Limitar(f.Dia), f.ServicioId, ct), agenda.Hoy);
+    private async Task<ReservaPagina> PaginaAsync(ReservaFormulario f, CancellationToken ct) => new(f, await ServiciosEnIdiomaAsync(ct), await agenda.DisponibilidadAsync(Limitar(f.Dia), f.ServicioId, ct), agenda.Hoy);
+
+    /// <summary>Servicios con el nombre en el idioma de la página (en inglés si está traducido; si no, el español).</summary>
+    private async Task<IReadOnlyList<ServicioAgenda>> ServiciosEnIdiomaAsync(CancellationToken ct)
+    {
+        var ingles = Idioma.EsIngles(HttpContext);
+        return (await agenda.ServiciosAsync(ct)).Select(s => s with { Nombre = s.NombreEnIdioma(ingles) }).ToList();
+    }
 }

@@ -5,8 +5,9 @@ using PeluqueriaLucia.Domain.Comun;
 
 namespace PeluqueriaLucia.Application.Catalogo;
 
-public sealed record DatosPublicacion(int? CategoriaId, string? Descripcion, Domain.Publico.TipoPrecioPublico TipoPrecio, int DuracionMinutos, int Orden, bool Publicado, bool Destacado);
-public sealed record DatosServicio(string Nombre, decimal Precio, Sexo Sexo, DatosPublicacion? Publicacion = null);
+public sealed record DatosPublicacion(int? CategoriaId, string? Descripcion, Domain.Publico.TipoPrecioPublico TipoPrecio, int DuracionMinutos, int Orden, bool Publicado, bool Destacado, string? DescripcionEn = null);
+/// <summary>El nombre en inglés es obligatorio al crear; en los servicios anteriores al inglés puede faltar y la web muestra el español.</summary>
+public sealed record DatosServicio(string Nombre, decimal Precio, Sexo Sexo, DatosPublicacion? Publicacion = null, string? NombreEn = null);
 
 /// <summary>Qué se hizo al pedir eliminar un servicio.</summary>
 public enum Eliminacion
@@ -43,9 +44,15 @@ public sealed class CatalogoService(
             if (ValidarImagen(imagen) is { } error)
                 return error;
             if (await ValidarPublicacionAsync(datos.Publicacion, ct) is { } errorWeb) return errorWeb;
+            // Lo nuevo nace en los dos idiomas; solo lo anterior al inglés puede quedarse sin traducción
+            if (string.IsNullOrWhiteSpace(datos.NombreEn))
+                return new Error("Escribe también el nombre en inglés.", "NombreEn");
+            if (datos.Publicacion is { Descripcion.Length: > 0 } web && string.IsNullOrWhiteSpace(web.DescripcionEn))
+                return new Error("Escribe también la descripción en inglés.", "DescripcionPublicaEn");
 
-            var servicio = Servicio.Crear(datos.Nombre, datos.Precio, datos.Sexo, reloj.GetLocalNow().DateTime);
+            var servicio = Servicio.Crear(datos.Nombre, datos.Precio, datos.Sexo, reloj.GetLocalNow().DateTime, datos.NombreEn);
             await ConfigurarWebAsync(servicio, datos.Publicacion, ct);
+            servicio.Traducir(datos.NombreEn, datos.Publicacion?.DescripcionEn);
             var nuevaRuta = imagen is null ? null : await GuardarImagenAsync(imagen, ct);
             servicio.CambiarImagen(nuevaRuta);
             servicios.Agregar(servicio);
@@ -66,6 +73,8 @@ public sealed class CatalogoService(
 
             servicio.Actualizar(datos.Nombre, datos.Precio, datos.Sexo);
             await ConfigurarWebAsync(servicio, datos.Publicacion, ct);
+            // Al editar, el inglés es opcional: los servicios anteriores al inglés se traducen cuando se pueda
+            servicio.Traducir(datos.NombreEn, datos.Publicacion is null ? servicio.DescripcionPublicaEn : datos.Publicacion.DescripcionEn);
 
             var anterior = servicio.ImagenRuta;
             string? nuevaRuta = null;

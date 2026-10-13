@@ -94,7 +94,7 @@ La rama agenda incorpora reservas públicas en /citas y su gestión en /admin/ag
 
 ## Web pública: idiomas, movimiento y páginas legales
 
-La web pública está en español y en inglés (`/en/…`); el panel, solo en español. El contrato `language` que envían formularios y llamadas, y lo pendiente en el backend, está en [docs/IDIOMA.md](docs/IDIOMA.md). El movimiento (scroll suave con Lenis y animaciones con GSAP, servidos desde `wwwroot/lib`) se describe en [docs/DISENO.md](docs/DISENO.md). La política de privacidad (`/privacidad`) y los términos (`/terminos`) toman el titular, el NIF y el correo de `contenido-publico.json`: rellena `Titular`, `Nif` y `Correo` antes de publicar la web.
+La web pública está en español y en inglés (`/en/…`); el panel, solo en español. Lo que el salón escribe para la web (servicios, categorías y respuestas a reseñas) se guarda en los dos idiomas: obligatorio al crear, opcional en lo anterior al inglés, que se muestra en español hasta traducirlo. El contrato `language` que envían formularios y llamadas, y las reglas del contenido bilingüe, están en [docs/IDIOMA.md](docs/IDIOMA.md). El movimiento (scroll suave con Lenis y animaciones con GSAP, servidos desde `wwwroot/lib`) se describe en [docs/DISENO.md](docs/DISENO.md). La política de privacidad (`/privacidad`) y los términos (`/terminos`) toman el titular, el NIF y el correo de `contenido-publico.json`: rellena `Titular`, `Nif` y `Correo` antes de publicar la web.
 
 ## Publicación en Azure
 

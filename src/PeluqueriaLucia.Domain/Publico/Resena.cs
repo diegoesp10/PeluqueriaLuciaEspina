@@ -29,6 +29,9 @@ public sealed class Resena
     public DateTime CreadaEn { get; private set; }
     public EstadoResena Estado { get; private set; }
     public string? Respuesta { get; private set; }
+    /// <summary>Respuesta del salón en inglés. null en las respuestas anteriores al inglés: se muestra la española.</summary>
+    public string? RespuestaEn { get; private set; }
+    public string? RespuestaEnIdioma(bool ingles) => ingles && RespuestaEn is { Length: > 0 } ? RespuestaEn : Respuesta;
     public static Resena Crear(Guid permiso, string alias, string comentario, int estrellas, string? foto, DateTime ahora)
     {
         if (alias.Trim().Length is < 2 or > 50 || comentario.Trim().Length is < 10 or > 1500 || estrellas is < 1 or > 5)
@@ -36,9 +39,10 @@ public sealed class Resena
         return new() { Id = Guid.NewGuid(), PermisoId = permiso, Alias = alias.Trim(), Comentario = comentario.Trim(),
             Estrellas = estrellas, Foto = foto, CreadaEn = ahora, Estado = EstadoResena.Pendiente };
     }
-    public void Moderar(EstadoResena estado, string? respuesta)
+    public void Moderar(EstadoResena estado, string? respuesta, string? respuestaEn = null)
     {
-        if (!Enum.IsDefined(estado) || respuesta?.Length > 1500) throw new ReglaDeNegocioException("Revisa la respuesta y el estado.");
+        if (!Enum.IsDefined(estado) || respuesta?.Length > 1500 || respuestaEn?.Length > 1500) throw new ReglaDeNegocioException("Revisa la respuesta y el estado.");
         Estado = estado; Respuesta = string.IsNullOrWhiteSpace(respuesta) ? null : respuesta.Trim();
+        RespuestaEn = Respuesta is null || string.IsNullOrWhiteSpace(respuestaEn) ? null : respuestaEn.Trim();
     }
 }

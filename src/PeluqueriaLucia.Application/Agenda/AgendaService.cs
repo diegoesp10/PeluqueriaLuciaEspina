@@ -17,7 +17,7 @@ public sealed class AgendaService(IRepositorioAgenda datos, IProtectorSecretos s
     public DateOnly Hoy => DateOnly.FromDateTime(Ahora);
     public async Task<IReadOnlyList<ServicioAgenda>> ServiciosAsync(CancellationToken ct) =>
         (await datos.ListarAsync<Servicio>(x => x.Activo && x.Publicado, ct)).OrderBy(x => x.Nombre)
-            .Select(x => new ServicioAgenda(x.Id, x.Nombre, x.DuracionMinutos)).ToList();
+            .Select(x => new ServicioAgenda(x.Id, x.Nombre, x.DuracionMinutos, x.NombreEn)).ToList();
     private async Task<int> DuracionAsync(int? id, CancellationToken ct) => id is null ? 30 :
         (await datos.BuscarAsync<Servicio>(x => x.Id == id && x.Activo && x.Publicado, ct))?.DuracionMinutos ?? 0;
     private Task<List<ReservaCita>> OcupadasAsync(DateTime inicio, DateTime fin, CancellationToken ct) =>
@@ -166,7 +166,7 @@ public sealed class AgendaService(IRepositorioAgenda datos, IProtectorSecretos s
 
     public async Task<IReadOnlyList<ServicioAgenda>> ServiciosPanelAsync(CancellationToken ct) =>
         (await datos.ListarAsync<Servicio>(x => x.Activo, ct)).OrderBy(x => x.Nombre)
-            .Select(x => new ServicioAgenda(x.Id, x.Nombre, x.DuracionMinutos)).ToList();
+            .Select(x => new ServicioAgenda(x.Id, x.Nombre, x.DuracionMinutos, x.NombreEn)).ToList();
 
     public Task<Resultado<Guid>> CrearCitaAsync(CitaManual d, CancellationToken ct) => datos.ExclusivoAsync<Resultado<Guid>>(async () =>
     {

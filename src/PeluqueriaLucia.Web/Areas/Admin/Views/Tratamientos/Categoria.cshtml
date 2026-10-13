@@ -11,6 +11,12 @@
                 <input class="input" name="Nombre" id="Nombre" value="@Model.Formulario.Nombre" required maxlength="80" />
                 <p class="field-hint">@(Model.Id is null ? "La categoría nueva aparecerá la última en la web." : "Para cambiar su posición en la web, usa las flechas de la lista de categorías.")</p>
             </div>
+            <div class="field">
+                <label for="NombreEn">Nombre en inglés</label>
+                <input class="input" name="NombreEn" id="NombreEn" value="@Model.Formulario.NombreEn" maxlength="80" lang="en" required="@(Model.Id is null)" />
+                <p class="field-hint">@(Model.Id is null ? "La web en inglés muestra este nombre." : "Si se deja vacío, la web en inglés muestra el nombre en español.")</p>
+                @Html.ValidationMessage("NombreEn")
+            </div>
         </div>
         <div class="acciones acciones-form">
             <button class="btn btn-primary" type="submit">Guardar categoría</button>

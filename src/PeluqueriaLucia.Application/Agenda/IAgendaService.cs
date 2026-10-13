@@ -3,7 +3,11 @@ using PeluqueriaLucia.Domain.Agenda;
 
 namespace PeluqueriaLucia.Application.Agenda;
 
-public sealed record ServicioAgenda(int Id, string Nombre, int Minutos);
+public sealed record ServicioAgenda(int Id, string Nombre, int Minutos, string? NombreEn = null)
+{
+    /// <summary>Nombre que ve el visitante: en inglés si hay traducción; si no, el español.</summary>
+    public string NombreEnIdioma(bool ingles) => ingles && NombreEn is { Length: > 0 } ? NombreEn : Nombre;
+}
 public sealed record DisponibilidadAgenda(DateOnly Dia, int Minutos, IReadOnlyList<TimeOnly> Horas, IReadOnlyList<TimeOnly>? Ocupadas = null);
 public sealed record SolicitarCita(Guid SolicitudId, DateOnly Dia, TimeOnly Hora, string Telefono, string? Nombre, int? ServicioId, string Ip, string Correo, CanalConfirmacion Canal, string? Apellido = null, PeluqueriaLucia.Domain.Comun.Sexo? Sexo = null);
 /// <param name="ConfirmarDirecto">La cita ya se ha acordado por teléfono: se confirma sin esperar al enlace de aceptación.</param>

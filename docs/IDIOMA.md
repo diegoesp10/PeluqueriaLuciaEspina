@@ -54,7 +54,23 @@ Todas las llamadas públicas llevan el idioma de tres formas redundantes, para q
 
 1. **Leer `language`** (formulario o consulta, si no la cultura de la ruta) en todos los endpoints públicos y devolver los mensajes en ese idioma. Mejor aún: devolver un **código de error estable** (`Error.Codigo`, p. ej. `agenda.hora-ocupada`) además del mensaje, para que el frontal no dependa del texto exacto.
 2. **Guardar el idioma de la reserva** (`ReservasCitas.Idioma`, migración aditiva, `es` por defecto) y usarlo en los correos y mensajes de WhatsApp. El enlace de confirmación debe apuntar a `/en/citas/confirmar/{token}` cuando la reserva se hizo en inglés.
-3. **Nombres y descripciones del catálogo en inglés** (`NombreEn`, `DescripcionEn` o una tabla de traducciones) y devolverlos en `/api/tratamientos` y en la carta de `/servicios` según `language`. Hoy se muestran en español en la web inglesa; las categorías conocidas se traducen en el frontal.
+3. ~~Nombres y descripciones del catálogo en inglés.~~ **Hecho** (migración `TextosEnIngles`): ver «Contenido en dos idiomas».
+
+## Contenido en dos idiomas
+
+Todo lo que el salón escribe para la web se guarda en español e inglés, en columnas opcionales de la misma tabla:
+
+| Dónde se edita | Español | Inglés | Se ve en |
+|---|---|---|---|
+| Catálogo → servicio | `Nombre`, `DescripcionPublica` | `NombreEn`, `DescripcionPublicaEn` | `/servicios`, `/api/tratamientos`, selector de `/citas` |
+| Servicios de la web → categoría | `Nombre` | `NombreEn` | `/servicios` |
+| Reseñas → respuesta del salón | `Respuesta` | `RespuestaEn` | `/opiniones` |
+
+Reglas:
+
+- **Registro nuevo:** el inglés es obligatorio (nombre del servicio, nombre de la categoría, respuesta nueva a una reseña, y descripción en inglés si se escribe la española). Lo comprueban `CatalogoService.CrearAsync`, `ContenidoService.GuardarCategoriaAsync` y `ResenasService.ModerarAsync`, y los formularios del panel lo marcan como requerido.
+- **Registro anterior al inglés:** se puede editar sin traducir. La web inglesa muestra el español hasta que se rellene el campo en inglés (`NombreEnIdioma`, `DescripcionEnIdioma`, `RespuestaEnIdioma`). Para las categorías sin traducción se usa, antes del español, la traducción fija de `textos.en.json` si existe.
+- Los textos del ticket, las visitas y los mensajes a clientes siguen en español: son internos o van al cliente del salón.
 4. **`/api/tratamientos`**: devolver el precio como número más su tipo (`fijo`, `desde`, `consultar`) en lugar de una cadena formateada.
 5. **`/citas/contacto/verificar`**: devolver `sexo` como texto (`"Mujer"`) en lugar de número; el frontal depende hoy del orden del enum.
 6. **Foto de las opiniones:** `ResenasService` construye la URL `/opiniones/foto/{id}` en Application; mejor devolver solo el identificador y que la web construya la URL (ya la ajusta con `Url.Content` para respetar el directorio virtual de IIS).

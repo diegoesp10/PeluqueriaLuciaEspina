@@ -29,7 +29,9 @@ internal sealed class ServicioConfiguracion : IEntityTypeConfiguration<Servicio>
         builder.ToTable("ServiciosGenericos");
         builder.Property(s => s.Nombre).IsRequired().HasMaxLength(Servicio.LongitudNombre);
         builder.Property(s => s.Precio).HasColumnType("decimal(18,2)");
-          builder.Property(s => s.DescripcionPublica).HasMaxLength(1000);
+          builder.Property(s => s.DescripcionPublica).HasMaxLength(Servicio.LongitudDescripcion);
+          builder.Property(s => s.NombreEn).HasMaxLength(Servicio.LongitudNombre);
+          builder.Property(s => s.DescripcionPublicaEn).HasMaxLength(Servicio.LongitudDescripcion);
           builder.HasOne<PeluqueriaLucia.Domain.Publico.CategoriaTratamiento>().WithMany().HasForeignKey(s => s.CategoriaPublicaId).OnDelete(DeleteBehavior.Restrict);
 
         // La migración que añade la columna rellena las filas existentes con 1 (activo)

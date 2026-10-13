@@ -9,7 +9,7 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia;
 
 internal sealed class CategoriaTratamientoConfiguracion : IEntityTypeConfiguration<CategoriaTratamiento>
 {
-    public void Configure(EntityTypeBuilder<CategoriaTratamiento> b) { b.ToTable("CategoriasPublicas"); b.Property(x => x.Nombre).HasMaxLength(80); b.Property(x => x.Slug).HasMaxLength(80).IsUnicode(false); b.HasIndex(x => x.Slug).IsUnique(); }
+    public void Configure(EntityTypeBuilder<CategoriaTratamiento> b) { b.ToTable("CategoriasPublicas"); b.Property(x => x.Nombre).HasMaxLength(CategoriaTratamiento.LongitudNombre); b.Property(x => x.NombreEn).HasMaxLength(CategoriaTratamiento.LongitudNombre); b.Property(x => x.Slug).HasMaxLength(80).IsUnicode(false); b.HasIndex(x => x.Slug).IsUnique(); }
 }
 internal sealed class PermisoResenaConfiguracion : IEntityTypeConfiguration<PermisoResena>
 {
@@ -17,7 +17,7 @@ internal sealed class PermisoResenaConfiguracion : IEntityTypeConfiguration<Perm
 }
 internal sealed class ResenaConfiguracion : IEntityTypeConfiguration<Resena>
 {
-    public void Configure(EntityTypeBuilder<Resena> b) { b.ToTable("Resenas"); b.Property(x => x.Id).ValueGeneratedNever(); b.Property(x => x.Alias).HasMaxLength(50); b.Property(x => x.Comentario).HasMaxLength(1500); b.Property(x => x.Respuesta).HasMaxLength(1500); b.Property(x => x.Foto).HasMaxLength(40).IsUnicode(false); b.HasIndex(x => x.PermisoId).IsUnique(); b.HasIndex(x => new { x.Estado, x.CreadaEn }); b.HasOne<PermisoResena>().WithMany().HasForeignKey(x => x.PermisoId).OnDelete(DeleteBehavior.Restrict); b.Property<byte[]>("Version").IsRowVersion(); }
+    public void Configure(EntityTypeBuilder<Resena> b) { b.ToTable("Resenas"); b.Property(x => x.Id).ValueGeneratedNever(); b.Property(x => x.Alias).HasMaxLength(50); b.Property(x => x.Comentario).HasMaxLength(1500); b.Property(x => x.Respuesta).HasMaxLength(1500); b.Property(x => x.RespuestaEn).HasMaxLength(1500); b.Property(x => x.Foto).HasMaxLength(40).IsUnicode(false); b.HasIndex(x => x.PermisoId).IsUnique(); b.HasIndex(x => new { x.Estado, x.CreadaEn }); b.HasOne<PermisoResena>().WithMany().HasForeignKey(x => x.PermisoId).OnDelete(DeleteBehavior.Restrict); b.Property<byte[]>("Version").IsRowVersion(); }
 }
 internal sealed class ContenidoRepositorio(PeluqueriaDbContext db) : IContenidoRepositorio
 {
