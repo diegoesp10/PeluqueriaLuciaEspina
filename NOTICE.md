@@ -26,7 +26,7 @@ Las [Human Interface Guidelines](https://developer.apple.com/design/human-interf
 | [GSAP](https://gsap.com) 3.15.0 con ScrollTrigger y SplitText (animaciones de la web pública, `wwwroot/lib/gsap`) | [Standard «no charge» license](https://gsap.com/standard-license) de GreenSock; el aviso de copyright va en la cabecera de cada fichero |
 | [Lenis](https://github.com/darkroomengineering/lenis) 1.3.26 (scroll suave, `wwwroot/lib/lenis`) | MIT, texto en `wwwroot/lib/lenis/LICENSE` |
 
-La foto pública del salón procede de la [ficha de Lucía en Booksy](https://booksy.com/es-es/173411_lucia-peluqueria-ecologica_peluqueria_79758_oviedo), aportada como referencia por el propietario del proyecto. Se guarda localmente en `wwwroot/publico/salon.jpg`. El logo ya formaba parte del proyecto. Booksy conserva los derechos sobre su plataforma; la aplicación enlaza allí para las reservas.
+La foto de la fachada (`wwwroot/publico/fachada-lucia.png`) y el logo pertenecen al salón.
 
 ### Licencia ISC de Lucide
 

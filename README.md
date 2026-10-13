@@ -4,7 +4,7 @@ Aplicación de gestión interna de la Peluquería Ecológica Lucía Espina: visi
 
 Web pública del salón y gestión privada con contraseña y Authenticator obligatorio. Corre con ASP.NET Core 10 y SQL Server, en el ordenador de la peluquería o en su servidor IIS.
 
-- `/`: presentación del salón, logo, foto real, contacto y reservas en Booksy.
+- `/`: presentación del salón, logo, foto de la fachada, contacto y reserva de citas en la agenda propia.
 - `/servicios`: servicios y precios publicados, almacenados en SQL y editables desde administración.
 - `/opiniones`: reseñas con estrellas y fotos opcionales, verificadas mediante un código de ticket cobrado.
 - `/admin`: dashboard, visitas, clientes, catálogo, cobros y exportaciones. Requiere una sesión válida.

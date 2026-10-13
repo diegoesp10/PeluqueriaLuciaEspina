@@ -36,9 +36,6 @@ public sealed class ContenidoPublico
 
     public string InstagramUsuario { get; set; } = string.Empty;
 
-    /// <summary>Página de reservas online (Booksy).</summary>
-    public string Reservas { get; set; } = string.Empty;
-
     public string Mapa { get; set; } = string.Empty;
 
     public string Valoracion { get; set; } = string.Empty;

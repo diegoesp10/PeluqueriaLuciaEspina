@@ -71,7 +71,7 @@ En `/admin/agenda/horarios` se gestionan tramos y cierres. Revisar el horario in
 | POST `/admin/agenda/whatsapp-enviado` | Registro manual del envío, sin aceptar la cita |
 | POST `/admin/agenda/reintentar-correo` | Reintento explícito de un correo rechazado |
 
-Todos los botones públicos de reserva llevan a la agenda propia. Se conserva un único enlace a Booksy en el pie.
+Todos los botones públicos de reserva llevan a la agenda propia; la web no enlaza a plataformas de reservas externas.
 
 
 ## Fichas automáticas e inasistencias

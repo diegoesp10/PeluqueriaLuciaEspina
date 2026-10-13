@@ -278,7 +278,7 @@ public sealed class SeguridadWebTests(SeguridadWebFixture fixture) : IClassFixtu
     public async Task Publico_es_accesible_y_las_rutas_internas_exigen_sesion()
     {
         using var cliente = fixture.Fabrica.Cliente();
-        foreach (var ruta in new[] { "/", "/servicios", "/css/publico.css", "/publico/salon.jpg" })
+        foreach (var ruta in new[] { "/", "/servicios", "/css/publico.css", "/publico/fachada-lucia.png" })
             Assert.Equal(HttpStatusCode.OK, (await cliente.GetAsync(ruta)).StatusCode);
         foreach (var ruta in new[] { "/admin", "/admin/Clientes", "/admin/Clientes/Buscar?q=Ana", "/admin/Visitas/Exportar", "/admin/Visitas/Ticket/1", "/admin/Seguridad", "/admin/Seguridad/Contrasena", "/Clientes", "/imagenes/11470656-4775-424d-aa59-d4cd442c3268.jpg" })
         {

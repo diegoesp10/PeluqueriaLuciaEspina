@@ -98,7 +98,7 @@
     <footer class="pie-publico">
         <div class="firma-pie"><img src="~/Img/Icono.jpg" alt="" width="76" height="76" /><div><strong>Lucía</strong><p>@T["Peluquería ecológica"] · @n.Ciudad</p></div></div>
         <div><a href="@n.TelefonoEnlace">@n.Telefono</a><p>@n.Direccion · @n.CodigoPostal @n.Ciudad</p></div>
-        <div><a href="@n.Reservas" target="_blank" rel="noopener noreferrer">@T["Reservar en Booksy"] ↗</a><p><a href="@Idioma.SinIdioma(Context, "/admin")" hreflang="es">@T["Panel de administración"] ↗</a></p></div>
+        <div><a asp-area="" asp-controller="Agenda" asp-action="Index">@T["Reservar cita"] ↗</a><p><a href="@Idioma.SinIdioma(Context, "/admin")" hreflang="es">@T["Panel de administración"] ↗</a></p></div>
         <div class="pie-nota">
             <nav class="pie-legal" aria-label="@T["Información legal"]">
                 <a asp-area="" asp-controller="Legal" asp-action="Privacidad">@T["Política de privacidad"]</a>
