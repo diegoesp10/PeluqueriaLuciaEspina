@@ -378,6 +378,10 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
+                    b.Property<string>("DescripcionPublicaEn")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
                     b.Property<bool>("Destacado")
                         .HasColumnType("bit");
 
@@ -392,6 +396,10 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
 
                     b.Property<string>("Nombre")
                         .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("NombreEn")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
@@ -529,6 +537,10 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
                         .HasMaxLength(80)
                         .HasColumnType("nvarchar(80)");
 
+                    b.Property<string>("NombreEn")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
                     b.Property<int>("Orden")
                         .HasColumnType("int");
 
@@ -620,6 +632,10 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Respuesta")
+                        .HasMaxLength(1500)
+                        .HasColumnType("nvarchar(1500)");
+
+                    b.Property<string>("RespuestaEn")
                         .HasMaxLength(1500)
                         .HasColumnType("nvarchar(1500)");
 

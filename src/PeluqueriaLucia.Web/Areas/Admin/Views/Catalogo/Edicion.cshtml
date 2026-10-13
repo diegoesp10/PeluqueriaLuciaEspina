@@ -29,6 +29,14 @@
             </div>
 
             <div class="field">
+                <label for="NombreEn">Nombre en inglés</label>
+                <input class="input" id="NombreEn" name="NombreEn" value="@f.NombreEn" maxlength="100" autocomplete="off" lang="en" required="@nuevo"
+                       placeholder="For example, Cut and styling" />
+                <p class="field-hint">@(nuevo ? "La web en inglés muestra este nombre." : "Si se deja vacío, la web en inglés muestra el nombre en español.")</p>
+                @Html.ValidationMessage("NombreEn")
+            </div>
+
+            <div class="field">
                 <label for="Precio">Precio</label>
                 <div class="input-affix input-precio">
                     <input class="input num" id="Precio" name="Precio" inputmode="decimal" autocomplete="off" required
@@ -87,6 +95,7 @@
                 <p class="field-hint">El mismo nombre y precio se usan en el catálogo y en la web. Desmarcarlo conserva el servicio para visitas y cobros.</p>
                 <div class="field"><label for="CategoriaPublicaId">Categoría de la web</label><select class="input" id="CategoriaPublicaId" name="CategoriaPublicaId"><option value="">Solo catálogo interno</option>@foreach(var c in Model.Categorias ?? []) { <option value="@c.Id" selected="@(c.Id == f.CategoriaPublicaId)">@c.Nombre</option> }</select></div>
                 <div class="field"><label for="DescripcionPublica">Descripción pública</label><textarea class="input" id="DescripcionPublica" name="DescripcionPublica" maxlength="1000" rows="3">@f.DescripcionPublica</textarea></div>
+                <div class="field"><label for="DescripcionPublicaEn">Descripción pública en inglés</label><textarea class="input" id="DescripcionPublicaEn" name="DescripcionPublicaEn" maxlength="1000" rows="3" lang="en">@f.DescripcionPublicaEn</textarea><p class="field-hint">@(nuevo ? "Obligatoria si escribes la descripción en español." : "Si se deja vacía, la web en inglés muestra la descripción en español.")</p>@Html.ValidationMessage("DescripcionPublicaEn")</div>
                 <div class="field"><label for="TipoPrecioPublico">Precio en la web</label><select class="input" id="TipoPrecioPublico" name="TipoPrecioPublico"><option value="Fijo" selected="@(f.TipoPrecioPublico == PeluqueriaLucia.Domain.Publico.TipoPrecioPublico.Fijo)">Precio fijo</option><option value="Desde" selected="@(f.TipoPrecioPublico == PeluqueriaLucia.Domain.Publico.TipoPrecioPublico.Desde)">Desde</option><option value="Consultar" selected="@(f.TipoPrecioPublico == PeluqueriaLucia.Domain.Publico.TipoPrecioPublico.Consultar)">Consultar</option></select><p class="field-hint">Con «Consultar», puedes dejar el precio a cero y definirlo al registrar la visita.</p></div>
                 <div class="field"><label for="DuracionMinutos">Duración en minutos</label><input class="input" type="number" id="DuracionMinutos" name="DuracionMinutos" min="5" max="600" value="@f.DuracionMinutos" /><p class="field-hint">La posición en la web se cambia con las flechas en «Servicios de la web».</p></div>
                 <label class="check-opcion"><input type="checkbox" name="Destacado" value="true" checked="@f.Destacado" /> Destacar este servicio</label>

@@ -7,6 +7,7 @@ namespace PeluqueriaLucia.Domain.Catalogo;
 public sealed class Servicio
 {
     public const int LongitudNombre = 100;
+    public const int LongitudDescripcion = 1000;
     public const decimal PrecioMinimo = 0m;
     public const decimal PrecioMaximo = 9999.99m;
 
@@ -30,6 +31,12 @@ public sealed class Servicio
     public DateTime FechaCreacion { get; private set; }
     public int? CategoriaPublicaId { get; private set; }
     public string? DescripcionPublica { get; private set; }
+
+    /// <summary>Nombre en inglés para la web. null en los servicios anteriores al inglés: entonces se muestra el español.</summary>
+    public string? NombreEn { get; private set; }
+
+    public string? DescripcionPublicaEn { get; private set; }
+
     public TipoPrecioPublico TipoPrecioPublico { get; private set; }
     public int DuracionMinutos { get; private set; } = 30;
     public int OrdenPublico { get; private set; }
@@ -48,12 +55,31 @@ public sealed class Servicio
         TipoPrecioPublico = tipo; DuracionMinutos = minutos; OrdenPublico = orden; Publicado = publicado; Destacado = destacado;
     }
 
-    public static Servicio Crear(string nombre, decimal precio, Sexo sexo, DateTime ahora)
+    public static Servicio Crear(string nombre, decimal precio, Sexo sexo, DateTime ahora, string? nombreEn = null)
     {
         var servicio = new Servicio { FechaCreacion = ahora, Activo = true };
         servicio.Actualizar(nombre, precio, sexo);
+        servicio.Traducir(nombreEn, null);
         return servicio;
     }
+
+    /// <summary>Textos en inglés de la web. Vacíos, se mostrará el español.</summary>
+    public void Traducir(string? nombreEn, string? descripcionEn)
+    {
+        nombreEn = Texto.Opcional(nombreEn);
+        descripcionEn = Texto.Opcional(descripcionEn);
+        if (nombreEn?.Length > LongitudNombre)
+            throw new ReglaDeNegocioException($"El nombre en inglés no puede superar {LongitudNombre} caracteres.", nameof(NombreEn));
+        if (descripcionEn?.Length > LongitudDescripcion)
+            throw new ReglaDeNegocioException($"La descripción en inglés no puede superar {LongitudDescripcion} caracteres.", nameof(DescripcionPublicaEn));
+        NombreEn = nombreEn;
+        DescripcionPublicaEn = descripcionEn;
+    }
+
+    /// <summary>Nombre que ve el visitante: en inglés si hay traducción; si no, el español.</summary>
+    public string NombreEnIdioma(bool ingles) => ingles && NombreEn is { Length: > 0 } ? NombreEn : Nombre;
+
+    public string? DescripcionEnIdioma(bool ingles) => ingles && DescripcionPublicaEn is { Length: > 0 } ? DescripcionPublicaEn : DescripcionPublica;
 
     /// <summary>
     /// Cambia nombre, precio o público. Las visitas ya registradas conservan el nombre y el precio que tenían.

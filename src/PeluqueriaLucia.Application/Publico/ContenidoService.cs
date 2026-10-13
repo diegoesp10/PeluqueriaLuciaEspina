@@ -4,7 +4,7 @@ using PeluqueriaLucia.Domain.Publico;
 using PeluqueriaLucia.Domain.Comun;
 namespace PeluqueriaLucia.Application.Publico;
 
-public sealed record DatosTratamiento(int ServicioId, int CategoriaId, string? Descripcion, TipoPrecioPublico TipoPrecio, int DuracionMinutos, int Orden, bool Publicado, bool Destacado);
+public sealed record DatosTratamiento(int ServicioId, int CategoriaId, string? Descripcion, TipoPrecioPublico TipoPrecio, int DuracionMinutos, int Orden, bool Publicado, bool Destacado, string? DescripcionEn = null);
 public sealed class ContenidoService(IContenidoRepositorio repositorio, IServicioRepositorio servicios, IUnidadDeTrabajo unidad)
 {
     public Task<IReadOnlyList<CategoriaTratamiento>> CategoriasAsync(CancellationToken ct = default) => repositorio.CategoriasAsync(ct);
@@ -25,15 +25,19 @@ public sealed class ContenidoService(IContenidoRepositorio repositorio, IServici
         // Al publicarlo o cambiarlo de categoría entra al final; si no, conserva su posición
         var orden = servicio.CategoriaPublicaId == datos.CategoriaId ? servicio.OrdenPublico : await OrdenWeb.SiguienteAsync(servicios, datos.CategoriaId, ct);
         servicio.ConfigurarPublicacion(datos.CategoriaId, datos.Descripcion, datos.TipoPrecio, datos.DuracionMinutos, orden, datos.Publicado, datos.Destacado);
+        // El servicio ya existe en el catálogo: la descripción en inglés es opcional y, si falta, la web muestra la española
+        servicio.Traducir(servicio.NombreEn, datos.DescripcionEn);
         await unidad.GuardarCambiosAsync(ct);
     });
     /// <summary>Crea o renombra una categoría. Una categoría nueva aparece la última en la web.</summary>
-    public Task<Resultado> GuardarCategoriaAsync(int? id, string nombre, CancellationToken ct = default) => Resultado.ProtegerAsync(async () => {
+    public Task<Resultado> GuardarCategoriaAsync(int? id, string nombre, string? nombreEn = null, CancellationToken ct = default) => Resultado.ProtegerAsync(async () => {
         if (id is { } clave) {
-            var c = await repositorio.CategoriaAsync(clave, ct) ?? throw new ReglaDeNegocioException("La categoría no existe."); c.Editar(nombre, c.Orden);
+            // Las categorías anteriores al inglés se traducen cuando se pueda; mientras, la web muestra el español
+            var c = await repositorio.CategoriaAsync(clave, ct) ?? throw new ReglaDeNegocioException("La categoría no existe."); c.Editar(nombre, c.Orden); c.Traducir(nombreEn);
         } else {
+            if (string.IsNullOrWhiteSpace(nombreEn)) throw new ReglaDeNegocioException("Escribe también el nombre en inglés.", "NombreEn");
             var existentes = await repositorio.CategoriasAsync(ct);
-            var nueva = CategoriaTratamiento.Crear(nombre, existentes.Select(x => x.Orden).DefaultIfEmpty(0).Max() + 1);
+            var nueva = CategoriaTratamiento.Crear(nombre, existentes.Select(x => x.Orden).DefaultIfEmpty(0).Max() + 1, nombreEn);
             if (existentes.Any(x => x.Slug == nueva.Slug)) throw new ReglaDeNegocioException("Ya existe una categoría con ese nombre.");
             repositorio.Agregar(nueva);
         }

@@ -6,7 +6,11 @@ using PeluqueriaLucia.Domain.Publico;
 
 namespace PeluqueriaLucia.Application.Publico;
 
-public sealed record OpinionPublica(Guid Id, string Alias, string Comentario, int Estrellas, string? Foto, DateTime Fecha, string? Respuesta);
+public sealed record OpinionPublica(Guid Id, string Alias, string Comentario, int Estrellas, string? Foto, DateTime Fecha, string? Respuesta, string? RespuestaEn = null)
+{
+    /// <summary>Respuesta del salón que ve el visitante: en inglés si hay traducción; si no, la española.</summary>
+    public string? RespuestaEnIdioma(bool ingles) => ingles && RespuestaEn is { Length: > 0 } ? RespuestaEn : Respuesta;
+}
 public sealed record OpinionesPublicas(Pagina<OpinionPublica> Pagina, int Total, double Media);
 public sealed class ResenasService(IContenidoRepositorio repositorio, IVisitaRepositorio visitas, IProtectorSecretos secretos,
     IFotosResenas fotos, IUnidadDeTrabajo unidad, TimeProvider reloj)
@@ -59,14 +63,17 @@ public sealed class ResenasService(IContenidoRepositorio repositorio, IVisitaRep
         var seleccion = await repositorio.ResenasAsync(EstadoResena.Publicada, pagina, null, ct);
         var r = await repositorio.ValoracionAsync(ct);
         return new(new Pagina<OpinionPublica>(seleccion.Elementos.Select(x => new OpinionPublica(x.Id, x.Alias, x.Comentario, x.Estrellas,
-            x.Foto is null ? null : $"/opiniones/foto/{x.Id}", x.CreadaEn, x.Respuesta)).ToList(), seleccion.Numero, seleccion.Tamano, seleccion.TotalElementos), r.Total, r.Media);
+            x.Foto is null ? null : $"/opiniones/foto/{x.Id}", x.CreadaEn, x.Respuesta, x.RespuestaEn)).ToList(), seleccion.Numero, seleccion.Tamano, seleccion.TotalElementos), r.Total, r.Media);
     }
     public Task<Pagina<Resena>> AdministrarAsync(EstadoResena? estado, int pagina, string? texto = null, CancellationToken ct = default) => repositorio.ResenasAsync(estado, pagina, texto, ct);
     public Task<Resena?> ObtenerAsync(Guid id, CancellationToken ct = default) => repositorio.ResenaAsync(id, ct);
-    public async Task<Resultado> ModerarAsync(Guid id, EstadoResena estado, string? respuesta, CancellationToken ct = default)
+    public async Task<Resultado> ModerarAsync(Guid id, EstadoResena estado, string? respuesta, string? respuestaEn = null, CancellationToken ct = default)
     {
         var resena = await repositorio.ResenaAsync(id, ct);
         if (resena is null) return Error.NoEncontrado("La reseña");
-        return await Resultado.ProtegerAsync(async () => { resena.Moderar(estado, respuesta); await unidad.GuardarCambiosAsync(ct); });
+        // Una respuesta nueva nace en los dos idiomas; las anteriores al inglés pueden seguir solo en español
+        if (!string.IsNullOrWhiteSpace(respuesta) && resena.Respuesta is null && string.IsNullOrWhiteSpace(respuestaEn))
+            return new Error("Escribe también la respuesta en inglés.", "RespuestaEn");
+        return await Resultado.ProtegerAsync(async () => { resena.Moderar(estado, respuesta, respuestaEn); await unidad.GuardarCambiosAsync(ct); });
     }
 }

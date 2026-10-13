@@ -14,7 +14,7 @@ public sealed class ResenasController(ResenasService resenas, IFotosResenas foto
     [HttpPost] public async Task<IActionResult> Moderar(Guid id, ModeracionFormulario formulario, CancellationToken ct)
     {
         if (!ModelState.IsValid) { this.AvisarError("La respuesta no puede superar 1500 caracteres."); return RedirectToAction(nameof(Index)); }
-        try { var r = await resenas.ModerarAsync(id, formulario.Estado, formulario.Respuesta, ct); if (r.Exito) this.AvisarExito("Reseña actualizada."); else this.AvisarError(r.Error!.Mensaje); }
+        try { var r = await resenas.ModerarAsync(id, formulario.Estado, formulario.Respuesta, formulario.RespuestaEn, ct); if (r.Exito) this.AvisarExito("Reseña actualizada."); else this.AvisarError(r.Error!.Mensaje); }
         catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException) { this.AvisarError("La reseña ha cambiado en otra pestaña. Revisa su estado actual."); }
         return RedirectToAction(nameof(Index), new { estado = formulario.Estado });
     }

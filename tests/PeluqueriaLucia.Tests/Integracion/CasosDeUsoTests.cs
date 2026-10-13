@@ -62,8 +62,8 @@ public sealed class CasosDeUsoTests : IAsyncLifetime
     {
         var (clientes, catalogo, visitas, _) = Servicios();
         var ana = (await clientes.CrearAsync(new DatosCliente("Ana", "García", null, null, Sexo.Mujer))).Valor;
-        var corte = (await catalogo.CrearAsync(new DatosServicio("Corte", 18.50m, Sexo.Mujer), null)).Valor;
-        var tinte = (await catalogo.CrearAsync(new DatosServicio("Tinte", 35m, Sexo.Mujer), null)).Valor;
+        var corte = (await catalogo.CrearAsync(new DatosServicio("Corte", 18.50m, Sexo.Mujer, NombreEn: "Cut"), null)).Valor;
+        var tinte = (await catalogo.CrearAsync(new DatosServicio("Tinte", 35m, Sexo.Mujer, NombreEn: "Dye"), null)).Valor;
         var dia = new DateTime(2026, 10, 10, 10, 0, 0);
 
         var cobrada = (await visitas.RegistrarAsync(new NuevaVisita(ana, dia, FormaPago.Efectivo, [corte, tinte]))).Valor;
@@ -96,7 +96,7 @@ public sealed class CasosDeUsoTests : IAsyncLifetime
     {
         var (clientes, catalogo, visitas, _) = Servicios();
         var ana = (await clientes.CrearAsync(new DatosCliente("Ana", "García", null, null, Sexo.Mujer))).Valor;
-        var corte = (await catalogo.CrearAsync(new DatosServicio("Corte", 18.50m, Sexo.Mujer), null)).Valor;
+        var corte = (await catalogo.CrearAsync(new DatosServicio("Corte", 18.50m, Sexo.Mujer, NombreEn: "Cut"), null)).Valor;
         var visita = (await visitas.RegistrarAsync(new NuevaVisita(ana, DateTime.Today, FormaPago.Efectivo, [corte]))).Valor;
 
         await Servicios().Catalogo.ActualizarAsync(corte, new DatosServicio("Corte y peinado", 22m, Sexo.Mujer), null, false);
@@ -111,8 +111,8 @@ public sealed class CasosDeUsoTests : IAsyncLifetime
     {
         var (clientes, catalogo, visitas, _) = Servicios();
         var ana = (await clientes.CrearAsync(new DatosCliente("Ana", "García", null, null, Sexo.Mujer))).Valor;
-        var corte = (await catalogo.CrearAsync(new DatosServicio("Corte", 18.50m, Sexo.Mujer), null)).Valor;
-        var suelto = (await catalogo.CrearAsync(new DatosServicio("Sin usar", 5m, Sexo.Mujer), null)).Valor;
+        var corte = (await catalogo.CrearAsync(new DatosServicio("Corte", 18.50m, Sexo.Mujer, NombreEn: "Cut"), null)).Valor;
+        var suelto = (await catalogo.CrearAsync(new DatosServicio("Sin usar", 5m, Sexo.Mujer, NombreEn: "Unused"), null)).Valor;
         await visitas.RegistrarAsync(new NuevaVisita(ana, DateTime.Today, FormaPago.Efectivo, [corte]));
 
         Assert.Equal(Eliminacion.Archivado, (await Servicios().Catalogo.EliminarAsync(corte)).Valor);
@@ -128,7 +128,7 @@ public sealed class CasosDeUsoTests : IAsyncLifetime
     {
         var (clientes, catalogo, visitas, _) = Servicios();
         var ana = (await clientes.CrearAsync(new DatosCliente("Ana", "García", null, null, Sexo.Mujer))).Valor;
-        var corte = (await catalogo.CrearAsync(new DatosServicio("Corte", 18.50m, Sexo.Mujer), null)).Valor;
+        var corte = (await catalogo.CrearAsync(new DatosServicio("Corte", 18.50m, Sexo.Mujer, NombreEn: "Cut"), null)).Valor;
         await visitas.RegistrarAsync(new NuevaVisita(ana, DateTime.Today, FormaPago.Efectivo, [corte]));
 
         var resultado = await Servicios().Clientes.EliminarAsync(ana);
@@ -155,7 +155,7 @@ public sealed class CasosDeUsoTests : IAsyncLifetime
     {
         var (clientes, catalogo, visitas, _) = Servicios();
         var ana = (await clientes.CrearAsync(new DatosCliente("Ana", "García", null, null, Sexo.Mujer))).Valor;
-        var corte = (await catalogo.CrearAsync(new DatosServicio("Corte", 18.50m, Sexo.Mujer), null)).Valor;
+        var corte = (await catalogo.CrearAsync(new DatosServicio("Corte", 18.50m, Sexo.Mujer, NombreEn: "Cut"), null)).Valor;
         await visitas.RegistrarAsync(new NuevaVisita(ana, new DateTime(2026, 10, 10, 10, 0, 0), FormaPago.Efectivo, [corte]));
 
         var archivo = await Servicios().Visitas.ExportarAsync(FiltroVisitas.Mes(2026, 10));

@@ -82,7 +82,7 @@ public sealed class ContenidoWebTests(SeguridadWebFixture fixture) : IClassFixtu
     public async Task Publicar_un_servicio_interno_reutiliza_la_ficha_y_retirarlo_conserva_el_catalogo()
     {
         using var fabrica=new FabricaWeb(fixture.Bd.Cadena);using var admin=fabrica.Cliente();using var publico=fabrica.Cliente();await Entrar(admin);
-        var datos=new Dictionary<string,string> { ["Nombre"]="Extra solo interno",["Precio"]="9,50",["Sexo"]="Otro",["DuracionMinutos"]="30",["__RequestVerificationToken"]=await Token(admin,"/admin/Catalogo/Nuevo") };
+        var datos=new Dictionary<string,string> { ["Nombre"]="Extra solo interno",["NombreEn"]="Internal extra",["Precio"]="9,50",["Sexo"]="Otro",["DuracionMinutos"]="30",["__RequestVerificationToken"]=await Token(admin,"/admin/Catalogo/Nuevo") };
         Assert.Equal(HttpStatusCode.Redirect,(await admin.PostAsync("/admin/Catalogo/Nuevo",new FormUrlEncodedContent(datos))).StatusCode);
         await using var db=fixture.Bd.Contexto();var servicio=await db.Servicios.SingleAsync(x=>x.Nombre==datos["Nombre"]);var total=await db.Servicios.CountAsync();
         Assert.DoesNotContain(datos["Nombre"],await publico.GetStringAsync("/servicios"));
@@ -98,7 +98,7 @@ public sealed class ContenidoWebTests(SeguridadWebFixture fixture) : IClassFixtu
     public async Task Servicio_consultar_exige_importe_al_registrar_y_conserva_el_precio_de_la_visita()
     {
         using var fabrica=new FabricaWeb(fixture.Bd.Cadena);using var admin=fabrica.Cliente();await Entrar(admin);
-        var datos=new Dictionary<string,string> { ["Nombre"]="Peinado a medida prueba",["Precio"]="0",["Sexo"]="Mujer",["Publicado"]="true",["TipoPrecioPublico"]="Consultar",["CategoriaPublicaId"]="1",["DuracionMinutos"]="60",["__RequestVerificationToken"]=await Token(admin,"/admin/Catalogo/Nuevo") };
+        var datos=new Dictionary<string,string> { ["Nombre"]="Peinado a medida prueba",["NombreEn"]="Custom styling test",["Precio"]="0",["Sexo"]="Mujer",["Publicado"]="true",["TipoPrecioPublico"]="Consultar",["CategoriaPublicaId"]="1",["DuracionMinutos"]="60",["__RequestVerificationToken"]=await Token(admin,"/admin/Catalogo/Nuevo") };
         Assert.Equal(HttpStatusCode.Redirect,(await admin.PostAsync("/admin/Catalogo/Nuevo",new FormUrlEncodedContent(datos))).StatusCode);
         var anterior=await Visita(true);await using var db=fixture.Bd.Contexto();var cliente=(await db.Visitas.FindAsync(anterior))!.ClienteId;
         var servicio=await db.Servicios.SingleAsync(x=>x.Nombre==datos["Nombre"]);
@@ -151,7 +151,7 @@ public sealed class ContenidoWebTests(SeguridadWebFixture fixture) : IClassFixtu
         await using var db = fixture.Bd.Contexto(); var resena = await db.Resenas.SingleAsync(x => x.Comentario==campos["Comentario"]);
         Assert.Equal(HttpStatusCode.NotFound,(await cliente.GetAsync($"/opiniones/foto/{resena.Id}")).StatusCode);
         using var admin = fabrica.Cliente(); await Entrar(admin);
-        Assert.Equal(HttpStatusCode.Redirect,(await admin.PostAsync($"/admin/Resenas/Moderar/{resena.Id}",new FormUrlEncodedContent(new Dictionary<string,string> { ["Estado"]="Publicada",["Respuesta"]="Gracias por venir.",["__RequestVerificationToken"]=await Token(admin,"/admin/Resenas") }))).StatusCode);
+        Assert.Equal(HttpStatusCode.Redirect,(await admin.PostAsync($"/admin/Resenas/Moderar/{resena.Id}",new FormUrlEncodedContent(new Dictionary<string,string> { ["Estado"]="Publicada",["Respuesta"]="Gracias por venir.",["RespuestaEn"]="Thanks for coming.",["__RequestVerificationToken"]=await Token(admin,"/admin/Resenas") }))).StatusCode);
         html = WebUtility.HtmlDecode(await cliente.GetStringAsync("/opiniones"));
         Assert.Contains(campos["Comentario"],html); Assert.Contains("Gracias por venir.",html);
         Assert.DoesNotContain("Nombre privado",html); Assert.DoesNotContain("Servicio interno privado",html); Assert.DoesNotContain(codigo,html);

@@ -16,7 +16,8 @@ public sealed class OrdenYBusquedaTests
         await using var bd = await BaseDeDatosPrueba.CrearAsync("20261013142539_CompatibilidadBackupTickets");
         await bd.EjecutarAsync("UPDATE CategoriasPublicas SET Orden = 50 WHERE Slug = 'combinados'; UPDATE ServiciosGenericos SET OrdenPublico = 7 WHERE CategoriaPublicaId IS NOT NULL;");
         string[] antes;
-        await using (var db = bd.Contexto()) antes = (await new ContenidoRepositorio(db).CategoriasAsync(default)).Select(c => c.Slug).ToArray();
+        // Con el esquema antiguo, sin la columna NombreEn: se leen los slugs con SQL en vez de con el modelo actual
+        await using (var db = bd.Contexto()) antes = await db.Database.SqlQueryRaw<string>("SELECT Slug AS [Value] FROM CategoriasPublicas ORDER BY Orden, Id").ToArrayAsync();
 
         await using (var db = bd.Contexto()) await db.Database.MigrateAsync();
 
@@ -62,7 +63,7 @@ public sealed class OrdenYBusquedaTests
     {
         await using var bd = await BaseDeDatosPrueba.CrearAsync();
         await using var db = bd.Contexto();
-        Assert.True((await Contenido(db).GuardarCategoriaAsync(null, "Novias")).Exito);
+        Assert.True((await Contenido(db).GuardarCategoriaAsync(null, "Novias", "Brides")).Exito);
         var lista = await new ContenidoRepositorio(db).CategoriasAsync(default);
         Assert.Equal("Novias", lista[^1].Nombre);
         Assert.Equal(lista[^2].Orden + 1, lista[^1].Orden);

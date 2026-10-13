@@ -44,11 +44,11 @@ public sealed class TratamientosController(ContenidoService contenido, Peluqueri
     {
         var c = id is { } clave ? await contenido.CategoriaAsync(clave, ct) : null;
         if (id is not null && c is null) return NotFound();
-        return View(new CategoriaEdicion(id, c is null ? new() : new() { Nombre = c.Nombre }));
+        return View(new CategoriaEdicion(id, c is null ? new() : new() { Nombre = c.Nombre, NombreEn = c.NombreEn }));
     }
     [HttpPost] public async Task<IActionResult> Categoria(int? id, CategoriaFormulario formulario, CancellationToken ct)
     {
-        if (ModelState.IsValid) { var r = await contenido.GuardarCategoriaAsync(id, formulario.Nombre, ct); if (r.Exito) return RedirectToAction(nameof(Categorias)); ModelState.AddModelError("", r.Error!.Mensaje); }
+        if (ModelState.IsValid) { var r = await contenido.GuardarCategoriaAsync(id, formulario.Nombre, formulario.NombreEn, ct); if (r.Exito) return RedirectToAction(nameof(Categorias)); ModelState.AddModelError("", r.Error!.Mensaje); }
         return View(new CategoriaEdicion(id, formulario));
     }
     [HttpPost] public async Task<IActionResult> EliminarCategoria(int id, CancellationToken ct) { var r = await contenido.EliminarCategoriaAsync(id, ct); if (!r.Exito) this.AvisarError(r.Error!.Mensaje); return RedirectToAction(nameof(Categorias)); }
