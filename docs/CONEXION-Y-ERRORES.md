@@ -25,3 +25,7 @@ Una base vacía se reconstruye completa. Borrar tablas conservando `__EFMigratio
 # Errores
 
 La respuesta 500 siempre es genérica, incluso en Development. El manejador no depende de SQL, cookies, TempData ni vistas, por lo que también funciona si falla la protección de cookies. Los detalles y la referencia de la petición quedan en los registros del servidor. Una operación que falla puede haberse guardado: verificar su estado antes de repetirla.
+
+# Azure
+
+En Azure App Service la cadena de conexión no sale del almacén de Windows: se lee de la cadena `Peluqueria` de la Web App (variable `SQLAZURECONNSTR_Peluqueria`), sin contraseña, con la identidad administrada. Desde un PC se puede apuntar a Azure con la variable `ConnectionStrings__Peluqueria` y `Authentication=Active Directory Default` (sesión de `az login`). Ver [AZURE.md](AZURE.md).

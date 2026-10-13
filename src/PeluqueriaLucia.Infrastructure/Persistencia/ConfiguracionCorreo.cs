@@ -4,16 +4,21 @@ using PeluqueriaLucia.Application.Agenda;
 
 namespace PeluqueriaLucia.Infrastructure.Persistencia;
 
-/// <summary>El anfitrión obtiene secretos del almacén de Windows; la biblioteca SMTP no conoce ese almacén.</summary>
+/// <summary>
+/// El anfitrión obtiene el secreto SMTP (JSON de <see cref="ConfiguracionSmtp"/>); la biblioteca SMTP no sabe de dónde
+/// sale. En Azure, de la variable PELUQUERIA_CORREO_SMTP, que en la Web App es una referencia a un secreto de Key Vault
+/// («@Microsoft.KeyVault(SecretUri=…)»); en el IIS local, del almacén de credenciales de Windows.
+/// </summary>
 public sealed class ConfiguracionCorreo : IConfiguracionSmtp
 {
     public const string Destino = "PeluqueriaLucia/CorreoSmtp";
+    public const string VariableEntorno = "PELUQUERIA_CORREO_SMTP";
     public ConfiguracionSmtp? Obtener()
     {
         if (Environment.GetEnvironmentVariable("PELUQUERIA_CORREO_ACTIVO") != "true") return null;
         try
         {
-            var secreto = ServicioConexionSql.LeerCredencial(Destino);
+            var secreto = Environment.GetEnvironmentVariable(VariableEntorno) is { Length: > 0 } variable ? variable : ServicioConexionSql.LeerCredencial(Destino);
             return secreto is null ? null : JsonSerializer.Deserialize<ConfiguracionSmtp>(secreto);
         }
         catch (Exception ex) when (ex is JsonException or InvalidOperationException or System.ComponentModel.Win32Exception) { return null; }

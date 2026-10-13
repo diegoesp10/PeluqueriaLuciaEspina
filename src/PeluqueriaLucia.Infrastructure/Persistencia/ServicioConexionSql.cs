@@ -3,13 +3,26 @@ using Microsoft.Data.SqlClient;
 
 namespace PeluqueriaLucia.Infrastructure.Persistencia;
 
-/// <summary>Servicio conectado SQL: credencial genérica de Windows, nunca IConfiguration ni User Secrets.</summary>
+/// <summary>
+/// Servicio conectado SQL, nunca appsettings ni User Secrets. En Azure, la cadena de conexión «Peluqueria» de la Web App
+/// (sin contraseña: entra con la identidad administrada); en el IIS local, la credencial genérica de Windows.
+/// </summary>
 public static class ServicioConexionSql
 {
     public const string Destino = "PeluqueriaLucia/SqlServer";
 
+    /// <summary>
+    /// Variables de entorno con la cadena: la que crea App Service para una cadena de tipo SQLAzure llamada «Peluqueria»
+    /// y la forma estándar de .NET, útil para lanzar migraciones o herramientas contra Azure desde un PC.
+    /// </summary>
+    private static readonly string[] VariablesEntorno = ["SQLAZURECONNSTR_Peluqueria", "ConnectionStrings__Peluqueria"];
+
     public static string Obtener()
     {
+        foreach (var variable in VariablesEntorno)
+            if (Environment.GetEnvironmentVariable(variable) is { Length: > 0 } cadena)
+                return Validar(cadena);
+
         var valor = LeerCredencial(Destino);
         if (valor is not null) return Validar(valor);
         // Desarrollo local sin contraseña. En otros entornos se exige una credencial explícita.

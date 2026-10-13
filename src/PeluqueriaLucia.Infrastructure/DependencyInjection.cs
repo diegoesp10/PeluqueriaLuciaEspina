@@ -40,8 +40,16 @@ public static class DependencyInjection
         var proteccion = services.AddDataProtection()
             .SetApplicationName("PeluqueriaLucia")
             .PersistKeysToDbContext<PeluqueriaDbContext>();
-        if (OperatingSystem.IsWindows())
+        // Las claves guardadas se cifran a su vez. En Azure, con una clave de Key Vault («ProteccionDatos:ClaveKeyVault»,
+        // la URI sin versión), usando la identidad de la Web App o, desde un PC, la sesión de «az login». En el IIS
+        // local, con DPAPI del equipo. Fuera de Windows no se permite guardarlas sin cifrar, salvo en las pruebas
+        // automáticas («ProteccionDatos:PermitirSinCifrar», solo en GitHub Actions con bases de usar y tirar).
+        if (configuracion["ProteccionDatos:ClaveKeyVault"] is { Length: > 0 } claveKeyVault)
+            proteccion.ProtectKeysWithAzureKeyVault(new Uri(claveKeyVault), new Azure.Identity.DefaultAzureCredential());
+        else if (OperatingSystem.IsWindows())
             proteccion.ProtectKeysWithDpapi(protectToLocalMachine: true);
+        else if (!configuracion.GetValue<bool>("ProteccionDatos:PermitirSinCifrar"))
+            throw new InvalidOperationException("Configura ProteccionDatos:ClaveKeyVault: fuera de Windows las claves de cifrado no pueden guardarse sin proteger.");
 
         services.AddOptions<OpcionesImagenes>().Bind(configuracion.GetSection(OpcionesImagenes.Seccion));
         services.AddSingleton<IAlmacenImagenes, AlmacenImagenesLocal>();

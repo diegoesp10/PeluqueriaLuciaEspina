@@ -12,8 +12,21 @@ public static class CanalDePeticionesExtensions
 
     public static WebApplication UseCanalDePeticiones(this WebApplication app)
     {
-        if (app.Services.GetRequiredService<IOptions<OpcionesSeguridad>>().Value.ProxiesConfiables.Length > 0)
+        var seguridad = app.Services.GetRequiredService<IOptions<OpcionesSeguridad>>().Value;
+        if (seguridad.ProxiesConfiables.Length > 0)
             app.UseForwardedHeaders();
+        else if (EnAzureAppService)
+        {
+            // App Service termina el HTTPS en su frontal y pasa la petición en HTTP con X-Forwarded-Proto. Sin esto, la
+            // redirección a HTTPS entraría en bucle. Solo se acepta el protocolo, del frontal (el único que llega a la
+            // aplicación): la IP del visitante la da la cabecera de Cloudflare.
+            var protocolo = new ForwardedHeadersOptions { ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto };
+            protocolo.KnownProxies.Clear();
+            protocolo.KnownIPNetworks.Clear();
+            app.UseForwardedHeaders(protocolo);
+        }
+        if (seguridad.CabeceraIpCliente is { Length: > 0 } cabecera)
+            app.UseIpDeCabecera(cabecera);
         // /en/… → web en inglés; debe ir antes que todo lo que mira la ruta
         app.UsePrefijoDeIdioma();
         app.UseRequestLocalization();
@@ -95,6 +108,9 @@ public static class CanalDePeticionesExtensions
     /// Los CSS y JS se enlazan con su huella (<c>?v=…</c>, de <c>asp-append-version</c>): si cambian, cambia la URL. Así el
     /// navegador puede guardarlos un año sin volver a preguntar en cada página, que es lo que hacía lenta la navegación.
     /// </summary>
+    /// <summary>Azure App Service define esta variable en todas sus aplicaciones.</summary>
+    private static bool EnAzureAppService => Environment.GetEnvironmentVariable("WEBSITE_SITE_NAME") is { Length: > 0 };
+
     private static void UseCacheDeRecursosVersionados(this WebApplication app) =>
         app.Use((contexto, siguiente) =>
         {

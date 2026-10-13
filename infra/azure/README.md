@@ -26,4 +26,6 @@ La plantilla es la que genera el portal y solo cubre el plan y la Web App. Para 
 - **Key Vault** `kv-lucia-peluqueria` con permisos por roles, la clave `proteccion-datos` y las asignaciones de rol para la identidad de la Web App.
 - **Dominio y certificado** de Cloudflare (`luciapeluqueriaecologica.com`).
 
+La configuración que la app necesita en la Web App y el despliegue con GitHub Actions están en [docs/AZURE.md](../../docs/AZURE.md).
+
 El acceso de la Web App a cada base de datos no se puede expresar en ARM: se concede con T-SQL (`CREATE USER [WebAppLuciaPeluqueria] FROM EXTERNAL PROVIDER`).

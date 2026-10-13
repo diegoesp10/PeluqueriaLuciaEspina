@@ -14,6 +14,13 @@ public sealed class OpcionesSeguridad
     public string[] ProxiesConfiables { get; set; } = [];
 
     /// <summary>
+    /// Cabecera con la IP real del visitante que añade un proxy de confianza delante de la web, p. ej. «CF-Connecting-IP»
+    /// de Cloudflare. Vacío: se usa la IP de la conexión. Solo debe configurarse si la web no es accesible sin pasar por
+    /// ese proxy (en Azure, restricciones de acceso a las IPs de Cloudflare); si no, cualquiera podría falsearla.
+    /// </summary>
+    public string? CabeceraIpCliente { get; set; }
+
+    /// <summary>
     /// IPs o redes (CIDR, p. ej. «192.168.1.0/24») desde las que se puede abrir el panel. Vacío: desde cualquiera.
     /// Las demás reciben un 404, como si el panel no existiera.
     /// </summary>

@@ -1,0 +1,109 @@
+# Pruebas en cada push y publicación en Azure App Service (WebAppLuciaPeluqueria) al subir a main.
+# La publicación entra en Azure con una identidad federada (OIDC): GitHub no guarda ninguna contraseña.
+# Las migraciones de la base NO se aplican aquí: se aplican a mano antes de publicar (ver docs/AZURE.md).
+name: Pruebas y despliegue en Azure
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: azure-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  pruebas:
+    name: Compilar y probar
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      # SQL Server de usar y tirar para las pruebas de integración (cada prueba crea y borra su propia base)
+      sql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_SA_PASSWORD: Pruebas_GitHub_2026!
+          MSSQL_COLLATION: Modern_Spanish_CI_AS
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'Pruebas_GitHub_2026!' -Q 'SELECT 1' || exit 1"
+          --health-interval 10s --health-timeout 5s --health-retries 12
+    env:
+      PELUQUERIA_PRUEBAS_SQL: Server=localhost,1433;User Id=sa;Password=Pruebas_GitHub_2026!;TrustServerCertificate=True;Encrypt=False
+      # Solo aquí: en Linux sin Key Vault las claves de prueba se guardan sin cifrar en bases que se borran al acabar
+      ProteccionDatos__PermitirSinCifrar: "true"
+      TZ: Europe/Madrid
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Restaurar
+        run: dotnet restore PeluqueriaLucia.sln
+      - name: Compilar
+        run: dotnet build PeluqueriaLucia.sln -c Release --no-restore
+      - name: Pruebas .NET
+        run: dotnet test PeluqueriaLucia.sln -c Release --no-build --logger "trx;LogFileName=resultados.trx"
+      - name: Pruebas JavaScript
+        run: node --test tests/PeluqueriaLucia.Tests/Web/sesion.test.cjs
+      - name: Guardar resultados
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: resultados-pruebas
+          path: "**/resultados.trx"
+
+  desplegar:
+    name: Publicar en Azure
+    needs: pruebas
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Entorno de GitHub «produccion»: la identidad federada de Azure solo confía en este entorno
+    environment:
+      name: produccion
+      url: https://webappluciapeluqueria-a9dycjgph4f0etaz.spaincentral-01.azurewebsites.net
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Publicar para Linux
+        run: dotnet publish src/PeluqueriaLucia.Web -c Release -r linux-x64 --self-contained false -o publicacion
+      - name: Entrar en Azure (OIDC, sin contraseñas)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Desplegar en App Service
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: WebAppLuciaPeluqueria
+          package: publicacion
+      - name: Comprobar que responde
+        run: |
+          for intento in $(seq 1 20); do
+            codigo=$(curl -s -o /dev/null -w "%{http_code}" https://webappluciapeluqueria-a9dycjgph4f0etaz.spaincentral-01.azurewebsites.net/)
+            echo "Intento $intento: HTTP $codigo"
+            [ "$codigo" = "200" ] && exit 0
+            sleep 15
+          done
+          echo "La web no responde 200 tras el despliegue" && exit 1

@@ -2,7 +2,7 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia;
 
 /// <summary>
 /// Búsqueda por palabras con LIKE: cada palabra escrita tiene que aparecer en alguno de los campos («tinte eco» encuentra
-/// «Tinte ecológico»). SQL Server compara sin distinguir mayúsculas ni acentos con la intercalación de la base de datos.
+/// «Tinte ecológico»). Las mayúsculas dan igual; las tildes cuentan, como en la intercalación Modern_Spanish_CI_AS de la base.
 /// </summary>
 internal static class BusquedaTexto
 {
