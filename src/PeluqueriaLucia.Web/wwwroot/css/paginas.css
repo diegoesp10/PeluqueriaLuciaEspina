@@ -374,7 +374,6 @@
   .panel-bienvenida { grid-template-columns:minmax(0,1fr); padding:26px; gap:24px; }
   .panel-foto { display:none; }
   .panel-grid { grid-template-columns:minmax(0,1fr); gap:0; }
-  .sitio-admin .topbar .brand-text strong { font-size:26px; }
 }
 @media(max-width:560px) {
   .sitio-admin .stat { padding:16px; }

@@ -1,4 +1,5 @@
-/* Estructura: barra lateral en pantallas anchas; barra de pestañas inferior en pantallas estrechas. */
+/* Estructura: barra lateral en pantallas anchas; en pantallas estrechas, barra superior y la misma barra lateral
+   como menú deslizante (botón hamburguesa). */
 
 .app {
   min-height: 100dvh;
@@ -211,96 +212,154 @@
   }
 }
 
-/* ── Móvil y tablet vertical: barra superior y barra de pestañas ───────────── */
+/* ── Móvil y tablet vertical: barra superior y menú lateral deslizante ────── */
 
 .topbar,
-.tabbar {
+.menu-fondo,
+.sidebar-cerrar {
   display: none;
 }
 
-.cuenta-movil > summary { list-style: none; }
-.cuenta-movil > summary::-webkit-details-marker { display: none; }
-.cuenta-movil[open] > summary { background: var(--fill-2); }
-.cuenta-menu {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 16px;
-  display: grid;
-  gap: 12px;
-  width: min(280px, calc(100vw - 32px));
-  padding: 16px;
-  border: 1px solid var(--separator);
-  border-radius: var(--r-card);
-  box-shadow: var(--glass-shadow);
-  background: var(--surface);
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-}
-.cuenta-menu .selector-tema { justify-self: center; }
-.cuenta-menu .selector-tema button { width: 44px; height: 40px; }
-
 @media (max-width: 900px) {
+  :root {
+    --tabbar-h: 0px;
+    --menu-w: min(320px, 86vw);
+  }
+
+  /* La barra lateral se convierte en un cajón que entra desde la izquierda */
   .sidebar {
-    display: none;
+    z-index: 50;
+    width: var(--menu-w);
+    padding: calc(20px + env(safe-area-inset-top)) 18px calc(20px + env(safe-area-inset-bottom));
+    border-right: 0;
+    border-radius: 0 24px 24px 0;
+    background: var(--surface);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    overscroll-behavior: contain;
+    transform: translateX(-104%);
+    visibility: hidden;
+    transition: transform 0.38s var(--ease), visibility 0s linear 0.38s, box-shadow 0.38s;
+  }
+
+  .sidebar:target,
+  .menu-abierto .sidebar {
+    transform: none;
+    visibility: visible;
+    box-shadow: 0 24px 80px rgb(0 0 0 / 0.28);
+    transition: transform 0.38s var(--ease), box-shadow 0.38s;
+  }
+
+  .sidebar .brand { flex-wrap: nowrap; padding-right: 52px; }
+  .sidebar .brand-logo { width: 56px; height: 56px; }
+  .sidebar .brand-text strong { font-size: 28px; }
+  .nav-item { min-height: 48px; font-size: 16px; }
+
+  .sidebar-cerrar {
+    position: absolute;
+    top: calc(20px + env(safe-area-inset-top));
+    right: 14px;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--fill);
+    color: var(--label);
+  }
+
+  .sidebar-cerrar:hover { background: var(--fill-2); }
+
+  .sidebar-foot {
+    padding-top: 16px;
+    border-top: 0.5px solid var(--separator);
+    font-size: 13px;
+  }
+
+  .sidebar-foot > a { padding: 6px 0; }
+
+  /* Fondo oscurecido detrás del menú: tocarlo lo cierra */
+  .menu-fondo {
+    position: fixed;
+    inset: 0;
+    z-index: 45;
+    display: block;
+    background: rgb(10 20 17 / 0.42);
+    -webkit-backdrop-filter: blur(3px);
+    backdrop-filter: blur(3px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+
+  .sidebar:target ~ .menu-fondo,
+  .menu-abierto .menu-fondo {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .menu-abierto,
+  .menu-abierto body {
+    overflow: hidden;
   }
 
   .topbar {
     position: sticky;
     top: 0;
     z-index: 20;
-    display: flex;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
-    justify-content: space-between;
+    gap: 10px;
     height: calc(var(--topbar-h) + env(safe-area-inset-top));
-    padding: env(safe-area-inset-top) 16px 0;
+    padding: env(safe-area-inset-top) 12px 0;
     border-bottom: 0.5px solid var(--separator);
   }
 
-  .topbar .brand-logo {
+  .topbar-menu {
+    display: grid;
+    place-items: center;
     width: 44px;
     height: 44px;
-    border-radius: 16px;
+    border-radius: 12px;
+    color: var(--label);
+  }
+
+  .topbar-menu:hover,
+  .topbar-menu[aria-expanded="true"] { background: var(--fill); }
+
+  .topbar .brand { gap: 10px; padding: 0; min-width: 0; }
+
+  .topbar .brand-logo {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
   }
 
   .topbar .brand-text strong {
-    font-size: 17px;
+    font-size: 22px;
   }
+
+  .topbar-nueva { gap: 6px; white-space: nowrap; }
 
   .main {
     margin-left: 0;
-    padding: 20px 16px calc(var(--tabbar-h) + 40px + env(safe-area-inset-bottom));
+    padding: 20px 16px calc(40px + env(safe-area-inset-bottom));
   }
 
   .page-head h1 {
     font-size: 36px;
   }
+}
 
-  .tabbar {
-    position: fixed;
-    inset: auto 0 0 0;
-    z-index: 20;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    height: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
-    padding: 6px 8px env(safe-area-inset-bottom);
-    border-top: 0.5px solid var(--separator);
-  }
+/* Teléfonos estrechos: «Nueva visita» queda como botón redondo con el icono */
+@media (max-width: 420px) {
+  .topbar-nueva { width: 44px; min-height: 44px; padding: 0; border-radius: 50%; justify-content: center; }
+  .topbar-nueva > span { display: none; }
+}
 
-  .tab {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 3px;
-    color: var(--label-2);
-    font-size: 11px;
-    font-weight: 500;
-  }
-
-  .tab.is-active,
-  .tab-accent {
-    color: var(--accent);
-  }
+@media (prefers-reduced-motion: reduce) {
+  .sidebar, .menu-fondo { transition: none !important; }
 }
 
 /* ── Notificaciones ───────────────────────────────────────────────────────── */

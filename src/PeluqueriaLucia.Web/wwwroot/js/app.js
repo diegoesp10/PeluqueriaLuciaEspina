@@ -36,6 +36,72 @@
   );
   aplicarTema(leerTema());
 
+  // ── Menú del panel en móvil (hamburguesa). Sin JavaScript se abre con el ancla #menu-principal ──
+  const menu = document.getElementById('menu-principal');
+  const botonMenu = document.querySelector('[data-menu-abrir]');
+  if (menu && botonMenu) {
+    const raiz = document.documentElement;
+    const movil = matchMedia('(max-width: 900px)');
+    const abierto = () => raiz.classList.contains('menu-abierto');
+    const enfocables = () =>
+      [...menu.querySelectorAll('a[href], button:not([disabled]), input, select')].filter((e) => e.offsetParent !== null);
+    const marcar = (estado) => {
+      raiz.classList.toggle('menu-abierto', estado);
+      botonMenu.setAttribute('aria-expanded', String(estado));
+      botonMenu.querySelector('.sr-only').textContent = estado ? 'Cerrar menú' : 'Abrir menú';
+    };
+    const abrir = () => {
+      marcar(true);
+      (menu.querySelector('.nav-item.is-active') ?? enfocables()[0])?.focus({ preventScroll: true });
+    };
+    const cerrar = (devolverFoco = true) => {
+      if (!abierto()) return;
+      marcar(false);
+      if (devolverFoco) botonMenu.focus({ preventScroll: true });
+    };
+
+    botonMenu.addEventListener('click', (evento) => {
+      evento.preventDefault();
+      if (abierto()) cerrar();
+      else abrir();
+    });
+    document.querySelectorAll('[data-menu-cerrar]').forEach((boton) =>
+      boton.addEventListener('click', (evento) => {
+        evento.preventDefault();
+        cerrar();
+      }),
+    );
+    // Al elegir una opción el menú se cierra; la página nueva carga sin él
+    menu.addEventListener('click', (evento) => {
+      if (evento.target.closest('a[href]:not([data-menu-cerrar])')) cerrar(false);
+    });
+    document.addEventListener('keydown', (evento) => {
+      if (!abierto()) return;
+      if (evento.key === 'Escape') {
+        cerrar();
+        return;
+      }
+      // El foco no sale del menú mientras está abierto
+      if (evento.key !== 'Tab') return;
+      const lista = enfocables();
+      const primero = lista[0];
+      const ultimo = lista[lista.length - 1];
+      if (evento.shiftKey && document.activeElement === primero) {
+        evento.preventDefault();
+        ultimo.focus();
+      } else if (!evento.shiftKey && document.activeElement === ultimo) {
+        evento.preventDefault();
+        primero.focus();
+      }
+    });
+    // Al girar la tableta o ensanchar la ventana vuelve la barra lateral fija
+    movil.addEventListener('change', () => cerrar(false));
+    // Quien llegó con el ancla (sin JavaScript al principio) se queda con la URL limpia
+    if (location.hash === '#menu-principal') history.replaceState(null, '', location.pathname + location.search);
+    // Volver con «atrás» desde otra página no debe encontrar el menú abierto
+    window.addEventListener('pageshow', () => marcar(false));
+  }
+
   // ── Notificaciones: las de éxito se ocultan solas; las de error se quedan hasta cerrarlas ──
   const cerrarToast = (toast) => {
     toast.classList.add('is-leaving');

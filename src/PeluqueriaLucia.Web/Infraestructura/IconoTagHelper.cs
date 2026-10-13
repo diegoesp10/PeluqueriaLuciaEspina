@@ -32,6 +32,7 @@ public sealed class IconoTagHelper : TagHelper
         ["check-circulo"] = """<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>""",
         ["alerta"] = """<circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>""",
         ["cerrar"] = """<path d="M18 6 6 18M6 6l12 12"/>""",
+        ["menu"] = """<path d="M4 7h16M4 12h16M4 17h16"/>""",
         ["euro"] = """<path d="M4 10h12M4 14h9M19 6a7.7 7.7 0 0 0-5.2-2A7.9 7.9 0 0 0 6 12c0 4.4 3.5 8 7.8 8 2 0 3.8-.8 5.2-2"/>""",
         ["tarjeta"] = """<rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/>""",
         ["efectivo"] = """<rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/>""",

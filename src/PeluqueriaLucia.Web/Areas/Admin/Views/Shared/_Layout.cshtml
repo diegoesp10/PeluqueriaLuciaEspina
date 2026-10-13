@@ -28,7 +28,10 @@
     <a class="skip-link" href="#contenido">Saltar al contenido</a>
 
     <div class="app">
-        <aside class="sidebar glass" aria-label="Navegación principal">
+        @* En pantallas anchas es la barra lateral fija; en móvil, el menú que abre el botón hamburguesa.
+           Sin JavaScript se abre igualmente con el ancla #menu-principal (:target). *@
+        <aside class="sidebar glass" id="menu-principal" aria-label="Navegación principal">
+            <a class="sidebar-cerrar" href="#" data-menu-cerrar aria-label="Cerrar menú"><icono nombre="cerrar" tamano="20" /></a>
             <a class="brand" asp-controller="Panel" asp-action="Index">
                 <img class="brand-logo" src="~/Img/Icono.jpg" alt="" width="40" height="40" />
                 <span class="brand-text">
@@ -46,7 +49,7 @@
                 <a class="nav-item @Activo("Agenda")" href="/admin/agenda" title="Agenda y solicitudes de cita"><span class="nav-tile"><icono nombre="calendario" tamano="17" /></span> Agenda <span class="agenda-contador" data-agenda-contador aria-label="Solicitudes pendientes"></span></a>
                 <a class="nav-item @Activo("Panel")" asp-controller="Panel" asp-action="Index" title="Panel"><span class="nav-tile"><icono nombre="casa" tamano="17" /></span> Panel</a>
                 <a class="nav-item tint-blue @Activo("Visitas")" asp-controller="Visitas" asp-action="Index" title="Visitas">
-                    <span class="nav-tile"><icono nombre="calendario" tamano="17" /></span> Visitas
+                    <span class="nav-tile"><icono nombre="ticket" tamano="17" /></span> Visitas
                 </a>
                 <a class="nav-item tint-green @Activo("Clientes")" asp-controller="Clientes" asp-action="Index" title="Clientes">
                     <span class="nav-tile"><icono nombre="clientes" tamano="17" /></span> Clientes
@@ -56,7 +59,7 @@
                 </a>
                 <a class="nav-item @Activo("Seguridad")" asp-controller="Seguridad" asp-action="Index"><span class="nav-tile"><icono nombre="check-circulo" tamano="17" /></span> Seguridad</a>
                 <a class="nav-item @Activo("Tratamientos")" asp-controller="Tratamientos" asp-action="Index"><span class="nav-tile"><icono nombre="hoja" tamano="17" /></span> Servicios de la web</a>
-                <a class="nav-item @Activo("Resenas")" asp-controller="Resenas" asp-action="Index"><span class="nav-tile"><icono nombre="clientes" tamano="17" /></span> Reseñas</a>
+                <a class="nav-item @Activo("Resenas")" asp-controller="Resenas" asp-action="Index"><span class="nav-tile"><icono nombre="check" tamano="17" /></span> Reseñas</a>
             </nav>
 
             <div class="sidebar-foot">
@@ -69,36 +72,25 @@
             </div>
         </aside>
 
+        <a class="menu-fondo" href="#" data-menu-cerrar tabindex="-1" aria-hidden="true"></a>
+
         <header class="topbar glass">
+            <a class="topbar-menu" href="#menu-principal" aria-controls="menu-principal" aria-expanded="false" data-menu-abrir>
+                <icono nombre="menu" tamano="22" /><span class="sr-only">Abrir menú</span>
+            </a>
             <a class="brand" asp-controller="Panel" asp-action="Index">
                 <img class="brand-logo" src="~/Img/Icono.jpg" alt="" width="32" height="32" />
                 <span class="brand-text"><strong>Lucía</strong></span>
             </a>
-            <details class="cuenta-movil">
-                <summary class="btn btn-gray btn-sm">Cuenta <icono nombre="clientes" tamano="16" /></summary>
-                <div class="cuenta-menu glass">
-                    <p class="cuenta-actual">Sesión de <strong>@User.Identity?.Name</strong></p>
-                    <a class="btn btn-gray" asp-controller="Seguridad" asp-action="Index">Seguridad y sesiones</a>
-                    <a class="btn btn-gray" href="/admin/agenda">Agenda de citas</a>
-                    <a class="btn btn-gray" asp-controller="Tratamientos" asp-action="Index">Servicios de la web</a>
-                    <a class="btn btn-gray" asp-controller="Resenas" asp-action="Index">Reseñas</a>
-                    <a class="btn btn-gray" asp-controller="Seguridad" asp-action="Contrasena">Cambiar contraseña</a>
-                    <partial name="_SelectorTema" />
-                    <form method="post" asp-controller="Acceso" asp-action="Salir"><button class="btn btn-gray btn-block" type="submit">Cerrar sesión</button></form>
-                </div>
-            </details>
+            <a class="btn btn-primary btn-sm topbar-nueva @(enNuevaVisita ? "is-current" : "")" asp-controller="Visitas" asp-action="Nueva" aria-label="Nueva visita">
+                <icono nombre="mas" tamano="18" /><span>Nueva visita</span>
+            </a>
         </header>
 
         <main class="main fondo-identidad" id="contenido" tabindex="-1">
             @RenderBody()
         </main>
 
-        <nav class="tabbar glass" aria-label="Navegación principal">
-            <a class="tab @Activo("Visitas")" asp-controller="Visitas" asp-action="Index"><icono nombre="calendario" /><span>Visitas</span></a>
-            <a class="tab tab-accent @(enNuevaVisita ? "is-active" : "")" asp-controller="Visitas" asp-action="Nueva"><icono nombre="mas" /><span>Nueva</span></a>
-            <a class="tab @Activo("Clientes")" asp-controller="Clientes" asp-action="Index"><icono nombre="clientes" /><span>Clientes</span></a>
-            <a class="tab @Activo("Catalogo")" asp-controller="Catalogo" asp-action="Index"><icono nombre="tijeras" /><span>Catálogo</span></a>
-        </nav>
     </div>
 
     <div class="toasts" aria-live="polite">
