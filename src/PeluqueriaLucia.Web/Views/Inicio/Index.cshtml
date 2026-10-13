@@ -1,34 +1,52 @@
 @model ContenidoPublico
-@{ ViewData["Title"] = "Tu cabello, en buenas manos"; }
+@{ ViewData["Title"] = T["Tu cabello, en buenas manos"]; }
 <section class="hero-publico">
     <div class="hero-texto">
-        <p class="etiqueta"><span aria-hidden="true">✳</span> BELLEZA CON RAÍCES · OVIEDO</p>
-        <h1>Tu cabello.<br />Tu esencia.<br /><em>Al natural.</em></h1>
-        <p class="intro">Un espacio para ti y para el cuidado de tu cabello. Descubre el salón y su equipo, en el corazón de Oviedo.</p>
-        <div class="botones"><a class="btn btn-primary" href="/citas">Encuentra tu momento <span aria-hidden="true">↗</span></a><a class="enlace-flecha" asp-action="Servicios">Nuestros servicios →</a></div>
-        <p class="detalle-hero">COLORACIÓN VEGETAL <span>·</span> CUIDADO CAPILAR <span>·</span> TRATO CERCANO</p>
+        <p class="etiqueta" data-anima="subir"><span aria-hidden="true">✳</span> @T["BELLEZA CON RAÍCES · OVIEDO"]</p>
+        <h1 data-dividir>@T["Tu cabello."]<br />@T["Tu esencia."]<br /><em>@T["Al natural."]</em></h1>
+        <p class="intro" data-anima="subir">@T["Un espacio para ti y para el cuidado de tu cabello. Descubre el salón y su equipo, en el corazón de Oviedo."]</p>
+        <div class="botones" data-anima="subir"><a class="btn btn-primary" asp-controller="Agenda" asp-action="Index" data-magnetico>@T["Encuentra tu momento"] <span aria-hidden="true">↗</span></a><a class="enlace-flecha" asp-action="Servicios">@T["Nuestros servicios"] →</a></div>
+        <p class="detalle-hero" data-anima="subir">@T["COLORACIÓN VEGETAL"] <span>·</span> @T["CUIDADO CAPILAR"] <span>·</span> @T["TRATO CERCANO"]</p>
     </div>
     <div class="hero-foto">
-        <img src="~/publico/salon.jpg" asp-append-version="true" alt="Interior del salón Lucía Peluquería Ecológica en Oviedo" width="640" height="427" fetchpriority="high" />
-        <img class="hero-emblema" src="~/Img/Icono.jpg" alt="" width="120" height="120" />
-        <div class="foto-sello"><span>Un pequeño refugio</span><strong>para sentirte tú.</strong></div>
+        <div class="hero-marco" data-anima="revelar"><img src="~/publico/salon.jpg" asp-append-version="true" alt="@T["Interior del salón Lucía Peluquería Ecológica en Oviedo"]" width="640" height="427" fetchpriority="high" data-parallax="12" /></div>
+        <img class="hero-emblema" src="~/Img/Icono.jpg" alt="" width="120" height="120" data-flotar />
+        <div class="foto-sello" data-anima="subir"><span>@T["Un pequeño refugio"]</span><strong>@T["para sentirte tú."]</strong></div>
     </div>
 </section>
-<div class="franja-publica"><span>Color de origen vegetal</span><span aria-hidden="true">✳</span><span>Cuidado y bienestar capilar</span><span aria-hidden="true">✳</span><span>Tu estilo, a tu ritmo</span></div>
+<div class="franja-publica" data-marquesina>
+    <div class="franja-pista">
+        <span>@T["Color de origen vegetal"]</span><span aria-hidden="true">✳</span><span>@T["Cuidado y bienestar capilar"]</span><span aria-hidden="true">✳</span><span>@T["Tu estilo, a tu ritmo"]</span><span aria-hidden="true">✳</span>
+    </div>
+</div>
 <section class="seccion-publica filosofia">
-    <div><p class="etiqueta">01 / NUESTRA ESENCIA</p><h2>El cuidado empieza<br /><em>en la raíz.</em></h2></div>
-    <div><p class="texto-grande">Cada cabello tiene su historia. El equipo quiere conocer la tuya.</p><p>El equipo del salón ofrece cortes, coloración ecológica y tratamientos para cuidar tu cabello. Un salón cercano donde encontrar tu estilo y dedicarte un momento.</p><a class="enlace-flecha" href="@Model.TelefonoEnlace">Contactar con el equipo →</a></div>
+    <div><p class="etiqueta" data-anima="subir">01 / @T["NUESTRA ESENCIA"]</p><h2 data-dividir>@T["El cuidado empieza"]<br /><em>@T["en la raíz."]</em></h2></div>
+    <div data-anima-grupo><p class="texto-grande">@T["Cada cabello tiene su historia. El equipo quiere conocer la tuya."]</p><p>@T["El equipo del salón ofrece cortes, coloración ecológica y tratamientos para cuidar tu cabello. Un salón cercano donde encontrar tu estilo y dedicarte un momento."]</p><a class="enlace-flecha" href="@Model.TelefonoEnlace">@T["Contactar con el equipo"] →</a></div>
 </section>
 <section class="seccion-publica servicios-destacados">
-    <div class="titulo-seccion"><div><p class="etiqueta">02 / LO QUE HACEMOS</p><h2>Naturalmente,<br /><em>para ti.</em></h2></div><a class="enlace-flecha" asp-action="Servicios">Ver todos los servicios →</a></div>
-    <div class="especialidades">
-        <a asp-action="Servicios" asp-fragment="peluqueria"><span class="numero">01</span><span class="simbolo" aria-hidden="true">✳</span><h3>Color & naturaleza</h3><p>Tinte ecológico y coloración 100 % plantas. Encuentra el color que habla de ti.</p><span class="enlace-flecha">Descubrir →</span></a>
-        <a asp-action="Servicios" asp-fragment="tratamientos"><span class="numero">02</span><span class="simbolo" aria-hidden="true">◌</span><h3>Un respiro para tu pelo</h3><p>Oxigenación, hidratación y tratamientos de regeneración para el cuidado capilar.</p><span class="enlace-flecha">Descubrir →</span></a>
-        <a asp-action="Servicios" asp-fragment="peluqueria"><span class="numero">03</span><span class="simbolo" aria-hidden="true">✂</span><h3>Tu estilo, tu forma</h3><p>Cortes, rizos en seco, peinados y recogidos. Para el día a día y tus momentos especiales.</p><span class="enlace-flecha">Descubrir →</span></a>
+    <div class="titulo-seccion"><div><p class="etiqueta" data-anima="subir">02 / @T["LO QUE HACEMOS"]</p><h2 data-dividir>@T["Naturalmente,"]<br /><em>@T["para ti."]</em></h2></div><a class="enlace-flecha" asp-action="Servicios" data-anima="subir">@T["Ver todos los servicios"] →</a></div>
+    <div class="especialidades" data-anima-grupo>
+        <a asp-action="Servicios" asp-fragment="peluqueria"><span class="numero">01</span><span class="simbolo" aria-hidden="true">✳</span><h3>@T["Color & naturaleza"]</h3><p>@T["Tinte ecológico y coloración 100 % plantas. Encuentra el color que habla de ti."]</p><span class="enlace-flecha">@T["Descubrir"] →</span></a>
+        <a asp-action="Servicios" asp-fragment="tratamientos"><span class="numero">02</span><span class="simbolo" aria-hidden="true">◌</span><h3>@T["Un respiro para tu pelo"]</h3><p>@T["Oxigenación, hidratación y tratamientos de regeneración para el cuidado capilar."]</p><span class="enlace-flecha">@T["Descubrir"] →</span></a>
+        <a asp-action="Servicios" asp-fragment="peluqueria"><span class="numero">03</span><span class="simbolo" aria-hidden="true">✂</span><h3>@T["Tu estilo, tu forma"]</h3><p>@T["Cortes, rizos en seco, peinados y recogidos. Para el día a día y tus momentos especiales."]</p><span class="enlace-flecha">@T["Descubrir"] →</span></a>
     </div>
 </section>
-<section class="cita-publica"><p class="etiqueta">UN MOMENTO PARA CUIDARTE</p><h2>Ven como eres.<br /><em>Sal sintiéndote tú.</em></h2><a class="btn btn-light" href="/citas">Reserva tu próxima cita ↗</a></section>
-<section class="seccion-publica contacto-publico" id="contacto">
-    <div><p class="etiqueta">03 / NOS VEMOS EN OVIEDO</p><h2>Muy cerca.<br /><em>Muy tuyo.</em></h2><p>Te esperamos en @Model.Direccion,<br />@Model.CodigoPostal @Model.Ciudad.</p><a class="enlace-flecha" href="@Model.Mapa" target="_blank" rel="noopener noreferrer">Cómo llegar →</a></div>
-    <div class="contacto-tarjeta"><p class="etiqueta">CONTACTO</p><a class="telefono-grande" href="@Model.TelefonoEnlace">@Model.Telefono</a><p>Contacta con el equipo para consultar un servicio o preparar tu visita.</p><a class="btn btn-primary" href="/citas">Solicitar mi cita →</a><p class="nota">Elige día y hora. El equipo del salón validará tu solicitud por teléfono.</p><div class="comodidades">@foreach (var comodidad in Model.Comodidades) { <span>@comodidad</span> }</div></div>
+<section class="cita-publica">
+    <span class="estrella-fondo estrella-fondo-1" aria-hidden="true" data-giro>✳</span>
+    <span class="estrella-fondo estrella-fondo-2" aria-hidden="true" data-giro="-1">✳</span>
+    <p class="etiqueta" data-anima="subir">@T["UN MOMENTO PARA CUIDARTE"]</p>
+    <h2 data-dividir>@T["Ven como eres."]<br /><em>@T["Sal sintiéndote tú."]</em></h2>
+    <a class="btn btn-light" asp-controller="Agenda" asp-action="Index" data-anima="subir" data-magnetico>@T["Reserva tu próxima cita"] ↗</a>
 </section>
+<section class="seccion-publica contacto-publico" id="contacto">
+    <div><p class="etiqueta" data-anima="subir">03 / @T["NOS VEMOS EN OVIEDO"]</p><h2 data-dividir>@T["Muy cerca."]<br /><em>@T["Muy tuyo."]</em></h2><p data-anima="subir">@T["Te esperamos en"] @Model.Direccion,<br />@Model.CodigoPostal @Model.Ciudad.</p><a class="enlace-flecha" href="@Model.Mapa" target="_blank" rel="noopener noreferrer" data-anima="subir">@T["Cómo llegar"] →</a></div>
+    <div class="contacto-tarjeta" data-anima="subir"><p class="etiqueta">@T["CONTACTO"]</p><a class="telefono-grande" href="@Model.TelefonoEnlace" data-dividir="letras">@Model.Telefono</a><p>@T["Contacta con el equipo para consultar un servicio o preparar tu visita."]</p><a class="btn btn-primary" asp-controller="Agenda" asp-action="Index">@T["Solicitar mi cita"] →</a><p class="nota">@T["Elige día y hora. El equipo del salón validará tu solicitud por teléfono."]</p><div class="comodidades">@foreach (var comodidad in Model.Comodidades) { <span>@T[comodidad]</span> }</div></div>
+</section>
+@section Scripts {
+    <script type="application/ld+json">@Json.Serialize(new Dictionary<string, object>
+    {
+        ["@context"] = "https://schema.org", ["@type"] = "HairSalon", ["name"] = Model.Nombre, ["telephone"] = "+34 " + Model.Telefono,
+        ["url"] = Context.Request.Scheme + "://" + Context.Request.Host + Url.Content("~/"),
+        ["address"] = new Dictionary<string, string> { ["@type"] = "PostalAddress", ["streetAddress"] = Model.Direccion, ["postalCode"] = Model.CodigoPostal, ["addressLocality"] = Model.Ciudad, ["addressCountry"] = "ES" },
+    })</script>
+}

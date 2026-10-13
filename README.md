@@ -90,3 +90,7 @@ En el primer acceso, escanea el QR con Microsoft Authenticator (**Añadir cuenta
 ## Agenda y conexión
 
 La rama agenda incorpora reservas públicas en /citas y su gestión en /admin/agenda. Consulta [docs/AGENDA.md](docs/AGENDA.md) para horarios, correo SMTP, WhatsApp manual y bibliotecas reutilizables, y [docs/CONEXION-Y-ERRORES.md](docs/CONEXION-Y-ERRORES.md) para el servicio SQL del almacén de credenciales de Windows, reconstrucción del catálogo y errores genéricos.
+
+## Web pública: idiomas, movimiento y páginas legales
+
+La web pública está en español y en inglés (`/en/…`); el panel, solo en español. El contrato `language` que envían formularios y llamadas, y lo pendiente en el backend, está en [docs/IDIOMA.md](docs/IDIOMA.md). El movimiento (scroll suave con Lenis y animaciones con GSAP, servidos desde `wwwroot/lib`) se describe en [docs/DISENO.md](docs/DISENO.md). La política de privacidad (`/privacidad`) y los términos (`/terminos`) toman el titular, el NIF y el correo de `contenido-publico.json`: rellena `Titular`, `Nif` y `Correo` antes de publicar la web.

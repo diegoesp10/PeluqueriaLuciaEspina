@@ -7,14 +7,14 @@ namespace PeluqueriaLucia.Web.Models;
 public sealed class ReservaFormulario
 {
     public Guid SolicitudId { get; set; } = Guid.NewGuid();
-    [Required] public DateOnly Dia { get; set; }
-    [Required] public TimeOnly? Hora { get; set; }
-    [Required, StringLength(30), Display(Name="Móvil de contacto")] public string Telefono { get; set; } = "";
-    [Required, EmailAddress, StringLength(254), Display(Name="Correo electrónico")] public string Correo { get; set; } = "";
-    [Required, EnumDataType(typeof(CanalConfirmacion)), Display(Name="Canal de confirmación")] public CanalConfirmacion? Canal { get; set; }
-    [Required(ErrorMessage="Escribe tu nombre o apodo."), StringLength(100)] public string? Nombre { get; set; }
-    [Required(ErrorMessage="Escribe tus apellidos."), StringLength(100)] public string Apellido { get; set; } = "";
-    [Required(ErrorMessage="Elige una opción."), EnumDataType(typeof(PeluqueriaLucia.Domain.Comun.Sexo))] public PeluqueriaLucia.Domain.Comun.Sexo? Sexo { get; set; }
+    [Required(ErrorMessage="Elige un día.")] public DateOnly Dia { get; set; }
+    [Required(ErrorMessage="Elige una hora.")] public TimeOnly? Hora { get; set; }
+    [Required(ErrorMessage="Escribe tu móvil."), StringLength(30, ErrorMessage="Revisa el móvil."), Display(Name="Móvil de contacto")] public string Telefono { get; set; } = "";
+    [Required(ErrorMessage="Escribe tu correo electrónico."), EmailAddress(ErrorMessage="Introduce un correo electrónico válido."), StringLength(254, ErrorMessage="Introduce un correo electrónico válido."), Display(Name="Correo electrónico")] public string Correo { get; set; } = "";
+    [Required(ErrorMessage="Elige correo electrónico o WhatsApp."), EnumDataType(typeof(CanalConfirmacion), ErrorMessage="Elige correo electrónico o WhatsApp."), Display(Name="Canal de confirmación")] public CanalConfirmacion? Canal { get; set; }
+    [Required(ErrorMessage="Escribe tu nombre o apodo."), StringLength(100, ErrorMessage="El nombre admite hasta 100 caracteres.")] public string? Nombre { get; set; }
+    [Required(ErrorMessage="Escribe tus apellidos."), StringLength(100, ErrorMessage="Los apellidos admiten hasta 100 caracteres.")] public string Apellido { get; set; } = "";
+    [Required(ErrorMessage="Elige una opción."), EnumDataType(typeof(PeluqueriaLucia.Domain.Comun.Sexo), ErrorMessage="Elige una opción.")] public PeluqueriaLucia.Domain.Comun.Sexo? Sexo { get; set; }
     public int? ServicioId { get; set; }
     [Range(typeof(bool), "true", "true", ErrorMessage="Necesitamos tu permiso para contactar sobre esta cita.")]
     public bool Consentimiento { get; set; }

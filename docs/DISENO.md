@@ -47,3 +47,13 @@ El calendario comparte los campos y colores del resto de la aplicación. Permite
 - **Ticket impreso:** papel blanco y tinta negra para que la impresora produzca un recibo legible. Su formato responde al soporte de impresión.
 
 Antes de dar por terminada una pantalla, revisar escritorio y móvil, ambos temas, los estados vacíos y los errores de formulario. No introducir recursos externos de fuentes o scripts para aplicar el diseño.
+
+## Movimiento
+
+La web pública se mueve con [GSAP](https://gsap.com) (ScrollTrigger y SplitText) y [Lenis](https://lenis.darkroom.engineering) para el scroll suave. Están copiadas en `wwwroot/lib` con versión fija: no se cargan de un CDN y respetan la CSP `script-src 'self'`. El panel no carga ninguna.
+
+- Las vistas marcan qué se anima con atributos (`data-anima="subir"`, `data-anima-grupo`, `data-dividir`, `data-parallax`, `data-marquesina`, `data-magnetico`…). `wwwroot/js/movimiento.js` documenta cada uno; no hace falta escribir JavaScript por página.
+- Fondo vivo: hojas y manchas de color tenues que derivan con el scroll, y un grano de papel muy suave. Son decorativos (`aria-hidden`, sin clics) y desaparecen al imprimir.
+- Con «reducir movimiento» del sistema, o si una librería no carga, no se anima nada y todo el contenido se ve desde el principio. Un script del `<head>` oculta lo animable solo mientras se prepara la página, con un máximo de 3 segundos.
+- Movimientos lentos y suaves (`power3`, `expo`), como el resto de la marca. Nada de rebotes salvo en la página de error.
+- Al añadir una página pública: usa los mismos atributos y revisa que se lea bien con el movimiento reducido.

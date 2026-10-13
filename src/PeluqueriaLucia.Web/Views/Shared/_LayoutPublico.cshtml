@@ -1,52 +1,109 @@
 @inject Microsoft.Extensions.Options.IOptionsSnapshot<ContenidoPublico> Publico
 @{
     var n = Publico.Value;
-    var enServicios = ViewContext.RouteData.Values["action"]?.ToString() == "Servicios";
-    var enSalon = ViewContext.RouteData.Values["controller"]?.ToString() == "Inicio" && ViewContext.RouteData.Values["action"]?.ToString() == "Index";
+    var accion = ViewContext.RouteData.Values["action"]?.ToString();
+    var controlador = ViewContext.RouteData.Values["controller"]?.ToString();
+    var enServicios = accion == "Servicios";
+    var enSalon = controlador == "Inicio" && accion == "Index";
+    var idioma = Idioma.Actual(Context);
+    var raiz = Url.Content("~/");
+    var absoluta = Context.Request.Scheme + "://" + Context.Request.Host;
+    var descripcion = ViewData["Descripcion"] as string
+        ?? T["Peluquería ecológica en Oviedo. Coloración vegetal, cortes y tratamientos capilares. El salón está en Pío XII, 10. Solicita tu cita con el equipo del salón."];
+    // Textos que necesitan los scripts (avisos de formularios, calendario…)
+    var textosJs = new Dictionary<string, string>
+    {
+        ["contactoError"] = T["No se ha podido verificar el contacto. Puedes completar tus datos manualmente."],
+        ["contactoEnviado"] = T["Si el teléfono corresponde a una ficha con correo, recibirás un código en ese correo. También puedes continuar rellenando los datos manualmente."],
+        ["contactoCodigo"] = T["Introduce el código de seis dígitos recibido por correo."],
+        ["contactoVerificado"] = T["Contacto verificado. Tus datos se han completado; revísalos antes de solicitar la cita."],
+        ["sinConexion"] = T["No hay conexión con el salón. Revisa tu conexión a internet y vuelve a intentarlo."],
+    };
+    // Calendario (fechas.js): la clave es el texto en español
+    foreach (var clave in new[] { "Elegir fecha", "Año", "Mes", "Periodo anterior", "Periodo siguiente", "Este año", "Este mes", "Hoy", "Seleccionar periodo actual", "Listo", "Cerrar calendario" })
+        textosJs[clave] = T[clave];
 }
 <!DOCTYPE html>
-<html lang="es">
+<html lang="@idioma" data-base="@Context.Request.PathBase">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#183a35" />
     <meta name="color-scheme" content="light dark" />
     <partial name="_TemaInicial" />
-    <meta name="description" content="Peluquería ecológica en Oviedo. Coloración vegetal, cortes y tratamientos capilares. El salón está en Pío XII, 10. Solicita tu cita con el equipo del salón." />
+    @* Oculta lo que se va a animar antes de pintar; si el script de movimiento no llega a ejecutarse, todo aparece igual a los 3 s *@
+    <script nonce="@SeguridadMiddleware.Nonce(Context)">if(!matchMedia('(prefers-reduced-motion: reduce)').matches){var h=document.documentElement;h.classList.add('anima');setTimeout(function(){if(!window.movimientoListo)h.classList.remove('anima')},3000)}</script>
+    <meta name="description" content="@descripcion" />
     <title>@ViewData["Title"] · @n.Nombre</title>
+    <link rel="alternate" hreflang="es" href="@(absoluta + Idioma.UrlEn(Context, Idioma.Espanol))" />
+    <link rel="alternate" hreflang="en" href="@(absoluta + Idioma.UrlEn(Context, Idioma.Ingles))" />
+    <link rel="alternate" hreflang="x-default" href="@(absoluta + Idioma.UrlEn(Context, Idioma.Espanol))" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="@ViewData["Title"] · @n.Nombre" />
+    <meta property="og:description" content="@descripcion" />
+    <meta property="og:locale" content="@(idioma == Idioma.Ingles ? "en_GB" : "es_ES")" />
     <link rel="icon" href="~/favicon.ico" />
+    <link rel="stylesheet" href="~/lib/lenis/lenis.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/tokens.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/base.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/componentes.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/publico.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/agenda.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/movimiento.css" asp-append-version="true" />
 </head>
 <body class="sitio-publico">
-    <a class="saltar" href="#contenido">Saltar al contenido</a>
-    <header class="cabecera-publica">
-        <a class="marca-publica" asp-area="" asp-controller="Inicio" asp-action="Index" aria-label="Lucía, inicio">
-            <img src="~/Img/Icono.jpg" alt="Logo de Lucía" width="64" height="64" />
-            <span><strong>Lucía</strong><small>PELUQUERÍA ECOLÓGICA</small></span>
+    <a class="saltar" href="#contenido">@T["Saltar al contenido"]</a>
+    @* Fondo vivo: hojas y manchas orgánicas que se mueven con el scroll. Decorativo, no recibe clics. *@
+    <div class="fondo-vivo" aria-hidden="true">
+        <svg class="fondo-hoja fondo-hoja-1" viewBox="0 0 200 320"><path d="M100 8C40 70 18 150 40 222c14 46 42 78 60 90 18-12 46-44 60-90C182 150 160 70 100 8Z" /><path class="nervio" d="M100 30v280M100 110l-34-30M100 150l38-34M100 196l-44-36M100 236l46-38" /></svg>
+        <svg class="fondo-hoja fondo-hoja-2" viewBox="0 0 200 320"><path d="M100 8C40 70 18 150 40 222c14 46 42 78 60 90 18-12 46-44 60-90C182 150 160 70 100 8Z" /><path class="nervio" d="M100 30v280M100 110l-34-30M100 150l38-34M100 196l-44-36M100 236l46-38" /></svg>
+        <svg class="fondo-hoja fondo-hoja-3" viewBox="0 0 200 320"><path d="M100 8C40 70 18 150 40 222c14 46 42 78 60 90 18-12 46-44 60-90C182 150 160 70 100 8Z" /><path class="nervio" d="M100 30v280M100 110l-34-30M100 150l38-34M100 196l-44-36M100 236l46-38" /></svg>
+        <span class="fondo-mancha fondo-mancha-1"></span>
+        <span class="fondo-mancha fondo-mancha-2"></span>
+        <span class="fondo-mancha fondo-mancha-3"></span>
+    </div>
+    <header class="cabecera-publica" data-cabecera>
+        <a class="marca-publica" asp-area="" asp-controller="Inicio" asp-action="Index" aria-label="@T["Lucía, inicio"]">
+            <img src="~/Img/Icono.jpg" alt="@T["Logo de Lucía"]" width="64" height="64" />
+            <span><strong>Lucía</strong><small>@T["PELUQUERÍA ECOLÓGICA"]</small></span>
         </a>
-        <nav aria-label="Navegación principal">
-            <a asp-area="" asp-controller="Inicio" asp-action="Index" aria-current="@(enSalon ? "page" : null)">El salón</a>
-            <a asp-area="" asp-controller="Inicio" asp-action="Servicios" aria-current="@(enServicios ? "page" : null)">Servicios</a>
-            <a href="@Url.Action("Index", "Inicio", new { area = "" })#contacto">Contacto</a>
-            <a class="enlace-admin" asp-area="Admin" asp-controller="Panel" asp-action="Index">Administración <span aria-hidden="true">↗</span></a>
-            <a asp-area="" asp-controller="Opiniones" asp-action="Index">Opiniones</a>
-            <a href="/citas">Citas</a>
+        <nav aria-label="@T["Navegación principal"]">
+            <a asp-area="" asp-controller="Inicio" asp-action="Index" aria-current="@(enSalon ? "page" : null)">@T["El salón"]</a>
+            <a asp-area="" asp-controller="Inicio" asp-action="Servicios" aria-current="@(enServicios ? "page" : null)">@T["Servicios"]</a>
+            <a asp-area="" asp-controller="Opiniones" asp-action="Index" aria-current="@(controlador == "Opiniones" ? "page" : null)">@T["Opiniones"]</a>
+            <a asp-area="" asp-controller="Agenda" asp-action="Index" aria-current="@(controlador == "Agenda" ? "page" : null)">@T["Citas"]</a>
+            <a href="@(raiz)#contacto">@T["Contacto"]</a>
         </nav>
-        <a class="btn btn-primary" href="/citas">Reservar cita <span aria-hidden="true">↗</span></a>
+        <div class="cabecera-acciones">
+            <div class="selector-idioma" role="group" aria-label="Idioma · Language">
+                <a href="@Idioma.UrlEn(Context, Idioma.Espanol)" hreflang="es" lang="es" aria-current="@(idioma == Idioma.Espanol ? "true" : null)" title="Español">ES</a>
+                <a href="@Idioma.UrlEn(Context, Idioma.Ingles)" hreflang="en" lang="en" aria-current="@(idioma == Idioma.Ingles ? "true" : null)" title="English">EN</a>
+            </div>
+            <a class="btn btn-primary" asp-area="" asp-controller="Agenda" asp-action="Index" data-magnetico>@T["Reservar cita"] <span aria-hidden="true">↗</span></a>
+        </div>
     </header>
     <main class="fondo-identidad" id="contenido">@RenderBody()</main>
     <footer class="pie-publico">
-        <div class="firma-pie"><img src="~/Img/Icono.jpg" alt="" width="76" height="76" /><div><strong>Lucía</strong><p>Peluquería ecológica · @n.Ciudad</p></div></div>
+        <div class="firma-pie"><img src="~/Img/Icono.jpg" alt="" width="76" height="76" /><div><strong>Lucía</strong><p>@T["Peluquería ecológica"] · @n.Ciudad</p></div></div>
         <div><a href="@n.TelefonoEnlace">@n.Telefono</a><p>@n.Direccion · @n.CodigoPostal @n.Ciudad</p></div>
-        <div><a href="@n.Reservas" target="_blank" rel="noopener noreferrer">Reservar en Booksy ↗</a><p><a asp-area="Admin" asp-controller="Panel" asp-action="Index">Panel de administración ↗</a></p></div>
-        <div class="pie-nota"><p>© @DateTime.Now.Year @n.Nombre. Hecho para cuidar de ti.</p><partial name="_SelectorTema" /></div>
+        <div><a href="@n.Reservas" target="_blank" rel="noopener noreferrer">@T["Reservar en Booksy"] ↗</a><p><a href="@Idioma.SinIdioma(Context, "/admin")" hreflang="es">@T["Panel de administración"] ↗</a></p></div>
+        <div class="pie-nota">
+            <nav class="pie-legal" aria-label="@T["Información legal"]">
+                <a asp-area="" asp-controller="Legal" asp-action="Privacidad">@T["Política de privacidad"]</a>
+                <a asp-area="" asp-controller="Legal" asp-action="Terminos">@T["Términos y condiciones"]</a>
+            </nav>
+            <p>© @DateTime.Now.Year @n.Nombre. @T["Hecho para cuidar de ti."]</p>
+            <partial name="_SelectorTema" />
+        </div>
     </footer>
+    <script type="application/json" id="textos-js">@Json.Serialize(textosJs)</script>
     <script src="~/js/app.js" asp-append-version="true"></script>
     <script src="~/js/fechas.js" asp-append-version="true"></script>
+    <script src="~/lib/gsap/gsap.min.js" asp-append-version="true" defer></script>
+    <script src="~/lib/gsap/ScrollTrigger.min.js" asp-append-version="true" defer></script>
+    <script src="~/lib/gsap/SplitText.min.js" asp-append-version="true" defer></script>
+    <script src="~/lib/lenis/lenis.min.js" asp-append-version="true" defer></script>
+    <script src="~/js/movimiento.js" asp-append-version="true" defer></script>
     @if (ViewData["ControlSesion"] is true) { <partial name="_ControlSesion" /> }
     @await RenderSectionAsync("Scripts", required: false)
 </body>

@@ -13,13 +13,16 @@
         return /^\+34[67][0-9]{8}$/.test(n) ? n : null;
     };
     const avisar = texto => { estado.hidden = false; estado.textContent = texto; };
+    const { texto } = window.Peluqueria;
+    const fallo = () => texto('contactoError', 'No se ha podido verificar el contacto. Puedes completar tus datos manualmente.');
+    // Contrato: POST con language y antifalsificación → 200 JSON; 400 { mensaje }; 429 texto plano con Retry-After.
     async function enviar(url, valores, signal) {
-        const respuesta = await fetch(url, { method: 'POST', credentials: 'same-origin', signal,
-            headers: { Accept: 'application/json' }, body: new URLSearchParams({ ...valores,
-                __RequestVerificationToken: form.elements.namedItem('__RequestVerificationToken').value }) });
-        if (!respuesta.headers.get('content-type')?.includes('application/json')) throw new Error('No se ha podido verificar el contacto. Puedes completar tus datos manualmente.');
+        const respuesta = await window.Peluqueria.enviar(url, { ...valores,
+            __RequestVerificationToken: form.elements.namedItem('__RequestVerificationToken').value }, { signal });
+        if (respuesta.status === 429) throw new Error(await respuesta.text() || fallo());
+        if (!respuesta.headers.get('content-type')?.includes('application/json')) throw new Error(fallo());
         const datos = await respuesta.json();
-        if (!respuesta.ok) throw new Error(datos.mensaje || 'No se ha podido verificar el contacto. Puedes completar tus datos manualmente.');
+        if (!respuesta.ok) throw new Error(datos.mensaje || fallo());
         return datos;
     }
     async function solicitar(forzar = false) {
@@ -28,10 +31,10 @@
         const actual = ++revision; peticion?.abort(); peticion = new AbortController();
         movilSolicitado = movil; reenviar.disabled = true;
         try {
-            const datos = await enviar('/citas/contacto/solicitar', { telefono: movil }, peticion.signal);
+            const datos = await enviar(form.dataset.urlSolicitar, { telefono: movil }, peticion.signal);
             if (actual !== revision) return;
             desafio = datos.id; panel.hidden = false;
-            avisar('Si el teléfono corresponde a una ficha con correo, recibirás un código en ese correo. También puedes continuar rellenando los datos manualmente.');
+            avisar(texto('contactoEnviado'));
         } catch (error) { if (error.name !== 'AbortError' && actual === revision) avisar(error.message); }
         finally { reenviar.disabled = false; }
     }
@@ -50,17 +53,17 @@
     });
     reenviar.addEventListener('click', () => solicitar(true));
     verificar.addEventListener('click', async () => {
-        if (!desafio || !/^[0-9]{6}$/.test(codigo.value)) { avisar('Introduce el código de seis dígitos recibido por correo.'); return; }
+        if (!desafio || !/^[0-9]{6}$/.test(codigo.value)) { avisar(texto('contactoCodigo')); return; }
         const actual = ++revision; peticion?.abort(); peticion = new AbortController(); verificar.disabled = true;
         try {
-            const datos = await enviar('/citas/contacto/verificar', { id: desafio, codigo: codigo.value }, peticion.signal);
+            const datos = await enviar(form.dataset.urlVerificar, { id: desafio, codigo: codigo.value }, peticion.signal);
             if (actual !== revision) return;
             const sexo = ['Hombre', 'Mujer', 'Otro'][datos.sexo];
             relleno = { Nombre: datos.nombre, Apellido: datos.apellido, Correo: datos.correo, Sexo: sexo };
             for (const nombre of ['Nombre', 'Apellido', 'Correo']) campo(nombre).value = relleno[nombre];
             for (const radio of form.querySelectorAll('input[name="Formulario.Sexo"]')) radio.checked = radio.value === sexo;
             desafio = null; codigo.value = ''; panel.hidden = true;
-            avisar('Contacto verificado. Tus datos se han completado; revísalos antes de solicitar la cita.');
+            avisar(texto('contactoVerificado'));
         } catch (error) { if (error.name !== 'AbortError' && actual === revision) avisar(error.message); }
         finally { verificar.disabled = false; }
     });

@@ -3,12 +3,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using PeluqueriaLucia.Application.Agenda;
 using PeluqueriaLucia.Web.Models;
+using PeluqueriaLucia.Web.Publico;
 using PeluqueriaLucia.Web.Seguridad;
 
 namespace PeluqueriaLucia.Web.Controllers;
 
 [AllowAnonymous, EnableRateLimiting(LimitesDePeticiones.Publico), ResponseCache(NoStore=true, Location=ResponseCacheLocation.None)]
-public sealed class AgendaController(IAgendaService agenda, IComunicacionesCitas comunicaciones, VerificacionContactoService verificacion) : Controller
+public sealed class AgendaController(IAgendaService agenda, IComunicacionesCitas comunicaciones, VerificacionContactoService verificacion, Textos textos) : Controller
 {
     [HttpGet("/citas")]
     public async Task<IActionResult> Index(DateOnly? dia, int? servicioId, CancellationToken ct)
@@ -22,12 +23,12 @@ public sealed class AgendaController(IAgendaService agenda, IComunicacionesCitas
     public async Task<IActionResult> Index([Bind(Prefix="Formulario")] ReservaFormulario formulario, CancellationToken ct)
     {
         if (!string.IsNullOrEmpty(formulario.Web)) return BadRequest();
-        if (formulario.Dia < agenda.Hoy || formulario.Dia > agenda.Hoy.AddDays(90)) ModelState.AddModelError("Formulario.Dia", "Selecciona un día dentro de los próximos 90 días.");
+        if (formulario.Dia < agenda.Hoy || formulario.Dia > agenda.Hoy.AddDays(90)) ModelState.AddModelError("Formulario.Dia", textos["Selecciona un día dentro de los próximos 90 días."]);
         if (ModelState.IsValid)
         {
             var r = await agenda.SolicitarAsync(new(formulario.SolicitudId, formulario.Dia, formulario.Hora!.Value, formulario.Telefono, formulario.Nombre, formulario.ServicioId, IpCliente.De(HttpContext), formulario.Correo, formulario.Canal!.Value, formulario.Apellido, formulario.Sexo), ct);
             if (r.Exito) { TempData["cita-solicitada"] = true; return RedirectToAction(nameof(Recibida)); }
-            ModelState.AddModelError(r.Error!.Campo is null ? "" : "Formulario." + r.Error.Campo, r.Error.Mensaje);
+            ModelState.AddModelError(r.Error!.Campo is null ? "" : "Formulario." + r.Error.Campo, textos[r.Error.Mensaje]);
         }
         Response.StatusCode=400;
         ViewData["ContactoVerificable"] = verificacion.Disponible;
@@ -49,7 +50,7 @@ public sealed class AgendaController(IAgendaService agenda, IComunicacionesCitas
         Response.Headers["Referrer-Policy"] = "no-referrer";
         var resultado = await comunicaciones.AceptarAsync(token, ct);
         if (resultado.Exito) { TempData["cita-aceptada"] = true; return RedirectToAction(nameof(Aceptada)); }
-        ModelState.AddModelError("", resultado.Error!.Mensaje); Response.StatusCode = 410;
+        ModelState.AddModelError("", textos[resultado.Error!.Mensaje]); Response.StatusCode = 410;
         return View("Confirmar", new AceptacionPagina(token, null));
     }
     [HttpGet("/citas/aceptada")]
@@ -61,7 +62,7 @@ public sealed class AgendaController(IAgendaService agenda, IComunicacionesCitas
     public async Task<IActionResult> VerificarContacto(Guid id, string? codigo, CancellationToken ct)
     {
         var r=await verificacion.VerificarAsync(id,codigo,ct);
-        return r.Exito ? Json(r.Valor) : BadRequest(new { mensaje=r.Error!.Mensaje });
+        return r.Exito ? Json(r.Valor) : BadRequest(new { mensaje=textos[r.Error!.Mensaje] });
     }
     private DateOnly Limitar(DateOnly? dia) => dia is null || dia < agenda.Hoy || dia > agenda.Hoy.AddDays(90) ? agenda.Hoy : dia.Value;
     private async Task<ReservaPagina> PaginaAsync(ReservaFormulario f, CancellationToken ct) => new(f, await agenda.ServiciosAsync(ct), await agenda.DisponibilidadAsync(Limitar(f.Dia), f.ServicioId, ct), agenda.Hoy);

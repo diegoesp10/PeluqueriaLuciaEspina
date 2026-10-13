@@ -21,6 +21,17 @@ public sealed class ContenidoPublico
 
     public string Telefono { get; set; } = string.Empty;
 
+    /// <summary>Titular del negocio (persona o sociedad) para la política de privacidad y el aviso legal.</summary>
+    public string Titular { get; set; } = string.Empty;
+
+    /// <summary>NIF del titular. Obligatorio por la LSSI en el aviso legal.</summary>
+    public string Nif { get; set; } = string.Empty;
+
+    /// <summary>Correo de contacto para ejercer derechos de protección de datos.</summary>
+    public string Correo { get; set; } = string.Empty;
+
+    public string TitularVisible => string.IsNullOrWhiteSpace(Titular) ? Nombre : Titular;
+
     public string Instagram { get; set; } = string.Empty;
 
     public string InstagramUsuario { get; set; } = string.Empty;

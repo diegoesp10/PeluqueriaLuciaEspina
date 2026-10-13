@@ -284,8 +284,16 @@ public sealed class SeguridadWebTests(SeguridadWebFixture fixture) : IClassFixtu
         {
             var respuesta = await cliente.GetAsync(ruta);
             Assert.Equal(HttpStatusCode.Redirect, respuesta.StatusCode);
+            // Las direcciones anteriores a /admin llevan primero a su equivalente, que exige sesión
+            if (!ruta.StartsWith("/admin", StringComparison.Ordinal))
+            {
+                Assert.Equal("/admin" + ruta, respuesta.Headers.Location!.ToString());
+                respuesta = await cliente.GetAsync(respuesta.Headers.Location);
+                Assert.Equal(HttpStatusCode.Redirect, respuesta.StatusCode);
+            }
             Assert.Contains("/admin/acceso", respuesta.Headers.Location!.ToString());
         }
+        Assert.Equal(HttpStatusCode.NotFound, (await cliente.GetAsync("/no-existe/tampoco")).StatusCode);
         cliente.DefaultRequestHeaders.Accept.ParseAdd("application/json");
         Assert.Equal(HttpStatusCode.Unauthorized, (await cliente.GetAsync("/admin/Clientes/Buscar")).StatusCode);
     }

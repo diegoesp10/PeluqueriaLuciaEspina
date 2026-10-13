@@ -13,6 +13,9 @@
     <Content Remove="wwwroot\imagenes\**" />
     <Content Remove="AlmacenResenas\**" />
     <None Include="wwwroot\imagenes\**" />
+    <Content Remove="Publico\textos.en.json" />
+    <!-- WithCulture=false: el «.en» del nombre no indica un ensamblado satélite de recursos -->
+    <EmbeddedResource Include="Publico\textos.en.json" LogicalName="PeluqueriaLucia.Web.Publico.textos.en.json" WithCulture="false" />
     <Content Update="contenido-publico.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <ProjectReference Include="..\PeluqueriaLucia.Infrastructure\PeluqueriaLucia.Infrastructure.csproj" />
   </ItemGroup>

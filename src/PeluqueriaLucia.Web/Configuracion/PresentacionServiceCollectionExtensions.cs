@@ -13,27 +13,44 @@ namespace PeluqueriaLucia.Web.Configuracion;
 /// <summary>Servicios de la capa web: MVC, seguridad, cultura, opciones y preparación de la base de datos al arrancar.</summary>
 public static class PresentacionServiceCollectionExtensions
 {
-    private static readonly CultureInfo Espanol = CultureInfo.GetCultureInfo("es-ES");
 
     public static IServiceCollection AddPresentacion(
         this IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment)
     {
+        // Traducciones de la web pública: las mismas para vistas, validaciones y controladores
+        var textos = new Textos();
+        services.AddSingleton(textos);
         services.AddControllersWithViews(o =>
         {
             // Acepta «12,50» y «12.50» por igual, sin depender del idioma de Windows
             o.ModelBinderProviders.Insert(0, new DecimalFlexibleModelBinderProvider());
             o.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
-        });
+            // Sin esto, un valor mal escrito («25:99» en una hora) mostraba el mensaje del framework en inglés
+            var m = o.ModelBindingMessageProvider;
+            m.SetAttemptedValueIsInvalidAccessor((valor, _) => textos.F("El valor «{0}» no es válido.", valor));
+            m.SetNonPropertyAttemptedValueIsInvalidAccessor(valor => textos.F("El valor «{0}» no es válido.", valor));
+            m.SetUnknownValueIsInvalidAccessor(_ => textos["Revisa este dato."]);
+            m.SetNonPropertyUnknownValueIsInvalidAccessor(() => textos["Revisa este dato."]);
+            m.SetValueIsInvalidAccessor(valor => textos.F("El valor «{0}» no es válido.", valor));
+            m.SetValueMustBeANumberAccessor(_ => textos["Escribe un número."]);
+            m.SetNonPropertyValueMustBeANumberAccessor(() => textos["Escribe un número."]);
+            m.SetValueMustNotBeNullAccessor(_ => textos["Este dato es obligatorio."]);
+            m.SetMissingBindRequiredValueAccessor(_ => textos["Este dato es obligatorio."]);
+            m.SetMissingKeyOrValueAccessor(() => textos["Este dato es obligatorio."]);
+            m.SetMissingRequestBodyRequiredValueAccessor(() => textos["Faltan los datos del formulario."]);
+        }).AddDataAnnotationsLocalization(o => o.DataAnnotationLocalizerProvider = (_, _) => textos);
 
         services.AddSeguridad(configuration);
 
-        // Fechas e importes siempre en español de España, sea cual sea el idioma del equipo o del navegador
+        // Español de España salvo en la web pública bajo /en (ver Idioma). No depende del idioma del equipo ni del navegador.
         services.Configure<RequestLocalizationOptions>(o =>
         {
-            o.DefaultRequestCulture = new RequestCulture(Espanol);
-            o.SupportedCultures = [Espanol];
-            o.SupportedUICultures = [Espanol];
+            o.DefaultRequestCulture = new RequestCulture(Idioma.CulturaEspanol);
+            o.SupportedCultures = [Idioma.CulturaEspanol, Idioma.CulturaIngles];
+            o.SupportedUICultures = [Idioma.CulturaEspanol, Idioma.CulturaIngles];
             o.RequestCultureProviders.Clear();
+            o.RequestCultureProviders.Add(new CustomRequestCultureProvider(c => Task.FromResult<ProviderCultureResult?>(
+                Idioma.EsIngles(c) ? new ProviderCultureResult("en-GB") : null)));
         });
 
         services.Configure<DatosNegocio>(configuration.GetSection(DatosNegocio.Seccion));

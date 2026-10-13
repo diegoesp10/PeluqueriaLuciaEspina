@@ -68,8 +68,12 @@ public static class LimitesDePeticiones
         var segundos = contexto.Lease.TryGetMetadata(MetadataName.RetryAfter, out var espera)
             ? Math.Max(1, (int)Math.Ceiling(espera.TotalSeconds)) : esperaPorDefecto;
         http.Response.Headers.RetryAfter = segundos.ToString(CultureInfo.InvariantCulture);
+        // Navegación normal: sin cuerpo, para que se muestre la página de error 429 del sitio
+        if (http.Request.Headers["Sec-Fetch-Mode"] == "navigate" || http.Request.Headers.Accept.ToString().Contains("text/html", StringComparison.Ordinal))
+            return;
         http.Response.ContentType = "text/plain; charset=utf-8";
-        await http.Response.WriteAsync(
-            $"Demasiadas peticiones seguidas desde tu conexión. Espera {segundos} segundos y vuelve a intentarlo.", ct);
+        await http.Response.WriteAsync(PeluqueriaLucia.Web.Publico.Idioma.EsIngles(http)
+            ? $"Too many requests from your connection. Please wait {segundos} seconds and try again."
+            : $"Demasiadas peticiones seguidas desde tu conexión. Espera {segundos} segundos y vuelve a intentarlo.", ct);
     }
 }

@@ -122,7 +122,60 @@
 })();
 
 /** Utilidades compartidas por los scripts de cada pantalla. */
+const textosPagina = (() => {
+  try {
+    return JSON.parse(document.getElementById('textos-js')?.textContent ?? '{}');
+  } catch {
+    return {};
+  }
+})();
+
 window.Peluqueria = {
+  /** Idioma de la página («es» o «en»); viaja como «language» en todas las llamadas al servidor. */
+  idioma: document.documentElement.lang === 'en' ? 'en' : 'es',
+
+  /** Cultura para Intl (fechas, importes). */
+  get cultura() {
+    return this.idioma === 'en' ? 'en-GB' : 'es-ES';
+  },
+
+  /** Texto traducido que la página deja en #textos-js; si falta, el texto de respaldo. */
+  texto(clave, respaldo = '') {
+    return textosPagina[clave] ?? respaldo;
+  },
+
+  /** Ruta dentro del idioma actual: «/error/500» → «/en/error/500» en la web inglesa. */
+  ruta(ruta) {
+    return (document.documentElement.dataset.base ?? '') + ruta;
+  },
+
+  /**
+   * POST de formulario a la API pública. Añade «language» y Accept-Language. Los errores graves del servidor
+   * (5xx, 403, 404) llevan a la página de error del sitio; los de validación (400) y el límite (429) se devuelven
+   * para mostrarlos junto al formulario.
+   */
+  async enviar(url, valores, { signal } = {}) {
+    let respuesta;
+    try {
+      respuesta = await fetch(url, {
+        method: 'POST',
+        credentials: 'same-origin',
+        signal,
+        headers: { Accept: 'application/json', 'Accept-Language': this.idioma },
+        body: new URLSearchParams({ ...valores, language: this.idioma }),
+      });
+    } catch (error) {
+      if (error.name === 'AbortError') throw error;
+      throw new Error(this.texto('sinConexion', 'No hay conexión con el salón.'));
+    }
+    if (respuesta.status >= 500 || respuesta.status === 403 || respuesta.status === 404) {
+      window.location.assign(this.ruta(`/error/${respuesta.status}`));
+      throw Object.assign(new Error('redirigido'), { name: 'AbortError' });
+    }
+    return respuesta;
+  },
+
+
   /** Lee un importe escrito con coma o punto («12,50» o «12.50»). */
   leerImporte(texto) {
     const limpio = String(texto ?? '').replace(/[€\s]/g, '');
@@ -139,7 +192,7 @@ window.Peluqueria = {
     return Math.round(importe * 100);
   },
 
-  euros: new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }),
+  euros: new Intl.NumberFormat(document.documentElement.lang === 'en' ? 'en-GB' : 'es-ES', { style: 'currency', currency: 'EUR' }),
 
   /** Importe para un campo de texto: «12,50». */
   importeCampo(importe) {

@@ -49,7 +49,11 @@ public static class Autenticacion
             (o, seguridad) => o.Cookie.SecurePolicy = seguridad.Value.RequerirHttps ? CookieSecurePolicy.Always : CookieSecurePolicy.SameAsRequest);
 
         services.AddAuthorizationBuilder()
-            .SetFallbackPolicy(new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder(Esquema).RequireAuthenticatedUser().Build())
+            // Todo endpoint sin [AllowAnonymous] exige sesión. Una URL que no existe no tiene endpoint: debe acabar en el
+            // 404 del sitio, no en el login del panel (antes, cualquier enlace roto de la web llevaba a /admin/acceso).
+            .SetFallbackPolicy(new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder(Esquema)
+                .RequireAssertion(c => c.User.Identity?.IsAuthenticated == true || (c.Resource is HttpContext h && h.GetEndpoint() is null))
+                .Build())
             .AddPolicy(PoliticaAdministrador, p => p
                 .AddAuthenticationSchemes(Esquema)
                 .RequireAuthenticatedUser()

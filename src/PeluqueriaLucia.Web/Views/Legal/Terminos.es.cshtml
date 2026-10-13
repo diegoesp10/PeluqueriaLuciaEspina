@@ -1,0 +1,58 @@
+@model ContenidoPublico
+@{
+    ViewData["Title"] = "Términos y condiciones";
+    ViewData["Descripcion"] = "Condiciones de uso de la web de Lucía Peluquería Ecológica, de las solicitudes de cita y de las opiniones.";
+}
+<article class="seccion-publica pagina-legal">
+    <header class="legal-portada">
+        <p class="etiqueta" data-anima="subir">INFORMACIÓN LEGAL</p>
+        <h1 data-dividir>Términos y<br /><em>condiciones.</em></h1>
+        <p class="intro" data-anima="subir">Las reglas del juego, claras y sin letra pequeña: cómo funciona pedir cita, qué pasa con tus opiniones y qué puedes esperar de esta web.</p>
+        <p class="nota" data-anima="subir">Última actualización: 13 de octubre de 2026</p>
+    </header>
+    <nav class="legal-indice" aria-label="Contenido">
+        <a href="#titular">Titular</a><a href="#citas">Citas</a><a href="#precios">Precios</a><a href="#opiniones">Opiniones</a><a href="#uso">Uso de la web</a><a href="#ley">Ley aplicable</a>
+    </nav>
+    <div class="legal-texto">
+        <section id="titular" data-anima="subir">
+            <h2>1. Quiénes somos</h2>
+            <p>Esta web pertenece a @Model.TitularVisible@(string.IsNullOrWhiteSpace(Model.Nif) ? "" : $", con NIF {Model.Nif}"), que presta sus servicios en el salón situado en @Model.Direccion, @Model.CodigoPostal @Model.Ciudad. Puedes contactar en el <a href="@Model.TelefonoEnlace">@Model.Telefono</a>@(string.IsNullOrWhiteSpace(Model.Correo) ? "" : " o en " + Model.Correo).</p>
+            <p>Usar la web supone aceptar estas condiciones. Cómo tratamos tus datos se explica en la <a asp-action="Privacidad">política de privacidad</a>.</p>
+        </section>
+        <section id="citas" data-anima="subir">
+            <h2>2. Cómo funciona pedir cita</h2>
+            <ol>
+                <li><strong>Envías una solicitud</strong> con el día, la hora y el servicio. Todavía no es una cita confirmada: reservamos ese hueco provisionalmente durante 24 horas.</li>
+                <li><strong>El equipo la revisa</strong> y te llama para validar el teléfono y ajustar el tiempo que necesita tu servicio. Puede proponerte otra duración o rechazar la solicitud si no encaja en la agenda.</li>
+                <li><strong>Recibes una propuesta</strong> por el canal que elegiste. La cita queda confirmada cuando la aceptas en el enlace, que caduca a las 24 horas o al empezar la cita. Si ya lo habéis acordado por teléfono, el equipo puede confirmarla directamente.</li>
+            </ol>
+            <p>Si no puedes venir, avísanos cuanto antes por teléfono para que otra persona pueda aprovechar el hueco. El salón puede anotar internamente que no acudiste a una cita confirmada sin avisar; esa información nunca se publica.</p>
+            <p>Si por un imprevisto el salón tiene que cambiar o cancelar tu cita, te avisaremos lo antes posible para buscar otro momento.</p>
+            <p>También puedes reservar en <a href="@Model.Reservas" target="_blank" rel="noopener noreferrer">Booksy</a>, donde se aplican sus propias condiciones.</p>
+        </section>
+        <section id="precios" data-anima="subir">
+            <h2>3. Precios y pago</h2>
+            <p>Los precios de la carta de servicios son informativos. Los marcados como «desde» dependen del largo, la cantidad de cabello o el producto, y los marcados como «consultar» se presupuestan en el salón. Antes de empezar, el equipo te confirma el precio final.</p>
+            <p>La web no cobra nada: el pago se hace en el salón, en efectivo o con tarjeta, y recibes un ticket.</p>
+        </section>
+        <section id="opiniones" data-anima="subir">
+            <h2>4. Opiniones</h2>
+            <ul>
+                <li>Solo puede opinar quien ha visitado el salón, con el código de su ticket. Cada código sirve una vez y caduca a los seis meses.</li>
+                <li>Las opiniones se revisan antes de publicarse. Publicamos las positivas y las negativas por igual; solo retiramos las que contengan insultos, datos personales de otras personas, publicidad o contenido sin relación con la visita.</li>
+                <li>Al enviar tu opinión y, si la adjuntas, tu foto, nos autorizas a publicarlas en esta web con el nombre que elijas. Puedes pedir que las retiremos cuando quieras.</li>
+                <li>Sube solo fotos tuyas o que tengas permiso para compartir. El equipo puede responder públicamente a tu opinión.</li>
+            </ul>
+        </section>
+        <section id="uso" data-anima="subir">
+            <h2>5. Uso de la web</h2>
+            <p>Te pedimos que uses la web de buena fe: sin enviar solicitudes falsas, sin suplantar a otras personas y sin intentar saturarla o acceder a zonas restringidas. Para protegerla, limitamos el número de peticiones seguidas desde una misma conexión.</p>
+            <p>El logo, las fotos y los textos pertenecen al salón o se usan con permiso; no los reproduzcas sin autorización.</p>
+            <p>Intentamos que la web esté siempre disponible y que la información sea correcta, pero puede haber interrupciones o errores puntuales. Los enlaces a otras webs (Booksy, Google Maps, Instagram) son responsabilidad de sus titulares.</p>
+        </section>
+        <section id="ley" data-anima="subir">
+            <h2>6. Ley aplicable</h2>
+            <p>Estas condiciones se rigen por la ley española. Si eres consumidor, puedes acudir a los juzgados de tu domicilio y a los servicios de consumo de tu comunidad autónoma. Antes de nada, cuéntanos el problema: seguro que lo resolvemos hablando.</p>
+        </section>
+    </div>
+</article>

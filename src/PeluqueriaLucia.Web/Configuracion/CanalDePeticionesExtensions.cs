@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
+using PeluqueriaLucia.Web.Publico;
 using PeluqueriaLucia.Web.Seguridad;
 
 namespace PeluqueriaLucia.Web.Configuracion;
@@ -13,6 +14,8 @@ public static class CanalDePeticionesExtensions
     {
         if (app.Services.GetRequiredService<IOptions<OpcionesSeguridad>>().Value.ProxiesConfiables.Length > 0)
             app.UseForwardedHeaders();
+        // /en/… → web en inglés; debe ir antes que todo lo que mira la ruta
+        app.UsePrefijoDeIdioma();
         app.UseRequestLocalization();
 
         // Nunca publicar la traza de una excepción, tampoco bajo Visual Studio.
@@ -29,7 +32,7 @@ public static class CanalDePeticionesExtensions
                 contexto.Response.Headers.ContentSecurityPolicy = "default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; frame-ancestors 'none'";
                 contexto.Response.ContentType = "text/html; charset=utf-8";
                 // Independiente de SQL, cookies, TempData y vistas: funciona incluso si falla Data Protection.
-                await contexto.Response.WriteAsync("<!doctype html><html lang=\"es\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width\"><title>Algo ha fallado · Lucía</title><link rel=\"stylesheet\" href=\"/css/error.css\"></head><body><main><img src=\"/Img/Icono.jpg\" width=\"100\" height=\"100\" alt=\"Lucía Peluquería Ecológica\"><h1>Algo ha fallado</h1><p>No hemos podido completar esta operación. Vuelve a intentarlo en unos minutos.</p><a href=\"/\">Volver al inicio</a><p class=\"referencia\">Referencia: " + System.Net.WebUtility.HtmlEncode(contexto.TraceIdentifier) + "</p></main></body></html>");
+                await contexto.Response.WriteAsync(PaginaDeFallo(contexto));
             }
         });
         app.UseStatusCodePagesWithReExecute("/error/{0}");
@@ -48,7 +51,7 @@ public static class CanalDePeticionesExtensions
         // Los recursos públicos funcionan también al ejecutar la publicación bajo Development.
         // No servir por este canal las fotos internas /imagenes: pasan por su controlador protegido.
         app.UseWhen(c => c.Request.Path.StartsWithSegments("/css") || c.Request.Path.StartsWithSegments("/js") ||
-            c.Request.Path.StartsWithSegments("/Img") || c.Request.Path.StartsWithSegments("/publico") || c.Request.Path == "/favicon.ico",
+            c.Request.Path.StartsWithSegments("/Img") || c.Request.Path.StartsWithSegments("/lib") || c.Request.Path.StartsWithSegments("/publico") || c.Request.Path == "/favicon.ico",
             recursos => recursos.UseStaticFiles());
 
         app.UseRouting();
@@ -56,6 +59,16 @@ public static class CanalDePeticionesExtensions
         app.UseAuthentication();
         app.UseAuthorization();
         return app;
+    }
+
+    private static string PaginaDeFallo(HttpContext contexto)
+    {
+        var ingles = Idioma.EsIngles(contexto);
+        var raiz = System.Net.WebUtility.HtmlEncode(contexto.Request.PathBase.Value + "/");
+        var (idioma, titulo, texto, volver, referencia) = ingles
+            ? ("en", "Something went wrong", "We couldn't complete this request. Please try again in a few minutes.", "Back to the salon", "Reference")
+            : ("es", "Algo ha fallado", "No hemos podido completar esta operación. Vuelve a intentarlo en unos minutos.", "Volver al inicio", "Referencia");
+        return $"<!doctype html><html lang=\"{idioma}\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width\"><title>{titulo} · Lucía</title><link rel=\"stylesheet\" href=\"/css/error.css\"></head><body><main><img src=\"/Img/Icono.jpg\" width=\"100\" height=\"100\" alt=\"Lucía Peluquería Ecológica\"><h1>{titulo}</h1><p>{texto}</p><a href=\"{raiz}\">{volver}</a><p class=\"referencia\">{referencia}: {System.Net.WebUtility.HtmlEncode(contexto.TraceIdentifier)}</p></main></body></html>";
     }
 
     public static WebApplication MapRutas(this WebApplication app)
@@ -68,6 +81,13 @@ public static class CanalDePeticionesExtensions
             .WithStaticAssets();
         app.MapControllerRoute(name: "publico", pattern: "{controller=Inicio}/{action=Index}/{id?}")
             .WithStaticAssets();
+
+        // Direcciones de antes de mover la gestión a /admin (favoritos, accesos directos): llevan a su sitio nuevo,
+        // que pide sesión. Lo demás que no existe acaba en la página 404.
+        foreach (var antigua in new[] { "Clientes", "Visitas", "Catalogo", "imagenes" })
+            app.MapGet($"/{antigua}/{{**resto}}", (HttpContext c) =>
+                    Results.Redirect($"{c.Request.PathBase}/admin{c.Request.Path}{c.Request.QueryString}"))
+                .AllowAnonymous();
         return app;
     }
 

@@ -1,0 +1,92 @@
+@model ContenidoPublico
+@{
+    ViewData["Title"] = "Política de privacidad";
+    ViewData["Descripcion"] = "Cómo trata Lucía Peluquería Ecológica tus datos al pedir cita, dejar una opinión o visitar la web.";
+}
+<article class="seccion-publica pagina-legal">
+    <header class="legal-portada">
+        <p class="etiqueta" data-anima="subir">INFORMACIÓN LEGAL</p>
+        <h1 data-dividir>Política de<br /><em>privacidad.</em></h1>
+        <p class="intro" data-anima="subir">Tus datos, tratados con el mismo cuidado que tu cabello: solo los necesarios, para lo que te contamos aquí y nunca para venderlos.</p>
+        <p class="nota" data-anima="subir">Última actualización: 13 de octubre de 2026</p>
+    </header>
+    <nav class="legal-indice" aria-label="Contenido">
+        <a href="#responsable">Responsable</a><a href="#datos">Qué datos</a><a href="#finalidades">Para qué</a><a href="#destinatarios">Quién los ve</a><a href="#conservacion">Cuánto tiempo</a><a href="#derechos">Tus derechos</a><a href="#cookies">Cookies</a>
+    </nav>
+    <div class="legal-texto">
+        <section id="responsable" data-anima="subir">
+            <h2>1. Responsable del tratamiento</h2>
+            <ul>
+                <li><strong>Titular:</strong> @Model.TitularVisible@(string.IsNullOrWhiteSpace(Model.Nif) ? "" : $" · NIF {Model.Nif}")</li>
+                <li><strong>Dirección:</strong> @Model.Direccion, @Model.CodigoPostal @Model.Ciudad (España)</li>
+                <li><strong>Teléfono:</strong> <a href="@Model.TelefonoEnlace">@Model.Telefono</a></li>
+                @if (!string.IsNullOrWhiteSpace(Model.Correo)) { <li><strong>Correo:</strong> <a href="mailto:@Model.Correo">@Model.Correo</a></li> }
+            </ul>
+            <p>Tratamos los datos conforme al Reglamento (UE) 2016/679 (RGPD) y a la Ley Orgánica 3/2018 de Protección de Datos Personales y garantía de los derechos digitales (LOPDGDD).</p>
+        </section>
+        <section id="datos" data-anima="subir">
+            <h2>2. Qué datos tratamos</h2>
+            <h3>Al solicitar una cita</h3>
+            <p>Nombre o apodo, apellidos, sexo, móvil, correo electrónico, el canal que eliges para recibir la propuesta (correo o WhatsApp), el servicio, el día y la hora. Para evitar abusos guardamos además una huella cifrada de tu dirección IP, no la dirección en sí.</p>
+            <p>Si aceptas la cita, con esos datos se crea o se actualiza tu ficha de cliente. En ella el salón anota tus visitas, los servicios realizados, sus importes y, en su caso, si no acudiste a una cita confirmada. Esa información es interna y nunca se publica.</p>
+            <h3>Al autocompletar tus datos</h3>
+            <p>Si ya eres cliente, puedes pedir un código de un solo uso que enviamos al correo guardado en tu ficha. El código caduca a los diez minutos y no revela a nadie si tu teléfono está registrado.</p>
+            <h3>Al dejar una opinión</h3>
+            <p>El código de tu ticket (solo para comprobar que la visita existió), el nombre público que elijas, la puntuación, el comentario y, si quieres, una foto. Quitamos los metadatos de la foto (ubicación, cámara, fecha) antes de guardarla.</p>
+            <h3>Al navegar por la web</h3>
+            <p>Datos técnicos imprescindibles: dirección IP, navegador y páginas solicitadas, que el servidor usa para funcionar y protegerse de ataques. No usamos analítica, publicidad ni seguimiento de terceros.</p>
+        </section>
+        <section id="finalidades" data-anima="subir">
+            <h2>3. Para qué y con qué base legal</h2>
+            <table class="legal-tabla">
+                <thead><tr><th scope="col">Finalidad</th><th scope="col">Base legal</th></tr></thead>
+                <tbody>
+                    <tr><td>Gestionar tu solicitud, contactarte para validarla, enviarte la propuesta y atender la cita.</td><td>Medidas precontractuales y ejecución del servicio que pides (art. 6.1.b RGPD).</td></tr>
+                    <tr><td>Llevar tu ficha e historial de visitas y emitir los tickets.</td><td>Ejecución del servicio y obligaciones legales contables y fiscales (art. 6.1.b y 6.1.c).</td></tr>
+                    <tr><td>Publicar tu opinión y, si la adjuntas, tu foto.</td><td>Tu consentimiento, que puedes retirar cuando quieras (art. 6.1.a).</td></tr>
+                    <tr><td>Proteger la web: limitar peticiones abusivas, evitar reservas falsas y registrar incidencias de seguridad.</td><td>Interés legítimo en la seguridad del servicio (art. 6.1.f).</td></tr>
+                </tbody>
+            </table>
+            <p>No tomamos decisiones automatizadas ni elaboramos perfiles con tus datos.</p>
+        </section>
+        <section id="destinatarios" data-anima="subir">
+            <h2>4. Quién puede ver tus datos</h2>
+            <p>Solo el equipo del salón. No vendemos ni cedemos tus datos. Para prestar el servicio pueden intervenir:</p>
+            <ul>
+                <li><strong>El proveedor de correo electrónico</strong> que envía las propuestas y los códigos, cuando eliges el correo.</li>
+                <li><strong>WhatsApp</strong> (Meta), solo si eliges ese canal: el equipo te escribe desde WhatsApp y se aplica la política de privacidad de ese servicio.</li>
+                <li><strong>Autoridades</strong>, cuando una ley lo exija.</li>
+            </ul>
+            <p>Los enlaces a Booksy, Google Maps o Instagram te llevan a servicios externos con su propia política de privacidad; esta web no les envía tus datos.</p>
+        </section>
+        <section id="conservacion" data-anima="subir">
+            <h2>5. Cuánto tiempo los guardamos</h2>
+            <ul>
+                <li><strong>Solicitudes de cita:</strong> las que no se revisan caducan a las 24 horas y dejan de ocupar el horario. Conservamos el registro mientras sea útil para atender posibles consultas sobre esa reserva.</li>
+                <li><strong>Ficha e historial:</strong> mientras seas cliente y, después, durante los plazos que exigen las normas fiscales y de consumo.</li>
+                <li><strong>Opiniones y fotos:</strong> hasta que pidas retirarlas o el salón deje de publicarlas.</li>
+                <li><strong>Códigos de verificación:</strong> diez minutos de validez; después no sirven para nada.</li>
+                <li><strong>Registros técnicos de seguridad:</strong> el tiempo imprescindible para detectar y resolver incidencias.</li>
+            </ul>
+        </section>
+        <section id="derechos" data-anima="subir">
+            <h2>6. Tus derechos</h2>
+            <p>Puedes pedir el acceso, la rectificación o la supresión de tus datos, la limitación o la oposición a su tratamiento y su portabilidad, así como retirar tu consentimiento en cualquier momento. Escríbenos@(string.IsNullOrWhiteSpace(Model.Correo) ? "" : " a " + Model.Correo), llámanos al @Model.Telefono o pásate por el salón. Te responderemos en el plazo de un mes.</p>
+            <p>Si crees que no hemos atendido bien tu solicitud, puedes reclamar ante la <a href="https://www.aepd.es" target="_blank" rel="noopener noreferrer">Agencia Española de Protección de Datos</a>.</p>
+            <p>Si tienes menos de 14 años, pide la cita con tu madre, padre o tutor.</p>
+        </section>
+        <section id="cookies" data-anima="subir">
+            <h2>7. Cookies y almacenamiento del navegador</h2>
+            <p>Usamos solo lo estrictamente necesario para que la web funcione, por eso no te pedimos permiso con un aviso de cookies:</p>
+            <table class="legal-tabla">
+                <thead><tr><th scope="col">Nombre</th><th scope="col">Para qué</th><th scope="col">Duración</th></tr></thead>
+                <tbody>
+                    <tr><td><code>PeluqueriaLucia.Antifalsificacion</code></td><td>Proteger los formularios frente a envíos desde otras webs.</td><td>Sesión</td></tr>
+                    <tr><td><code>.AspNetCore.Mvc.CookieTempDataProvider</code></td><td>Mostrar el aviso de «solicitud recibida» después de enviar un formulario.</td><td>Sesión</td></tr>
+                    <tr><td><code>tema</code> (almacenamiento local)</td><td>Recordar si prefieres la apariencia de día o de noche.</td><td>Hasta que la borres</td></tr>
+                </tbody>
+            </table>
+            <p>El panel de administración usa además una cookie de sesión exclusiva para el equipo del salón.</p>
+        </section>
+    </div>
+</article>

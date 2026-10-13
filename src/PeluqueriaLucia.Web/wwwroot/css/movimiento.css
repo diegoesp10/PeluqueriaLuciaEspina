@@ -1,0 +1,98 @@
+/* Movimiento y fondos de la web pública (movimiento.js: GSAP + Lenis). Sin JavaScript o con «reducir movimiento»,
+   todo se ve estático y completo. Más páginas propias de la web: legales y error. */
+
+/* ── Antes de animar: oculto solo mientras el script prepara la página (ver el script del <head>) ── */
+.anima [data-anima], .anima [data-anima-grupo] > *, .anima [data-dividir] { opacity: 0; }
+html.lenis { scroll-behavior: auto; }
+
+/* ── Fondo vivo: hojas y manchas de color que se desplazan con el scroll ── */
+.fondo-vivo { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+.fondo-hoja { position: absolute; width: clamp(140px, 18vw, 300px); height: auto; fill: color-mix(in oklab, var(--olive) 9%, transparent); }
+.fondo-hoja .nervio { fill: none; stroke: color-mix(in oklab, var(--olive) 16%, transparent); stroke-width: 2; stroke-linecap: round; }
+.fondo-hoja-1 { top: 58vh; left: -60px; rotate: -28deg; }
+.fondo-hoja-2 { top: 8vh; right: 32vw; width: clamp(90px, 9vw, 150px); rotate: 34deg; opacity: .8; }
+.fondo-hoja-3 { bottom: -90px; right: -40px; rotate: 152deg; }
+.fondo-mancha { position: absolute; border-radius: 50%; filter: blur(70px); opacity: .5; }
+.fondo-mancha-1 { width: 42vw; height: 42vw; top: -12vw; left: -10vw; background: color-mix(in oklab, var(--olive) 22%, transparent); }
+.fondo-mancha-2 { width: 34vw; height: 34vw; bottom: -10vw; right: -6vw; background: color-mix(in oklab, var(--sand) 90%, transparent); }
+.fondo-mancha-3 { width: 26vw; height: 26vw; top: 40vh; left: 45vw; background: color-mix(in oklab, var(--olive) 12%, transparent); }
+
+/* Grano de papel muy suave sobre toda la web, como una impresión natural */
+.sitio-publico::after {
+    content: ''; position: fixed; inset: 0; z-index: 90; pointer-events: none; opacity: .05;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+}
+@media print { .fondo-vivo, .sitio-publico::after { display: none; } }
+
+/* ── Cabecera: idioma ── */
+.cabecera-acciones { display: flex; align-items: center; gap: 16px; }
+.selector-idioma { display: flex; padding: 3px; border-radius: var(--r-pill); background: var(--fill); font-size: 11px; font-weight: 600; letter-spacing: .08em; }
+.selector-idioma a { padding: 6px 10px; border-radius: var(--r-pill); color: var(--label-2); }
+.selector-idioma a[aria-current] { background: var(--surface); color: var(--label); box-shadow: 0 1px 3px #0002; }
+.selector-idioma a:focus-visible { outline: 2px solid var(--olive); outline-offset: 2px; }
+
+/* ── Franja en bucle ── */
+.franja-publica { overflow: hidden; justify-content: flex-start; }
+.franja-pista { display: flex; align-items: center; gap: 56px; padding-right: 56px; flex-shrink: 0; margin-inline: auto; white-space: nowrap; }
+.franja-pista.en-bucle { margin-inline: 0; }
+.franja-pista span:nth-child(even) { color: var(--olive); font-size: 24px; }
+
+/* ── Detalles ── */
+[data-magnetico] { will-change: transform; }
+.catalogo-publico aside nav a[aria-current] { color: var(--olive); font-weight: 600; border-color: var(--olive); }
+.agenda-consentimiento a, .check-opcion a { text-decoration: underline; text-underline-offset: 3px; }
+.pie-legal { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 12px; }
+.pie-legal a { color: var(--label-2); }
+
+/* ── Páginas legales ── */
+.pagina-legal { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 32px 7%; align-items: start; }
+.legal-portada { grid-column: 1 / -1; max-width: 860px; }
+.legal-portada h1 { margin-bottom: 22px; }
+.legal-portada .intro { max-width: 620px; }
+.legal-indice { position: sticky; top: 32px; display: grid; }
+.legal-indice a { padding: 12px 0; border-bottom: 1px solid var(--separator); font-size: 14px; }
+.legal-indice a:hover { color: var(--olive); }
+.legal-texto { display: grid; gap: 44px; max-width: 760px; }
+.legal-texto section { scroll-margin-top: 32px; }
+.legal-texto h2 { font-size: clamp(1.9rem, 3vw, 2.6rem) !important; margin-bottom: 18px; }
+.legal-texto h3 { margin: 22px 0 8px; font-size: 1.05rem; }
+.legal-texto p, .legal-texto li { color: var(--label-2); }
+.legal-texto p + p { margin-top: 12px; }
+.legal-texto ul, .legal-texto ol { display: grid; gap: 10px; padding-left: 20px; margin: 12px 0; }
+.legal-texto strong { color: var(--label); font-weight: 600; }
+.legal-texto a { text-decoration: underline; text-underline-offset: 3px; }
+.legal-tabla { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 14px; background: var(--surface); border-radius: 18px; overflow: hidden; box-shadow: var(--card-shadow); }
+.legal-tabla th, .legal-tabla td { padding: 14px 16px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--separator); }
+.legal-tabla th { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--olive); }
+.legal-tabla tr:last-child td { border-bottom: 0; }
+.legal-tabla code { font-size: 12px; overflow-wrap: anywhere; }
+
+/* ── Página de error ── */
+.pagina-error { min-height: 68vh; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 6%; align-items: center; }
+.error-numero { position: relative; display: flex; justify-content: center; font: clamp(7rem, 19vw, 17rem)/1 var(--font-display); letter-spacing: -.06em; color: var(--forest); }
+:root[data-theme="noche"] .error-numero { color: var(--cream); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="dia"]) .error-numero { color: var(--cream); } }
+.error-numero span { display: inline-block; }
+.error-numero span:nth-child(2) { color: var(--olive); font-style: italic; }
+.error-hoja { position: absolute; width: 28%; right: 4%; top: -18%; fill: color-mix(in oklab, var(--olive) 30%, transparent); transform-origin: 50% 100%; }
+.error-hoja .nervio { fill: none; stroke: color-mix(in oklab, var(--olive) 60%, transparent); stroke-width: 3; stroke-linecap: round; }
+.error-texto h1 { margin-bottom: 20px; }
+.error-texto .botones { margin-bottom: 20px; }
+
+@media (max-width: 900px) {
+    .pagina-legal { grid-template-columns: 1fr; }
+    .legal-indice { position: static; display: flex; flex-wrap: wrap; gap: 8px; }
+    .legal-indice a { padding: 7px 12px; border: 1px solid var(--separator); border-radius: var(--r-pill); font-size: 12px; }
+    .pagina-error { grid-template-columns: 1fr; text-align: left; }
+}
+@media (max-width: 650px) {
+    .cabecera-acciones { gap: 10px; }
+    .selector-idioma a { padding: 5px 8px; }
+    .franja-pista { gap: 28px; padding-right: 28px; }
+    .franja-pista span:nth-child(even) { font-size: 18px; }
+    .fondo-hoja-2 { display: none; }
+    .legal-tabla th, .legal-tabla td { padding: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    [data-magnetico] { will-change: auto; }
+}
