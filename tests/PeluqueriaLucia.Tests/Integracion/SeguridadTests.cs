@@ -13,7 +13,7 @@ public sealed class SeguridadTests
     {
         await using var bd=await BaseDeDatosPrueba.CrearAsync();
         var servicios=new ServiceCollection(); servicios.AddLogging(); servicios.AddAplicacion();
-        servicios.AddInfraestructura(new ConfigurationBuilder().Build(),bd.Cadena);
+        servicios.AddInfraestructura(new ConfigurationBuilder().AddEnvironmentVariables().Build(), bd.Cadena);
         await using var proveedor=servicios.BuildServiceProvider(); await using var scope=proveedor.CreateAsyncScope();
         var acceso=scope.ServiceProvider.GetRequiredService<AccesoService>();
         Assert.True((await acceso.EstablecerAdministradorAsync("original","Una contraseña de prueba 123!")).Exito);
@@ -31,7 +31,7 @@ public sealed class SeguridadTests
         var servicios = new ServiceCollection();
         servicios.AddLogging();
         servicios.AddAplicacion();
-        servicios.AddInfraestructura(new ConfigurationBuilder().Build(), bd.Cadena);
+        servicios.AddInfraestructura(new ConfigurationBuilder().AddEnvironmentVariables().Build(), bd.Cadena);
         servicios.AddSingleton<TimeProvider>(reloj);
         await using var proveedor = servicios.BuildServiceProvider();
         async Task<T> Ejecutar<T>(Func<AccesoService, Task<T>> accion)
