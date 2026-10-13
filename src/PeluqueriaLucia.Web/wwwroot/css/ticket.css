@@ -134,3 +134,5 @@
 }
 .ticket-opinion { border-block:1px dashed currentColor; padding-block:14px; margin-bottom:18px; text-align:center; }
 .ticket-codigo { font-size:11px; font-family:monospace; overflow-wrap:anywhere; }
+.ticket-estado { margin: 0 0 14px; font-size: 14px; color: var(--text-2, #555); }
+.ticket-estado.es-error { color: var(--red, #b3261e); }

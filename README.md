@@ -20,6 +20,7 @@ La separación de capas existente se conserva; la gestión se ha trasladado al �
 - **Visitas**: registro de lo que se le hace a cada cliente, por día, por mes o histórico completo, con lo facturado, lo cobrado (efectivo y tarjeta) y lo pendiente.
 - **Cobro** en efectivo, con tarjeta o mixto. En el mixto, al escribir una parte se completa la otra y no deja cobrar si no cuadra.
 - **Ticket** de caja imprimible (factura simplificada). Los datos fiscales salen de la sección `Negocio` de `appsettings.json`.
+- **Impresora térmica de tickets** del salón: el botón Imprimir del ticket manda el ticket en ESC/POS (logo, tildes con CP850, corte de papel) directamente por USB desde el navegador con **WebUSB**, sin diálogo de impresión, también con la web publicada en Azure. Se configura en la sección `ImpresoraTickets` de `appsettings.json` (`Vid`/`Pid` USB de la impresora, 32 caracteres y 384 puntos para papel de 58 mm). Requiere Chrome o Edge, la web en HTTPS (o `localhost`) y la impresora con el driver WinUSB que instala Zadig; la primera vez el navegador pide elegir la impresora. El botón «Navegador» imprime con el diálogo normal.
 - **Clientes** con buscador, ficha, historial de visitas y total gastado.
 - **Catálogo** con fotos. Cambiar un precio no altera las visitas ya registradas, porque cada visita guarda el nombre y el precio de cada servicio. Un servicio que aparece en visitas se archiva en lugar de borrarse.
 - **Exportación a Excel** del periodo que se está viendo.

@@ -54,6 +54,7 @@ public static class PresentacionServiceCollectionExtensions
         });
 
         services.Configure<DatosNegocio>(configuration.GetSection(DatosNegocio.Seccion));
+        services.Configure<Infraestructura.Impresion.ImpresoraTickets>(configuration.GetSection(Infraestructura.Impresion.ImpresoraTickets.Seccion));
         services.Configure<ContenidoPublico>(configuration.GetSection(ContenidoPublico.Seccion));
         services.Configure<OpcionesBaseDeDatos>(configuration.GetSection(OpcionesBaseDeDatos.Seccion));
         services.PostConfigure<OpcionesImagenes>(o => o.Carpeta = string.IsNullOrWhiteSpace(o.Carpeta)

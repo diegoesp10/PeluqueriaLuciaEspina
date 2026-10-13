@@ -4,6 +4,7 @@ using PeluqueriaLucia.Application.Catalogo;
 using PeluqueriaLucia.Application.Clientes;
 using PeluqueriaLucia.Application.Visitas;
 using PeluqueriaLucia.Web.Infraestructura;
+using PeluqueriaLucia.Web.Infraestructura.Impresion;
 using PeluqueriaLucia.Web.Areas.Admin.Models;
 
 namespace PeluqueriaLucia.Web.Areas.Admin.Controllers;
@@ -14,7 +15,9 @@ public sealed class VisitasController(
     CatalogoService catalogo,
     PeluqueriaLucia.Application.Publico.ResenasService resenas,
     TimeProvider reloj,
-    IOptions<DatosNegocio> negocio) : AdminController
+    IOptions<DatosNegocio> negocio,
+    IOptions<ImpresoraTickets> impresora,
+    IWebHostEnvironment entorno) : AdminController
 {
     private DateTime Ahora => reloj.GetLocalNow().DateTime;
 
@@ -130,7 +133,26 @@ public sealed class VisitasController(
     public async Task<IActionResult> Ticket(int id, CancellationToken ct)
     {
         var visita = await visitas.ObtenerAsync(id, ct);
-        return visita is null ? NotFound() : View(new TicketModelo(visita, negocio.Value, await resenas.CodigoTicketAsync(id, ct)));
+        return visita is null ? NotFound() : View(new TicketModelo(visita, negocio.Value, await resenas.CodigoTicketAsync(id, ct), impresora.Value));
+    }
+
+    /// <summary>
+    /// El ticket en ESC/POS para la impresora térmica. El navegador lo descarga y lo manda por USB a la impresora con
+    /// WebUSB (ver ticket.js), así que se imprime igual con la web publicada en Azure.
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> TicketTermico(int id, CancellationToken ct)
+    {
+        if (!impresora.Value.Configurada)
+            return NotFound();
+        var visita = await visitas.ObtenerAsync(id, ct);
+        if (visita is null)
+            return NotFound();
+
+        var modelo = new TicketModelo(visita, negocio.Value, await resenas.CodigoTicketAsync(id, ct), impresora.Value);
+        var logo = impresora.Value.Logo is { Length: > 0 } ruta ? entorno.WebRootFileProvider.GetFileInfo(ruta) : null;
+        await using var imagen = logo is { Exists: true, IsDirectory: false } ? logo.CreateReadStream() : null;
+        return File(TicketEscPos.Construir(modelo, impresora.Value, imagen), "application/octet-stream");
     }
 
     private async Task<NuevaVisitaModelo> ModeloNuevaAsync(NuevaVisitaFormulario formulario, CancellationToken ct)

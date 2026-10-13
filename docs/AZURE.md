@@ -21,6 +21,7 @@ Ninguna pieza usa contraseñas: la Web App entra en SQL y en Key Vault con su **
 | HTTPS | IIS | Frontal de App Service (la app lee `X-Forwarded-Proto`) |
 | IP del visitante | La de la conexión | Cabecera `CF-Connecting-IP` de Cloudflare (`Seguridad__CabeceraIpCliente`) |
 | Fotos del catálogo y de reseñas | Carpeta del sitio | `/home/data`, que App Service conserva entre despliegues |
+| Impresora térmica de tickets | El navegador la manda por USB (WebUSB) | Igual: el servidor solo construye el ticket ESC/POS; el navegador del salón (Chrome/Edge, HTTPS) lo envía a la impresora USB |
 | Hora local | La del equipo | `TZ=Europe/Madrid` |
 
 ## 1. Configuración de la Web App

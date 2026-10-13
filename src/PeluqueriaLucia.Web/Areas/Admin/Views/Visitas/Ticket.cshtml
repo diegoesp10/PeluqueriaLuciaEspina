@@ -11,9 +11,20 @@
         <a class="back-link" asp-action="Detalle" asp-route-id="@v.Id"><icono nombre="anterior" tamano="20" /> Visita</a>
         <div class="acciones">
             <a class="btn btn-gray" asp-action="Index" asp-route-fecha="@v.Fecha.ToString("yyyy-MM-dd")">Hecho</a>
-            <button type="button" class="btn btn-primary" data-imprimir><icono nombre="imprimir" tamano="18" /> Imprimir</button>
+            @if (Model.ConImpresoraTermica)
+            {
+                <button type="button" class="btn btn-gray" data-imprimir title="Imprimir con el diálogo del navegador"><icono nombre="imprimir" tamano="18" /> Navegador</button>
+                <button type="button" class="btn btn-primary" data-imprimir-termica
+                        data-url="@Url.Action("TicketTermico", new { id = v.Id })"
+                        data-vid="@Model.Impresora!.VidNumero" data-pid="@Model.Impresora.PidNumero"><icono nombre="imprimir" tamano="18" /> Imprimir</button>
+            }
+            else
+            {
+                <button type="button" class="btn btn-primary" data-imprimir><icono nombre="imprimir" tamano="18" /> Imprimir</button>
+            }
         </div>
     </div>
+    <p class="ticket-estado no-print" data-impresion-estado role="status" aria-live="polite" hidden></p>
 
     <article class="ticket" id="ticket" aria-label="Ticket de la visita">
         @if(Model.CodigoOpinion is not null) { <div class="ticket-opinion"><strong>Tu experiencia cuenta</strong><p>Comparte tu opinión en la web del salón → Opiniones.</p><p>Código: <span class="ticket-codigo">@string.Join("-", Enumerable.Range(0, 8).Select(i => Model.CodigoOpinion.Substring(i * 4, 4)))</span></p><small>Una opinión por ticket. Válido 6 meses desde su emisión. No se publican datos de tu visita.</small></div> }
@@ -73,3 +84,10 @@
 
     </article>
 </div>
+
+@section Scripts {
+    @if (Model.ConImpresoraTermica)
+    {
+        <script src="~/js/ticket.js" asp-append-version="true"></script>
+    }
+}

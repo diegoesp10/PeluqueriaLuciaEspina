@@ -104,8 +104,11 @@ public sealed class CobroFormulario
 
 public sealed record VisitaDetalleModelo(Visita Visita, CobroFormulario Cobro);
 
-public sealed record TicketModelo(Visita Visita, DatosNegocio Negocio, string? CodigoOpinion = null)
+public sealed record TicketModelo(Visita Visita, DatosNegocio Negocio, string? CodigoOpinion = null, Infraestructura.Impresion.ImpresoraTickets? Impresora = null)
 {
+    /// <summary>Hay impresora térmica configurada: el botón Imprimir manda el ticket por USB desde el navegador.</summary>
+    public bool ConImpresoraTermica => Impresora?.Configurada == true;
+
     public decimal TipoImpuesto => Visita.PorcentajeIva ?? Negocio.TipoImpuesto;
 
     /// <summary>Base imponible y cuota a partir del total con impuestos incluidos.</summary>
