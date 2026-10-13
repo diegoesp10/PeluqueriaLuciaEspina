@@ -81,8 +81,9 @@ Cierra la terminal al acabar (o `Remove-Item Env:ConnectionStrings__Peluqueria`)
 
 ## 4. Publicar
 
-- Cada push a `develop` o `main` (y cada pull request) compila y pasa las pruebas en Linux con un SQL Server temporal.
-- Un push a **`main`** publica en Azure si las pruebas pasan, y comprueba que la web responde.
+- `main` está protegida: solo cambia por pull request (normalmente desde `develop`), con la comprobación «Compilar y probar» en verde y la aprobación del propietario del repositorio (`CODEOWNERS`); el propietario puede fusionar las suyas sin aprobación. `develop` no lanza ningún workflow.
+- Cada pull request a `main` compila y pasa las pruebas en Linux con un SQL Server temporal.
+- Al fusionar en **`main`**, el workflow repite las pruebas, espera la aprobación del entorno `produccion` en Actions («Review deployments»), publica en Azure y comprueba que la web responde. Tarda unos 5 minutos.
 - También se puede lanzar a mano: **Actions → Pruebas y despliegue en Azure → Run workflow** (sobre `main`).
 
 ## 5. Cloudflare (dominio)

@@ -36,6 +36,20 @@
   );
   aplicarTema(leerTema());
 
+  // ── Ruedita de ajustes de la web pública (details): se cierra al pulsar fuera o con Escape ──
+  const ajustes = document.querySelector('[data-ajustes]');
+  if (ajustes) {
+    document.addEventListener('click', (evento) => {
+      if (ajustes.open && !ajustes.contains(evento.target)) ajustes.open = false;
+    });
+    document.addEventListener('keydown', (evento) => {
+      if (evento.key === 'Escape' && ajustes.open) {
+        ajustes.open = false;
+        ajustes.querySelector('summary')?.focus();
+      }
+    });
+  }
+
   // ── Menú hamburguesa en móvil (panel y web pública). El botón [data-menu-abrir] abre el menú de su aria-controls;
   //    sin JavaScript se abre igual con su ancla (#menu-…) y la regla :target ──
   const botonMenu = document.querySelector('[data-menu-abrir]');

@@ -1,13 +1,13 @@
-# Pruebas en cada push y publicación en Azure App Service (WebAppLuciaPeluqueria) al subir a main.
+# Pruebas en cada pull request a main y publicación en Azure App Service (WebAppLuciaPeluqueria) al fusionar en main.
 # La publicación entra en Azure con una identidad federada (OIDC): GitHub no guarda ninguna contraseña.
 # Las migraciones de la base NO se aplican aquí: se aplican a mano antes de publicar (ver docs/AZURE.md).
 name: Pruebas y despliegue en Azure
 
 on:
   push:
-    branches: [develop, main]
+    branches: [main]
   pull_request:
-    branches: [develop, main]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -76,7 +76,7 @@ jobs:
     # Entorno de GitHub «produccion»: la identidad federada de Azure solo confía en este entorno
     environment:
       name: produccion
-      url: https://webappluciapeluqueria-a9dycjgph4f0etaz.spaincentral-01.azurewebsites.net
+      url: https://luciapeluqueriaecologica.com
     permissions:
       contents: read
       id-token: write
@@ -101,7 +101,7 @@ jobs:
       - name: Comprobar que responde
         run: |
           for intento in $(seq 1 20); do
-            codigo=$(curl -s -o /dev/null -w "%{http_code}" https://webappluciapeluqueria-a9dycjgph4f0etaz.spaincentral-01.azurewebsites.net/)
+            codigo=$(curl -s -o /dev/null -w "%{http_code}" https://luciapeluqueriaecologica.com/)
             echo "Intento $intento: HTTP $codigo"
             [ "$codigo" = "200" ] && exit 0
             sleep 15
