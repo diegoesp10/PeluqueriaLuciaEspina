@@ -7,7 +7,24 @@ namespace PeluqueriaLucia.Web.Areas.Admin.Controllers;
 
 public sealed class TratamientosController(ContenidoService contenido, PeluqueriaLucia.Application.Catalogo.CatalogoService catalogo) : AdminController
 {
-    [HttpGet] public async Task<IActionResult> Index(CancellationToken ct) => View(new TratamientosIndice(await contenido.CategoriasAsync(ct), await contenido.TratamientosAsync(false, ct)));
+    [HttpGet] public async Task<IActionResult> Index(string? q, CancellationToken ct) =>
+        View(new TratamientosIndice(await contenido.CategoriasAsync(ct), await contenido.BuscarTratamientosAsync(q, ct), q?.Trim()));
+
+    /// <summary>Flechas de la lista: sube (-1) o baja (+1) el servicio dentro de su categoría en la web.</summary>
+    [HttpPost] public async Task<IActionResult> MoverTratamiento(int id, int desplazamiento, CancellationToken ct)
+    {
+        var r = await contenido.MoverTratamientoAsync(id, desplazamiento, ct);
+        if (!r.Exito) this.AvisarError(r.Error!.Mensaje);
+        return Redirect(Url.Action(nameof(Index)) + "#servicio-" + id);
+    }
+
+    /// <summary>Flechas de la lista de categorías: sube (-1) o baja (+1) la categoría en la web.</summary>
+    [HttpPost] public async Task<IActionResult> MoverCategoria(int id, int desplazamiento, CancellationToken ct)
+    {
+        var r = await contenido.MoverCategoriaAsync(id, desplazamiento, ct);
+        if (!r.Exito) this.AvisarError(r.Error!.Mensaje);
+        return Redirect(Url.Action(nameof(Categorias)) + "#categoria-" + id);
+    }
     [HttpGet] public async Task<IActionResult> Nuevo(CancellationToken ct) => View("Edicion", new TratamientoEdicion(null, new(), await contenido.CategoriasAsync(ct), await catalogo.ListarAsync(null, false, ct)));
     [HttpGet] public async Task<IActionResult> Editar(int id, CancellationToken ct)
     {
@@ -27,11 +44,11 @@ public sealed class TratamientosController(ContenidoService contenido, Peluqueri
     {
         var c = id is { } clave ? await contenido.CategoriaAsync(clave, ct) : null;
         if (id is not null && c is null) return NotFound();
-        return View(new CategoriaEdicion(id, c is null ? new() : new() { Nombre = c.Nombre, Orden = c.Orden }));
+        return View(new CategoriaEdicion(id, c is null ? new() : new() { Nombre = c.Nombre }));
     }
     [HttpPost] public async Task<IActionResult> Categoria(int? id, CategoriaFormulario formulario, CancellationToken ct)
     {
-        if (ModelState.IsValid) { var r = await contenido.GuardarCategoriaAsync(id, formulario.Nombre, formulario.Orden, ct); if (r.Exito) return RedirectToAction(nameof(Categorias)); ModelState.AddModelError("", r.Error!.Mensaje); }
+        if (ModelState.IsValid) { var r = await contenido.GuardarCategoriaAsync(id, formulario.Nombre, ct); if (r.Exito) return RedirectToAction(nameof(Categorias)); ModelState.AddModelError("", r.Error!.Mensaje); }
         return View(new CategoriaEdicion(id, formulario));
     }
     [HttpPost] public async Task<IActionResult> EliminarCategoria(int id, CancellationToken ct) { var r = await contenido.EliminarCategoriaAsync(id, ct); if (!r.Exito) this.AvisarError(r.Error!.Mensaje); return RedirectToAction(nameof(Categorias)); }

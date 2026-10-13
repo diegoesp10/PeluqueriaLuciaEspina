@@ -36,6 +36,9 @@ public sealed class Servicio
     public bool Publicado { get; private set; }
     public bool Destacado { get; private set; }
 
+    /// <summary>Posición dentro de su categoría en la web (1 = primero).</summary>
+    public void ColocarEnWeb(int posicion) => OrdenPublico = Math.Clamp(posicion, 0, 10000);
+
     public void ConfigurarPublicacion(int? categoria, string? descripcion, TipoPrecioPublico tipo, int minutos, int orden, bool publicado, bool destacado)
     {
         if ((publicado && (categoria is null or <= 0 || (tipo != TipoPrecioPublico.Consultar && Precio <= 0))) ||

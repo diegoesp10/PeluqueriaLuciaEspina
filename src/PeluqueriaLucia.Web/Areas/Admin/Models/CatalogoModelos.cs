@@ -45,4 +45,4 @@ public sealed class ServicioFormulario
 public sealed record ServicioEdicionModelo(int? Id, ServicioFormulario Formulario, string? ImagenActual, bool Activo = true,
     IReadOnlyList<Domain.Publico.CategoriaTratamiento>? Categorias = null);
 
-public sealed record CatalogoIndiceModelo(IReadOnlyList<Servicio> Activos, IReadOnlyList<Servicio> Archivados, Sexo? Sexo);
+public sealed record CatalogoIndiceModelo(IReadOnlyList<Servicio> Activos, IReadOnlyList<Servicio> Archivados, Sexo? Sexo, string? Texto = null);

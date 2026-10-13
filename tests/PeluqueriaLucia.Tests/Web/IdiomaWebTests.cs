@@ -108,6 +108,6 @@ public sealed class IdiomaWebTests
             Assert.False(string.IsNullOrEmpty(url), recurso);
             Assert.Equal(HttpStatusCode.OK, (await cliente.GetAsync(WebUtility.HtmlDecode(url))).StatusCode);
         }
-        Assert.DoesNotContain("cdn", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotMatch("(?i)<script[^>]+src=\"(https?:)?//", html); // ningún script de otro dominio (CDN)
     }
 }

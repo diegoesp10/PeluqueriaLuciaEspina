@@ -9,10 +9,10 @@ namespace PeluqueriaLucia.Web.Areas.Admin.Controllers;
 public sealed class CatalogoController(CatalogoService catalogo, PeluqueriaLucia.Application.Publico.ContenidoService contenido) : AdminController
 {
     [HttpGet]
-    public async Task<IActionResult> Index(Sexo? sexo, CancellationToken ct)
+    public async Task<IActionResult> Index(Sexo? sexo, string? q, CancellationToken ct)
     {
-        var todos = await catalogo.ListarAsync(sexo, incluirArchivados: true, ct);
-        return View(new CatalogoIndiceModelo(todos.Where(s => s.Activo).ToList(), todos.Where(s => !s.Activo).ToList(), sexo));
+        var todos = await catalogo.BuscarAsync(q, sexo, incluirArchivados: true, ct);
+        return View(new CatalogoIndiceModelo(todos.Where(s => s.Activo).ToList(), todos.Where(s => !s.Activo).ToList(), sexo, q?.Trim()));
     }
 
     [HttpGet]

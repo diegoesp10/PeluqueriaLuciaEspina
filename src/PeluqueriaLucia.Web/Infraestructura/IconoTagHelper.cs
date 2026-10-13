@@ -22,6 +22,8 @@ public sealed class IconoTagHelper : TagHelper
         ["mas"] = """<path d="M5 12h14M12 5v14"/>""",
         ["anterior"] = """<path d="m15 18-6-6 6-6"/>""",
         ["siguiente"] = """<path d="m9 18 6-6-6-6"/>""",
+        ["arriba"] = """<path d="m18 15-6-6-6 6"/>""",
+        ["abajo"] = """<path d="m6 9 6 6 6-6"/>""",
         ["buscar"] = """<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>""",
         ["editar"] = """<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/>""",
         ["papelera"] = """<path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>""",

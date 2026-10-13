@@ -35,6 +35,9 @@ public interface IServicioRepositorio
 
     Task<IReadOnlyList<Servicio>> ListarAsync(Sexo? sexo, bool incluirArchivados, CancellationToken ct = default);
 
+    /// <summary>Como <see cref="ListarAsync"/>, filtrando en SQL por palabras (LIKE) en el nombre y la descripción pública.</summary>
+    Task<IReadOnlyList<Servicio>> BuscarAsync(string? texto, Sexo? sexo, bool incluirArchivados, CancellationToken ct = default);
+
     Task<IReadOnlyList<Servicio>> ObtenerVariosAsync(IReadOnlyCollection<int> ids, CancellationToken ct = default);
 
     Task<bool> TieneVisitasAsync(int id, CancellationToken ct = default);

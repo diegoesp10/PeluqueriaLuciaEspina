@@ -16,14 +16,15 @@ public sealed class TratamientoFormulario
     public bool Destacado { get; set; }
     public DatosTratamiento Datos() => new(ServicioId, CategoriaId, Descripcion, TipoPrecio, DuracionMinutos, Orden, Publicado, Destacado);
 }
-public sealed record TratamientosIndice(IReadOnlyList<CategoriaTratamiento> Categorias, IReadOnlyList<TratamientoWeb> Tratamientos);
+public sealed record TratamientosIndice(IReadOnlyList<CategoriaTratamiento> Categorias, IReadOnlyList<TratamientoWeb> Tratamientos, string? Texto = null);
 public sealed record TratamientoEdicion(int? Id, TratamientoFormulario Formulario, IReadOnlyList<CategoriaTratamiento> Categorias, IReadOnlyList<PeluqueriaLucia.Domain.Catalogo.Servicio> Servicios);
 public sealed class CategoriaFormulario
 {
     [Required, StringLength(80, MinimumLength = 2)] public string Nombre { get; set; } = "";
-    [Range(0, 10000)] public int Orden { get; set; }
 }
 public sealed record CategoriaEdicion(int? Id, CategoriaFormulario Formulario);
+public sealed record FlechasOrden(string Accion, int Id, string Nombre, bool Primero, bool Ultimo);
+public sealed record ResenasIndice(PeluqueriaLucia.Application.Comun.Pagina<Resena> Pagina, EstadoResena? Estado, string? Texto);
 public sealed class ModeracionFormulario
 {
     public EstadoResena Estado { get; set; }

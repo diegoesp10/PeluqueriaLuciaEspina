@@ -31,6 +31,10 @@ public sealed class CatalogoService(
     public Task<IReadOnlyList<Servicio>> ListarAsync(Sexo? sexo, bool incluirArchivados, CancellationToken ct = default) =>
         servicios.ListarAsync(sexo, incluirArchivados, ct);
 
+    /// <summary>Buscador del catálogo: palabras en el nombre o la descripción pública, filtradas en la base de datos.</summary>
+    public Task<IReadOnlyList<Servicio>> BuscarAsync(string? texto, Sexo? sexo, bool incluirArchivados, CancellationToken ct = default) =>
+        servicios.BuscarAsync(texto, sexo, incluirArchivados, ct);
+
     public Task<Servicio?> ObtenerAsync(int id, CancellationToken ct = default) => servicios.ObtenerAsync(id, ct);
 
     public Task<Resultado<int>> CrearAsync(DatosServicio datos, ArchivoImagen? imagen, CancellationToken ct = default) =>
@@ -41,7 +45,7 @@ public sealed class CatalogoService(
             if (await ValidarPublicacionAsync(datos.Publicacion, ct) is { } errorWeb) return errorWeb;
 
             var servicio = Servicio.Crear(datos.Nombre, datos.Precio, datos.Sexo, reloj.GetLocalNow().DateTime);
-            ConfigurarWeb(servicio, datos.Publicacion);
+            await ConfigurarWebAsync(servicio, datos.Publicacion, ct);
             var nuevaRuta = imagen is null ? null : await GuardarImagenAsync(imagen, ct);
             servicio.CambiarImagen(nuevaRuta);
             servicios.Agregar(servicio);
@@ -61,7 +65,7 @@ public sealed class CatalogoService(
             if (await ValidarPublicacionAsync(datos.Publicacion, ct) is { } errorWeb) return errorWeb;
 
             servicio.Actualizar(datos.Nombre, datos.Precio, datos.Sexo);
-            ConfigurarWeb(servicio, datos.Publicacion);
+            await ConfigurarWebAsync(servicio, datos.Publicacion, ct);
 
             var anterior = servicio.ImagenRuta;
             string? nuevaRuta = null;
@@ -125,9 +129,12 @@ public sealed class CatalogoService(
         return null;
     }
 
-    private static void ConfigurarWeb(Servicio servicio, DatosPublicacion? web)
+    private async Task ConfigurarWebAsync(Servicio servicio, DatosPublicacion? web, CancellationToken ct)
     {
-        if (web is not null) servicio.ConfigurarPublicacion(web.CategoriaId, web.Descripcion, web.TipoPrecio, web.DuracionMinutos, web.Orden, web.Publicado, web.Destacado);
+        // La posición no se escribe a mano: se conserva y, al cambiar de categoría, el servicio pasa al final de la nueva
+        if (web is not null) servicio.ConfigurarPublicacion(web.CategoriaId, web.Descripcion, web.TipoPrecio, web.DuracionMinutos,
+            web.CategoriaId is { } categoria && categoria != servicio.CategoriaPublicaId ? await Publico.OrdenWeb.SiguienteAsync(servicios, categoria, ct) : servicio.OrdenPublico,
+            web.Publicado, web.Destacado);
         else if (servicio.Publicado) servicio.ConfigurarPublicacion(servicio.CategoriaPublicaId, servicio.DescripcionPublica, servicio.TipoPrecioPublico, servicio.DuracionMinutos, servicio.OrdenPublico, true, servicio.Destacado);
     }
 

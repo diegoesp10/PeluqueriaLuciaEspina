@@ -18,6 +18,9 @@ public sealed class CategoriaTratamiento
         if (c.Slug.Length == 0) throw new ReglaDeNegocioException("La categoría necesita un nombre reconocible.");
         return c;
     }
+    /// <summary>Posición en la web (1 = primera). La fijan las flechas de subir y bajar.</summary>
+    public void Colocar(int posicion) => Orden = Math.Max(0, posicion);
+
     public void Editar(string nombre, int orden)
     {
         nombre = nombre.Trim();

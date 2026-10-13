@@ -14,7 +14,12 @@
         </div>
     </header>
 
-    <form class="toolbar" method="get" asp-action="Index">
+    <form class="toolbar" method="get" asp-action="Index" role="search">
+        <label class="search">
+            <icono nombre="buscar" tamano="17" />
+            <input class="input" type="search" name="q" value="@Model.Texto" placeholder="Buscar por nombre o descripción"
+                   aria-label="Buscar en el catálogo" autocomplete="off" data-buscar-al-escribir />
+        </label>
         <div class="segmented" role="radiogroup" aria-label="Público">
             <label><input type="radio" name="sexo" value="" checked="@(Model.Sexo is null)" data-enviar-al-cambiar /> Todos</label>
             @foreach (var sexo in new[] { Sexo.Mujer, Sexo.Hombre, Sexo.Otro })
@@ -28,7 +33,7 @@
     {
         <div class="estado-vacio">
             <span class="estado-icono tint-orange"><icono nombre="tijeras" tamano="30" /></span>
-            <h2>@(Model.Sexo is null ? "El catálogo está vacío" : "No hay servicios para este público")</h2>
+            <h2>@(!string.IsNullOrWhiteSpace(Model.Texto) ? "Sin resultados" : Model.Sexo is null ? "El catálogo está vacío" : "No hay servicios para este público")</h2>
             <p>Añade cortes, tintes y tratamientos con su precio para poder registrarlos en las visitas.</p>
             <div class="acciones"><a class="btn btn-primary" asp-action="Nuevo">Nuevo servicio</a></div>
         </div>

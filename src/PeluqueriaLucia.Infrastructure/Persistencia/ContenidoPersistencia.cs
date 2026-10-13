@@ -40,9 +40,15 @@ internal sealed class ContenidoRepositorio(PeluqueriaDbContext db) : IContenidoR
     }
     public void Agregar(Resena x) => db.Resenas.Add(x);
     public Task<Resena?> ResenaAsync(Guid id, CancellationToken ct) => db.Resenas.FirstOrDefaultAsync(x => x.Id == id, ct);
-    public async Task<Pagina<Resena>> ResenasAsync(EstadoResena? estado, int pagina, CancellationToken ct)
+    public async Task<Pagina<Resena>> ResenasAsync(EstadoResena? estado, int pagina, string? texto, CancellationToken ct)
     {
         var q = db.Resenas.AsNoTracking().Where(x => estado == null || x.Estado == estado);
+        foreach (var palabra in BusquedaTexto.Palabras(texto))
+        {
+            var patron = BusquedaTexto.Patron(palabra);
+            q = q.Where(x => EF.Functions.Like(x.Alias, patron, "\\") || EF.Functions.Like(x.Comentario, patron, "\\")
+                || (x.Respuesta != null && EF.Functions.Like(x.Respuesta, patron, "\\")));
+        }
         var total = await q.CountAsync(ct); pagina = Math.Clamp(pagina, 1, Math.Max(1, (total + 11) / 12));
         return new(await q.OrderByDescending(x => x.CreadaEn).ThenBy(x => x.Id).Skip((pagina - 1) * 12).Take(12).ToListAsync(ct), pagina, 12, total);
     }

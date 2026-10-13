@@ -56,12 +56,12 @@ public sealed class ResenasService(IContenidoRepositorio repositorio, IVisitaRep
     }
     public async Task<OpinionesPublicas> PublicasAsync(int pagina, CancellationToken ct = default)
     {
-        var seleccion = await repositorio.ResenasAsync(EstadoResena.Publicada, pagina, ct);
+        var seleccion = await repositorio.ResenasAsync(EstadoResena.Publicada, pagina, null, ct);
         var r = await repositorio.ValoracionAsync(ct);
         return new(new Pagina<OpinionPublica>(seleccion.Elementos.Select(x => new OpinionPublica(x.Id, x.Alias, x.Comentario, x.Estrellas,
             x.Foto is null ? null : $"/opiniones/foto/{x.Id}", x.CreadaEn, x.Respuesta)).ToList(), seleccion.Numero, seleccion.Tamano, seleccion.TotalElementos), r.Total, r.Media);
     }
-    public Task<Pagina<Resena>> AdministrarAsync(EstadoResena? estado, int pagina, CancellationToken ct = default) => repositorio.ResenasAsync(estado, pagina, ct);
+    public Task<Pagina<Resena>> AdministrarAsync(EstadoResena? estado, int pagina, string? texto = null, CancellationToken ct = default) => repositorio.ResenasAsync(estado, pagina, texto, ct);
     public Task<Resena?> ObtenerAsync(Guid id, CancellationToken ct = default) => repositorio.ResenaAsync(id, ct);
     public async Task<Resultado> ModerarAsync(Guid id, EstadoResena estado, string? respuesta, CancellationToken ct = default)
     {

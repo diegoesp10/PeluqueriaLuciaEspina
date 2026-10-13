@@ -1,6 +1,43 @@
-@model PeluqueriaLucia.Application.Comun.Pagina<PeluqueriaLucia.Domain.Publico.Resena>
-@{ ViewData["Title"] = "Reseñas"; var paginacion = new PaginacionModelo(Model.Numero, Model.TotalPaginas, Model.TotalElementos, p => Url.Action("Index", new { pagina = p, estado = Context.Request.Query["estado"].ToString() })!); }
-<header class="page-head"><div><h1>Escucha a tu salón.</h1><p class="subtitle">Opiniones verificadas con ticket. Revisa el texto y la foto antes de publicarlos.</p></div><a class="btn btn-gray" asp-area="" asp-controller="Opiniones" asp-action="Index" target="_blank">Ver opiniones ↗</a></header><nav class="segmented section" aria-label="Estado de reseñas"><a asp-route-estado="Pendiente">Pendientes</a><a asp-route-estado="Publicada">Publicadas</a><a asp-route-estado="Rechazada">Rechazadas</a></nav>
-@if(Model.Elementos.Count == 0) { <div class="estado-vacio"><h2>Aún no hay opiniones aquí.</h2><p>Las visitas verificadas aparecerán en este espacio.</p></div> }
-<div class="resenas-grid">@foreach(var r in Model.Elementos) { <article class="resena-card"><div class="resena-cabecera"><strong>@r.Alias</strong><span>@r.CreadaEn.ToLocalTime().ToString("dd/MM/yyyy")</span></div><p class="resena-estrellas">@(new string('★', r.Estrellas))</p><p class="resena-verificada">✓ Visita verificada · @r.Estado</p><p class="resena-comentario">@r.Comentario</p>@if(r.Foto is not null) { <img class="resena-foto" src="@Url.Action("Foto", new { id = r.Id })" alt="Foto propuesta por @r.Alias" loading="lazy" /> }<form method="post" asp-action="Moderar" asp-route-id="@r.Id"><div class="field"><label for="respuesta-@r.Id">Tu respuesta · opcional</label><textarea class="input" id="respuesta-@r.Id" name="Respuesta" rows="3" maxlength="1500">@r.Respuesta</textarea></div><div class="acciones"><button class="btn btn-primary" name="Estado" value="Publicada">Publicar</button><button class="btn btn-gray" name="Estado" value="Pendiente">Dejar pendiente</button><button class="btn btn-gray" name="Estado" value="Rechazada">Rechazar</button></div></form></article> }</div>
+@model ResenasIndice
+@{
+    ViewData["Title"] = "Reseñas";
+    var p = Model.Pagina;
+    var estado = Model.Estado?.ToString();
+    var paginacion = new PaginacionModelo(p.Numero, p.TotalPaginas, p.TotalElementos, n => Url.Action("Index", new { pagina = n, estado, q = Model.Texto })!);
+    var estados = new[] { (PeluqueriaLucia.Domain.Publico.EstadoResena.Pendiente, "Pendientes"), (PeluqueriaLucia.Domain.Publico.EstadoResena.Publicada, "Publicadas"), (PeluqueriaLucia.Domain.Publico.EstadoResena.Rechazada, "Rechazadas") };
+}
+<header class="page-head">
+    <div><h1>Escucha a tu salón.</h1><p class="subtitle">Opiniones verificadas con ticket. Revisa el texto y la foto antes de publicarlos.</p></div>
+    <a class="btn btn-gray" asp-area="" asp-controller="Opiniones" asp-action="Index" target="_blank">Ver opiniones ↗</a>
+</header>
+
+<form class="toolbar resenas-filtros" method="get" asp-action="Index" role="search">
+    <input type="hidden" name="estado" value="@estado" />
+    <label class="search">
+        <icono nombre="buscar" tamano="17" />
+        <input class="input" type="search" name="q" value="@Model.Texto" placeholder="Buscar por nombre, comentario o respuesta"
+               aria-label="Buscar reseñas" autocomplete="off" data-buscar-al-escribir />
+    </label>
+    <nav class="segmented" aria-label="Estado de reseñas">
+        @foreach (var (valor, texto) in estados)
+        {
+            <a class="@(Model.Estado == valor ? "is-active" : null)" aria-current="@(Model.Estado == valor ? "page" : null)" asp-action="Index" asp-route-estado="@valor" asp-route-q="@Model.Texto">@texto</a>
+        }
+    </nav>
+</form>
+
+@if (p.Elementos.Count == 0)
+{
+    <div class="estado-vacio">
+        @if (!string.IsNullOrWhiteSpace(Model.Texto))
+        {
+            <h2>Sin resultados</h2><p>Ninguna reseña de este estado contiene esas palabras.</p>
+        }
+        else
+        {
+            <h2>Aún no hay opiniones aquí.</h2><p>Las visitas verificadas aparecerán en este espacio.</p>
+        }
+    </div>
+}
+<div class="resenas-grid">@foreach(var r in p.Elementos) { <article class="resena-card"><div class="resena-cabecera"><strong>@r.Alias</strong><span>@r.CreadaEn.ToLocalTime().ToString("dd/MM/yyyy")</span></div><p class="resena-estrellas">@(new string('★', r.Estrellas))</p><p class="resena-verificada">✓ Visita verificada · @r.Estado</p><p class="resena-comentario">@r.Comentario</p>@if(r.Foto is not null) { <img class="resena-foto" src="@Url.Action("Foto", new { id = r.Id })" alt="Foto propuesta por @r.Alias" loading="lazy" /> }<form method="post" asp-action="Moderar" asp-route-id="@r.Id"><div class="field"><label for="respuesta-@r.Id">Tu respuesta · opcional</label><textarea class="input" id="respuesta-@r.Id" name="Respuesta" rows="3" maxlength="1500">@r.Respuesta</textarea></div><div class="acciones"><button class="btn btn-primary" name="Estado" value="Publicada">Publicar</button><button class="btn btn-gray" name="Estado" value="Pendiente">Dejar pendiente</button><button class="btn btn-gray" name="Estado" value="Rechazada">Rechazar</button></div></form></article> }</div>
 <partial name="_Paginacion" model="paginacion" />

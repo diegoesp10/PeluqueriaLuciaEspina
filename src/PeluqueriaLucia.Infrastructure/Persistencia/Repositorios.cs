@@ -64,9 +64,18 @@ internal sealed class ServicioRepositorio(PeluqueriaDbContext db) : IServicioRep
     public Task<Servicio?> ObtenerAsync(int id, CancellationToken ct) =>
         db.Servicios.FirstOrDefaultAsync(s => s.Id == id, ct);
 
-    public async Task<IReadOnlyList<Servicio>> ListarAsync(Sexo? sexo, bool incluirArchivados, CancellationToken ct)
+    public Task<IReadOnlyList<Servicio>> ListarAsync(Sexo? sexo, bool incluirArchivados, CancellationToken ct) =>
+        BuscarAsync(null, sexo, incluirArchivados, ct);
+
+    public async Task<IReadOnlyList<Servicio>> BuscarAsync(string? texto, Sexo? sexo, bool incluirArchivados, CancellationToken ct)
     {
         var consulta = db.Servicios.AsNoTracking();
+        foreach (var palabra in BusquedaTexto.Palabras(texto))
+        {
+            var patron = BusquedaTexto.Patron(palabra);
+            consulta = consulta.Where(s => EF.Functions.Like(s.Nombre, patron, "\\")
+                || (s.DescripcionPublica != null && EF.Functions.Like(s.DescripcionPublica, patron, "\\")));
+        }
         if (!incluirArchivados)
             consulta = consulta.Where(s => s.Activo);
         if (sexo is { } s)

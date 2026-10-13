@@ -14,7 +14,8 @@ public interface IContenidoRepositorio
     Task<PermisoResena> GuardarPermisoTicketAsync(PermisoResena permiso, CancellationToken ct);
     void Agregar(Resena resena);
     Task<Resena?> ResenaAsync(Guid id, CancellationToken ct);
-    Task<Pagina<Resena>> ResenasAsync(EstadoResena? estado, int pagina, CancellationToken ct);
+    /// <summary>Reseñas paginadas; <paramref name="texto"/> filtra por palabras (LIKE) en nombre, comentario y respuesta.</summary>
+    Task<Pagina<Resena>> ResenasAsync(EstadoResena? estado, int pagina, string? texto, CancellationToken ct);
     Task<(int Total, double Media)> ValoracionAsync(CancellationToken ct);
 }
 

@@ -9,7 +9,8 @@ namespace PeluqueriaLucia.Web.Areas.Admin.Controllers;
 
 public sealed class ResenasController(ResenasService resenas, IFotosResenas fotos) : AdminController
 {
-    [HttpGet] public async Task<IActionResult> Index(EstadoResena? estado = EstadoResena.Pendiente, int pagina = 1, CancellationToken ct = default) => View(await resenas.AdministrarAsync(estado, pagina, ct));
+    [HttpGet] public async Task<IActionResult> Index(EstadoResena? estado = EstadoResena.Pendiente, int pagina = 1, string? q = null, CancellationToken ct = default) =>
+        View(new ResenasIndice(await resenas.AdministrarAsync(estado, pagina, q, ct), estado, q?.Trim()));
     [HttpPost] public async Task<IActionResult> Moderar(Guid id, ModeracionFormulario formulario, CancellationToken ct)
     {
         if (!ModelState.IsValid) { this.AvisarError("La respuesta no puede superar 1500 caracteres."); return RedirectToAction(nameof(Index)); }
