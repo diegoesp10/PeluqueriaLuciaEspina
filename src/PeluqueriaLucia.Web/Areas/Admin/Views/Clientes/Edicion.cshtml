@@ -1,0 +1,88 @@
+@model ClienteEdicionModelo
+@{
+    var nuevo = Model.Id is null;
+    ViewData["Title"] = nuevo ? "Nuevo cliente" : "Editar cliente";
+    var f = Model.Formulario;
+}
+
+<div class="form-pagina">
+    @if (Model.VolverAVisita)
+    {
+        <a class="back-link" asp-controller="Visitas" asp-action="Nueva"><icono nombre="anterior" tamano="20" /> Nueva visita</a>
+    }
+    else if (nuevo)
+    {
+        <a class="back-link" asp-action="Index"><icono nombre="anterior" tamano="20" /> Clientes</a>
+    }
+    else
+    {
+        <a class="back-link" asp-action="Detalle" asp-route-id="@Model.Id"><icono nombre="anterior" tamano="20" /> @f.Nombre</a>
+    }
+    <header class="page-head">
+        <h1>@ViewData["Title"]</h1>
+    </header>
+
+    <form class="form" method="post" asp-action="@(nuevo ? "Nuevo" : "Editar")" asp-route-id="@Model.Id" data-cliente-reconocer="@(nuevo ? Url.Action("Reconocer") : null)" novalidate>
+        @if (Model.VolverAVisita)
+        {
+            <input type="hidden" name="visita" value="true" />
+        }
+        <div asp-validation-summary="ModelOnly"></div>
+
+        <div class="cliente-reconocido" data-cliente-estado role="status" aria-live="polite" hidden></div>
+        <div>
+            <div class="section-head"><h2>Contacto (opcional)</h2></div>
+            <div class="fields">
+                <div class="fields-2">
+                    <div class="field">
+                        <label for="Telefono">Teléfono</label>
+                        <input class="input" id="Telefono" name="Telefono" type="tel" autofocus="@nuevo" value="@f.Telefono" autocomplete="off" />
+                        @Html.ValidationMessage("Telefono")
+                    </div>
+                    <div class="field">
+                        <label for="Email">Correo electrónico</label>
+                        <input class="input" id="Email" name="Email" type="email" value="@f.Email" autocomplete="off" />
+                        @Html.ValidationMessage("Email")
+                    </div>
+                </div>
+            </div>
+            <p class="section-foot">Sirven para encontrar al cliente más rápido. No puede haber dos clientes con el mismo teléfono o email.</p>
+        </div>
+
+        <div class="fields">
+            <div class="fields-2">
+                <div class="field">
+                    <label for="Nombre">Nombre</label>
+                    <input class="input" id="Nombre" name="Nombre" value="@f.Nombre" autocomplete="off" maxlength="100" required />
+                    @Html.ValidationMessage("Nombre")
+                </div>
+                <div class="field">
+                    <label for="Apellido">Apellidos</label>
+                    <input class="input" id="Apellido" name="Apellido" value="@f.Apellido" autocomplete="off" maxlength="100" required />
+                    @Html.ValidationMessage("Apellido")
+                </div>
+            </div>
+
+            <div class="field"><label for="Apodo">Apodo</label><input class="input" id="Apodo" name="Apodo" value="@f.Apodo" maxlength="80" autocomplete="nickname" />@Html.ValidationMessage("Apodo")</div>
+            <fieldset class="field">
+                <legend class="field-label">Sexo</legend>
+                <div class="segmented segmented-lg segmented-block">
+                    @foreach (var sexo in new[] { Sexo.Mujer, Sexo.Hombre, Sexo.Otro })
+                    {
+                        <label><input type="radio" name="Sexo" value="@sexo" checked="@(f.Sexo == sexo)" /> @Formato.Texto(sexo)</label>
+                    }
+                </div>
+                @Html.ValidationMessage("Sexo")
+            </fieldset>
+        </div>
+
+
+        <div class="acciones acciones-form">
+            <button class="btn btn-primary btn-lg">@(nuevo ? (Model.VolverAVisita ? "Crear y seguir con la visita" : "Crear cliente") : "Guardar cambios")</button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script src="~/js/cliente-contacto.js" asp-append-version="true"></script>
+}

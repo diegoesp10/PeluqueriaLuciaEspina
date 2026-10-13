@@ -1,0 +1,62 @@
+/* Lucía: una identidad para la web, el acceso y la gestión. Ver docs/DISENO.md. */
+:root {
+  color-scheme: light dark;
+  --bg: light-dark(#f8f6ef, #10231f);
+  --surface: light-dark(#fffdf8, #19302a);
+  --surface-2: light-dark(#eeeee4, #233d34);
+  --surface-hover: light-dark(#f2f2e8, #264438);
+  --sand: light-dark(#eeeadd, #24392f);
+  --label: light-dark(#183a35, #f4f1e7);
+  --label-2: light-dark(#5c695e, #bac6b6);
+  --label-3: light-dark(#65735f, #9daa97);
+  --separator: light-dark(#dcded0, #3a5145);
+  --fill: light-dark(rgb(89 102 68 / .09), rgb(187 201 162 / .12));
+  --fill-2: light-dark(rgb(89 102 68 / .16), rgb(187 201 162 / .20));
+  --accent: light-dark(#244c40, #c5d3ac);
+  --accent-ink: light-dark(#fffdf8, #19302a);
+  --olive: light-dark(#596644, #c2cfaa);
+  --forest: #183a35;
+  --cream: #f8f6ef;
+  --blue: light-dark(#526f72, #aac6c4);
+  --green: light-dark(#60764c, #b5ca9a);
+  --green-text: light-dark(#4c653d, #b5ca9a);
+  --red: light-dark(#ad3f39, #ffa69a);
+  --orange: light-dark(#95613d, #e4b792);
+  --orange-text: var(--orange);
+  --purple: light-dark(#786a7e, #cabbcf);
+  --pink: light-dark(#916d76, #d5b3bd);
+  --teal: var(--blue);
+  --indigo: var(--purple);
+  --gray: light-dark(#65735f, #aab6a2);
+  --tint: var(--olive);
+  --glass: light-dark(rgb(248 246 239 / .86), rgb(16 35 31 / .88));
+  --glass-edge: light-dark(rgb(255 253 248 / .9), rgb(197 211 172 / .12));
+  --glass-shadow: 0 14px 45px light-dark(rgb(24 58 53 / .10), rgb(0 0 0 / .30));
+  --card-edge: 0 0 0 1px var(--separator);
+  --card-shadow: var(--card-edge), 0 5px 20px light-dark(rgb(24 58 53 / .035), rgb(0 0 0 / .12));
+  --r-card: 24px;
+  --radius-card: var(--r-card);
+  --r-ctl: 14px;
+  --r-sm: 10px;
+  --r-pill: 999px;
+  /* Source Serif 4 en toda la aplicación (fuentes.css); Georgia solo si la fuente no llegara a cargar */
+  --font: 'Source Serif 4', Georgia, serif;
+  --font-display: 'Source Serif 4', Georgia, serif;
+  --font-mono: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  --ease: cubic-bezier(.32,.72,0,1);
+  --sidebar-w: 264px;
+  --tabbar-h: 64px;
+  --topbar-h: 64px;
+  --page-gutter: clamp(24px, 3vw, 80px);
+  /* Alias de presentación: proceden de la misma paleta, nunca de colores duplicados. */
+  --tinta: var(--label);
+  --oliva: var(--olive);
+  --papel: var(--bg);
+  --arena: var(--sand);
+  --linea: var(--separator);
+  --muted: var(--label-2);
+  --serif: var(--font-display);
+  --sans: var(--font);
+}
+:root[data-theme='dia'] { color-scheme: light; }
+:root[data-theme='noche'] { color-scheme: dark; }

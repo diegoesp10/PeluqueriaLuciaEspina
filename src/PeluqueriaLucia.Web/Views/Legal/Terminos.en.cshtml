@@ -1,0 +1,57 @@
+@model ContenidoPublico
+@{
+    ViewData["Title"] = "Terms and conditions";
+    ViewData["Descripcion"] = "Terms of use for the Lucía Peluquería Ecológica website, appointment requests and reviews.";
+}
+<article class="seccion-publica pagina-legal">
+    <header class="legal-portada">
+        <p class="etiqueta" data-anima="subir">LEGAL INFORMATION</p>
+        <h1 data-dividir>Terms and<br /><em>conditions.</em></h1>
+        <p class="intro" data-anima="subir">The ground rules, clear and without small print: how booking works, what happens to your reviews and what you can expect from this website.</p>
+        <p class="nota" data-anima="subir">Last updated: 13 October 2026. The Spanish version prevails in case of discrepancy.</p>
+    </header>
+    <nav class="legal-indice" aria-label="Contents">
+        <a href="#titular">Who we are</a><a href="#citas">Appointments</a><a href="#precios">Prices</a><a href="#opiniones">Reviews</a><a href="#uso">Website use</a><a href="#ley">Governing law</a>
+    </nav>
+    <div class="legal-texto">
+        <section id="titular" data-anima="subir">
+            <h2>1. Who we are</h2>
+            <p>This website belongs to @Model.TitularVisible@(string.IsNullOrWhiteSpace(Model.Nif) ? "" : $", tax ID {Model.Nif}"), who provides services at the salon located at @Model.Direccion, @Model.CodigoPostal @Model.Ciudad, Spain. You can reach us on <a href="@Model.TelefonoEnlace">+34 @Model.Telefono</a>@(string.IsNullOrWhiteSpace(Model.Correo) ? "" : " or at " + Model.Correo).</p>
+            <p>By using the website you accept these terms. How we handle your data is explained in the <a asp-action="Privacidad">privacy policy</a>.</p>
+        </section>
+        <section id="citas" data-anima="subir">
+            <h2>2. How booking works</h2>
+            <ol>
+                <li><strong>You send a request</strong> with the day, time and service. It is not yet a confirmed appointment: we hold that slot provisionally for 24 hours.</li>
+                <li><strong>The team reviews it</strong> and calls you to validate your phone number and adjust the time your service needs. They may suggest a different duration or decline the request if it does not fit the schedule.</li>
+                <li><strong>You receive a proposal</strong> through the channel you chose. The appointment is confirmed when you accept it using the link, which expires after 24 hours or when the appointment starts. If you have already agreed on it by phone, the team can confirm it directly.</li>
+            </ol>
+            <p>If you cannot come, please call us as soon as possible so someone else can use the slot. The salon may record internally that you missed a confirmed appointment without notice; this information is never published.</p>
+            <p>If the salon has to change or cancel your appointment for unforeseen reasons, we will let you know as soon as possible to find another time.</p>
+        </section>
+        <section id="precios" data-anima="subir">
+            <h2>3. Prices and payment</h2>
+            <p>Prices on the service menu are for guidance. Prices marked "from" depend on hair length, volume or product, and those marked "on request" are quoted at the salon. The team confirms the final price before starting.</p>
+            <p>The website does not charge anything: you pay at the salon, in cash or by card, and receive a receipt.</p>
+        </section>
+        <section id="opiniones" data-anima="subir">
+            <h2>4. Reviews</h2>
+            <ul>
+                <li>Only people who have visited the salon can leave a review, using the code on their receipt. Each code can be used once and expires after six months.</li>
+                <li>Reviews are checked before publication. We publish positive and negative reviews alike; we only remove those containing insults, other people's personal data, advertising or content unrelated to the visit.</li>
+                <li>By sending your review and, if attached, your photo, you authorise us to publish them on this website under the name you choose. You can ask us to remove them at any time.</li>
+                <li>Only upload photos of yourself or that you have permission to share. The team may reply publicly to your review.</li>
+            </ul>
+        </section>
+        <section id="uso" data-anima="subir">
+            <h2>5. Using the website</h2>
+            <p>Please use the website in good faith: no fake requests, no impersonating other people and no attempts to overload it or access restricted areas. To protect it, we limit the number of consecutive requests from the same connection.</p>
+            <p>The logo, photos and texts belong to the salon or are used with permission; please do not reproduce them without authorisation.</p>
+            <p>We try to keep the website available and its information accurate, but there may be occasional interruptions or errors. Links to other websites, such as Google Maps, are the responsibility of their owners.</p>
+        </section>
+        <section id="ley" data-anima="subir">
+            <h2>6. Governing law</h2>
+            <p>These terms are governed by Spanish law. If you are a consumer, you may go to the courts of your place of residence and to the consumer services of your region. But first, tell us about the problem: we are sure we can sort it out by talking.</p>
+        </section>
+    </div>
+</article>

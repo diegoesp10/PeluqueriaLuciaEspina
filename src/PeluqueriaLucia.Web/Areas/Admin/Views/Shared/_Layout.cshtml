@@ -1,0 +1,135 @@
+@{
+    var controlador = ViewContext.RouteData.Values["controller"]?.ToString();
+    var accion = ViewContext.RouteData.Values["action"]?.ToString();
+    string Activo(string nombre) => string.Equals(controlador, nombre, StringComparison.OrdinalIgnoreCase) && accion != "Nueva" ? "is-active" : "";
+    var enNuevaVisita = controlador == "Visitas" && accion == "Nueva";
+    var exito = TempData[Avisos.ClaveExito] as string;
+    var error = TempData[Avisos.ClaveError] as string;
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    @* Aplica el tema elegido antes de pintar nada, para que la página no parpadee al cargar *@
+    <partial name="_TemaInicial" />
+    <title>@ViewData["Title"] · Peluquería Lucía</title>
+    <partial name="_Iconos" />
+    <link rel="preload" href="~/fonts/source-serif-4/source-serif-4-latin-opsz-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="~/css/fuentes.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/tokens.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/base.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/layout.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/componentes.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/paginas.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/ticket.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/agenda.css" asp-append-version="true" />
+</head>
+<body class="sitio-admin" data-sesion-id="@User.FindFirst(Autenticacion.ClaimSesion)?.Value" data-sesion-estado="@Url.Content(Autenticacion.RutaEstado)" data-sesion-acceso="@Url.Content("/admin/acceso")">
+    <a class="skip-link" href="#contenido">Saltar al contenido</a>
+
+    <div class="app">
+        @* En pantallas anchas es la barra lateral fija; en móvil, el menú que abre el botón hamburguesa.
+           Sin JavaScript se abre igualmente con el ancla #menu-principal (:target). *@
+        <aside class="sidebar glass" id="menu-principal" aria-label="Navegación principal">
+            <a class="sidebar-cerrar" href="#" data-menu-cerrar aria-label="Cerrar menú"><icono nombre="cerrar" tamano="20" /></a>
+            <a class="brand" asp-controller="Panel" asp-action="Index">
+                <img class="brand-logo" src="~/Img/Icono.jpg" alt="" width="40" height="40" />
+                <span class="brand-text">
+                    <strong>Lucía</strong>
+                    <small>Peluquería ecológica</small>
+                </span>
+            </a>
+
+            <a class="btn btn-primary btn-block @(enNuevaVisita ? "is-current" : "")" asp-controller="Visitas" asp-action="Nueva" title="Nueva visita">
+                <icono nombre="mas" tamano="18" /> Nueva visita
+            </a>
+
+            <nav class="nav">
+                <p class="nav-label">Espacio profesional</p>
+                <a class="nav-item @Activo("Agenda")" href="/admin/agenda" title="Agenda y solicitudes de cita"><span class="nav-tile"><icono nombre="calendario" tamano="17" /></span> Agenda <span class="agenda-contador" data-agenda-contador aria-label="Solicitudes pendientes"></span></a>
+                <a class="nav-item @Activo("Panel")" asp-controller="Panel" asp-action="Index" title="Panel"><span class="nav-tile"><icono nombre="casa" tamano="17" /></span> Panel</a>
+                <a class="nav-item tint-blue @Activo("Visitas")" asp-controller="Visitas" asp-action="Index" title="Visitas">
+                    <span class="nav-tile"><icono nombre="ticket" tamano="17" /></span> Visitas
+                </a>
+                <a class="nav-item tint-green @Activo("Clientes")" asp-controller="Clientes" asp-action="Index" title="Clientes">
+                    <span class="nav-tile"><icono nombre="clientes" tamano="17" /></span> Clientes
+                </a>
+                <a class="nav-item tint-orange @Activo("Catalogo")" asp-controller="Catalogo" asp-action="Index" title="Catálogo">
+                    <span class="nav-tile"><icono nombre="tijeras" tamano="17" /></span> Catálogo
+                </a>
+                <a class="nav-item @Activo("Seguridad")" asp-controller="Seguridad" asp-action="Index"><span class="nav-tile"><icono nombre="check-circulo" tamano="17" /></span> Seguridad</a>
+                <a class="nav-item @Activo("Tratamientos")" asp-controller="Tratamientos" asp-action="Index"><span class="nav-tile"><icono nombre="hoja" tamano="17" /></span> Servicios de la web</a>
+                <a class="nav-item @Activo("Resenas")" asp-controller="Resenas" asp-action="Index"><span class="nav-tile"><icono nombre="check" tamano="17" /></span> Reseñas</a>
+            </nav>
+
+            <div class="sidebar-foot">
+                <p class="cuenta-actual">Sesión de <strong>@User.Identity?.Name</strong></p>
+                <a class="enlace-cuenta" asp-controller="Seguridad" asp-action="Contrasena">Cambiar contraseña</a>
+                <a asp-area="" asp-controller="Inicio" asp-action="Index">Ver web pública ↗</a>
+                <form method="post" asp-controller="Acceso" asp-action="Salir"><button class="btn btn-gray btn-block" type="submit">Cerrar sesión</button></form>
+                <partial name="_SelectorTema" />
+                <p>© @DateTime.Now.Year Peluquería Ecológica Lucía Espina</p>
+            </div>
+        </aside>
+
+        <a class="menu-fondo" href="#" data-menu-cerrar tabindex="-1" aria-hidden="true"></a>
+
+        <header class="topbar glass">
+            <a class="topbar-menu" href="#menu-principal" aria-controls="menu-principal" aria-expanded="false" data-menu-abrir>
+                <icono nombre="menu" tamano="22" /><span class="sr-only">Abrir menú</span>
+            </a>
+            <a class="brand" asp-controller="Panel" asp-action="Index">
+                <img class="brand-logo" src="~/Img/Icono.jpg" alt="" width="32" height="32" />
+                <span class="brand-text"><strong>Lucía</strong></span>
+            </a>
+            <a class="btn btn-primary btn-sm topbar-nueva @(enNuevaVisita ? "is-current" : "")" asp-controller="Visitas" asp-action="Nueva" aria-label="Nueva visita">
+                <icono nombre="mas" tamano="18" /><span>Nueva visita</span>
+            </a>
+        </header>
+
+        <main class="main fondo-identidad" id="contenido" tabindex="-1">
+            @RenderBody()
+        </main>
+
+    </div>
+
+    <div class="toasts" aria-live="polite">
+        @if (exito is not null)
+        {
+            <div class="toast glass tint-green" role="status">
+                <span class="toast-icon"><icono nombre="check-circulo" /></span>
+                <span>@exito</span>
+                <button type="button" class="toast-close" data-cerrar-toast aria-label="Cerrar"><icono nombre="cerrar" tamano="16" /></button>
+            </div>
+        }
+        @if (error is not null)
+        {
+            <div class="toast glass tint-red" role="alert" data-persistente>
+                <span class="toast-icon"><icono nombre="alerta" /></span>
+                <span>@error</span>
+                <button type="button" class="toast-close" data-cerrar-toast aria-label="Cerrar"><icono nombre="cerrar" tamano="16" /></button>
+            </div>
+        }
+    </div>
+
+    <dialog class="alerta" id="dialogo-confirmar" aria-labelledby="dialogo-titulo">
+        @* Formulario solo del navegador (cierra el diálogo): sin token, que marcaría todas las páginas como no cacheables *@
+        <form method="dialog" asp-antiforgery="false">
+            <h2 id="dialogo-titulo">¿Seguro?</h2>
+            <p id="dialogo-texto"></p>
+            <div class="alerta-botones">
+                <button class="alerta-boton" value="cancelar" autofocus>Cancelar</button>
+                <button class="alerta-boton is-destructive" value="confirmar" id="dialogo-aceptar">Eliminar</button>
+            </div>
+        </form>
+    </dialog>
+
+    <partial name="_ControlSesion" />
+    <script src="~/js/app.js" asp-append-version="true"></script>
+    <script src="~/js/fechas.js" asp-append-version="true"></script>
+    <script src="~/js/agenda-avisos.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

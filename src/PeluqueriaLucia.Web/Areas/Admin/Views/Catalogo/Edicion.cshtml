@@ -1,0 +1,112 @@
+@model ServicioEdicionModelo
+@{
+    var nuevo = Model.Id is null;
+    ViewData["Title"] = nuevo ? "Nuevo servicio" : "Editar servicio";
+    var f = Model.Formulario;
+}
+
+<div class="form-pagina">
+    <a class="back-link" asp-action="Index"><icono nombre="anterior" tamano="20" /> Catálogo</a>
+    <header class="page-head">
+        <div>
+            <h1>@ViewData["Title"]</h1>
+            @if (!Model.Activo)
+            {
+                <p class="subtitle"><span class="pill tint-gray"><icono nombre="archivar" tamano="13" /> Archivado</span></p>
+            }
+        </div>
+    </header>
+
+    <form class="form" method="post" enctype="multipart/form-data" asp-action="@(nuevo ? "Nuevo" : "Editar")" asp-route-id="@Model.Id" novalidate>
+        <div asp-validation-summary="ModelOnly"></div>
+
+        <div class="fields">
+            <div class="field">
+                <label for="Nombre">Nombre</label>
+                <input class="input" id="Nombre" name="Nombre" value="@f.Nombre" maxlength="100" autocomplete="off" required autofocus="@nuevo"
+                       placeholder="Por ejemplo, Corte y peinado" />
+                @Html.ValidationMessage("Nombre")
+            </div>
+
+            <div class="field">
+                <label for="Precio">Precio</label>
+                <div class="input-affix input-precio">
+                    <input class="input num" id="Precio" name="Precio" inputmode="decimal" autocomplete="off" required
+                           value="@Formato.Importe(f.Precio)" placeholder="0,00" />
+                    <span>€</span>
+                </div>
+                @Html.ValidationMessage("Precio")
+                @if (!nuevo)
+                {
+                    <span class="field-hint">Las visitas ya registradas mantienen el precio que tenían.</span>
+                }
+            </div>
+
+            <fieldset class="field">
+                <legend class="field-label">Para</legend>
+                <div class="segmented segmented-lg segmented-block">
+                    @foreach (var sexo in new[] { Sexo.Mujer, Sexo.Hombre, Sexo.Otro })
+                    {
+                        <label><input type="radio" name="Sexo" value="@sexo" checked="@(f.Sexo == sexo)" /> @Formato.Texto(sexo)</label>
+                    }
+                </div>
+                @Html.ValidationMessage("Sexo")
+            </fieldset>
+        </div>
+
+        <div>
+            <div class="section-head"><h2>Foto (opcional)</h2></div>
+            <div class="fields">
+                <div class="foto-editor" data-foto>
+                    <span class="servicio-foto foto-preview">
+                        <img src="@Url.Content(ImagenesPrivadas.Ruta(Model.ImagenActual))" alt="" data-foto-preview hidden="@(Model.ImagenActual is null)" />
+                        <span data-foto-vacia hidden="@(Model.ImagenActual is not null)"><icono nombre="imagen" tamano="34" /></span>
+                    </span>
+                    <div class="foto-acciones">
+                        <label class="btn btn-gray">
+                            <icono nombre="imagen" tamano="18" /> @(Model.ImagenActual is null ? "Elegir foto" : "Cambiar foto")
+                            <input class="sr-only" type="file" name="Imagen" accept="image/jpeg,image/png,image/webp,image/gif" data-foto-input />
+                        </label>
+                        @if (Model.ImagenActual is not null)
+                        {
+                            <label class="check">
+                                <input type="checkbox" name="QuitarImagen" value="true" data-foto-quitar /> Quitar la foto
+                            </label>
+                        }
+                        <span class="field-hint">JPG, PNG, WEBP o GIF. Máximo 5 MB.</span>
+                        @Html.ValidationMessage("Imagen")
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <section id="publicacion-web">
+            <div class="section-head"><h2>En la web del salón</h2></div>
+            <div class="fields">
+                <label class="check-opcion"><input type="checkbox" name="Publicado" value="true" checked="@f.Publicado" /> Publicar este servicio en la web</label>
+                <p class="field-hint">El mismo nombre y precio se usan en el catálogo y en la web. Desmarcarlo conserva el servicio para visitas y cobros.</p>
+                <div class="field"><label for="CategoriaPublicaId">Categoría de la web</label><select class="input" id="CategoriaPublicaId" name="CategoriaPublicaId"><option value="">Solo catálogo interno</option>@foreach(var c in Model.Categorias ?? []) { <option value="@c.Id" selected="@(c.Id == f.CategoriaPublicaId)">@c.Nombre</option> }</select></div>
+                <div class="field"><label for="DescripcionPublica">Descripción pública</label><textarea class="input" id="DescripcionPublica" name="DescripcionPublica" maxlength="1000" rows="3">@f.DescripcionPublica</textarea></div>
+                <div class="field"><label for="TipoPrecioPublico">Precio en la web</label><select class="input" id="TipoPrecioPublico" name="TipoPrecioPublico"><option value="Fijo" selected="@(f.TipoPrecioPublico == PeluqueriaLucia.Domain.Publico.TipoPrecioPublico.Fijo)">Precio fijo</option><option value="Desde" selected="@(f.TipoPrecioPublico == PeluqueriaLucia.Domain.Publico.TipoPrecioPublico.Desde)">Desde</option><option value="Consultar" selected="@(f.TipoPrecioPublico == PeluqueriaLucia.Domain.Publico.TipoPrecioPublico.Consultar)">Consultar</option></select><p class="field-hint">Con «Consultar», puedes dejar el precio a cero y definirlo al registrar la visita.</p></div>
+                <div class="field"><label for="DuracionMinutos">Duración en minutos</label><input class="input" type="number" id="DuracionMinutos" name="DuracionMinutos" min="5" max="600" value="@f.DuracionMinutos" /><p class="field-hint">La posición en la web se cambia con las flechas en «Servicios de la web».</p></div>
+                <label class="check-opcion"><input type="checkbox" name="Destacado" value="true" checked="@f.Destacado" /> Destacar este servicio</label>
+            </div>
+        </section>
+
+        <div class="acciones acciones-form">
+            <button class="btn btn-primary btn-lg">@(nuevo ? "Añadir al catálogo" : "Guardar cambios")</button>
+        </div>
+    </form>
+
+    @if (!nuevo)
+    {
+        <form class="form zona-peligro" method="post" asp-action="Eliminar" asp-route-id="@Model.Id"
+              data-confirmar="Si «@f.Nombre» aparece en visitas anteriores se archivará en lugar de borrarse, para conservar el historial.">
+            <button class="btn btn-gray btn-destructive"><icono nombre="papelera" tamano="17" /> Eliminar servicio</button>
+        </form>
+    }
+</div>
+
+@section Scripts {
+    <script src="~/js/catalogo.js" asp-append-version="true"></script>
+}

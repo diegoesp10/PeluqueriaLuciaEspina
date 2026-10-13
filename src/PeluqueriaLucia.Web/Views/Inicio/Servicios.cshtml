@@ -1,0 +1,19 @@
+@model ContenidoPublico
+@{ ViewData["Title"] = T["Servicios y tratamientos"]; }
+<section class="seccion-publica portada-servicios">
+    <div><p class="etiqueta" data-anima="subir">@T["EL ARTE DE CUIDAR TU CABELLO"]</p><h1 data-dividir>@T["Pequeños cuidados."]<br /><em>@T["Grandes sensaciones."]</em></h1></div>
+    <div class="servicios-intro" data-anima-grupo><p class="intro">@T["Cortes, color y bienestar capilar. El equipo del salón te ayudará a encontrar el cuidado que necesitas."]</p><div class="botones"><a class="btn btn-primary" asp-controller="Agenda" asp-action="Index" data-magnetico>@T["Reservar mi cuidado"] ↗</a><a class="enlace-flecha" href="@Model.TelefonoEnlace">@T["Consultar con el equipo"] →</a></div><p class="nota">@T["La carta de cuidados, actualizada por el equipo del salón. Confirma los detalles y la disponibilidad al reservar."]</p></div>
+</section>
+<div class="catalogo-publico seccion-publica">
+    <aside><nav aria-label="@T["Categorías de servicios"]" data-indice-categorias>@foreach(var categoria in Model.Categorias) { <a href="#@categoria.Id">@T[categoria.Nombre] <span aria-hidden="true">↗</span></a> }</nav><a class="btn btn-primary" asp-controller="Agenda" asp-action="Index">@T["Reservar cita"] ↗</a></aside>
+    <div>@foreach (var categoria in Model.Categorias) {
+        <section class="categoria-publica" id="@categoria.Id"><h2 data-dividir>@T[categoria.Nombre]</h2><div class="lista-servicios" data-anima-grupo>@foreach (var servicio in categoria.Servicios) { <article class="servicio-publico"><div><h3>@servicio.Nombre</h3>@if(servicio.Detalle is not null) { <p>@servicio.Detalle</p> }<small>@servicio.Duracion</small></div><strong>@servicio.Precio</strong></article> }</div></section>
+    }
+    @if (Model.Categorias.Count == 0) { <p class="muted">@T["Estamos actualizando la carta de servicios. Consulta con el equipo."]</p> }
+    </div>
+</div>
+<section class="cita-publica">
+    <span class="estrella-fondo estrella-fondo-1" aria-hidden="true" data-giro>✳</span>
+    <span class="estrella-fondo estrella-fondo-2" aria-hidden="true" data-giro="-1">✳</span>
+    <p class="etiqueta" data-anima="subir">@T["EL EQUIPO TE AYUDA A ELEGIR"]</p><h2 data-dividir>@T["Tu cabello es único."]<br /><em>@T["Su cuidado también."]</em></h2><a class="btn btn-light" href="@Model.TelefonoEnlace" data-anima="subir">@T["Contactar con el equipo"] →</a>
+</section>

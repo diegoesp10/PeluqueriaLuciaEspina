@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <RootNamespace>PeluqueriaLucia.Web</RootNamespace>
+  </PropertyGroup>
+  <!-- Al publicar para Windows (-r win-x64) el código va ya compilado a nativo (ReadyToRun): la aplicación arranca
+       antes porque no tiene que compilarlo en la primera petición. Sigue usando el .NET instalado en el equipo. -->
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' != ''">
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <SelfContained>false</SelfContained>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="QRCoder" Version="1.8.0" />
+    <Content Remove="wwwroot\imagenes\**" />
+    <Content Remove="AlmacenResenas\**" />
+    <None Include="wwwroot\imagenes\**" />
+    <Content Remove="Publico\textos.en.json" />
+    <!-- WithCulture=false: el «.en» del nombre no indica un ensamblado satélite de recursos -->
+    <EmbeddedResource Include="Publico\textos.en.json" LogicalName="PeluqueriaLucia.Web.Publico.textos.en.json" WithCulture="false" />
+    <Content Update="contenido-publico.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <ProjectReference Include="..\PeluqueriaLucia.Infrastructure\PeluqueriaLucia.Infrastructure.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.12">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Las fotos subidas viven en el equipo de destino: nunca se publican ni se sobrescriben desde el repositorio -->
+    <Content Update="wwwroot\imagenes\**" CopyToPublishDirectory="Never" />
+    <Content Update="appsettings.Production.json" CopyToPublishDirectory="Never" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="PeluqueriaLucia.Tests" />
+  </ItemGroup>
+</Project>

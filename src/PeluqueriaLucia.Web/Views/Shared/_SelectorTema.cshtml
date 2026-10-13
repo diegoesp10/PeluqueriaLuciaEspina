@@ -1,0 +1,12 @@
+@* Apariencia: automática (la del sistema), día o noche. La elección se guarda en este navegador (ver app.js) *@
+<div class="selector-tema" role="radiogroup" aria-label="@T["Apariencia"]" data-selector-tema>
+    <button type="button" role="radio" aria-checked="true" data-tema="auto" title="@T["Automática: como el sistema"]">
+        <icono nombre="auto" tamano="16" /><span class="sr-only">@T["Automática"]</span>
+    </button>
+    <button type="button" role="radio" aria-checked="false" data-tema="dia" title="@T["Día"]">
+        <icono nombre="sol" tamano="16" /><span class="sr-only">@T["Día"]</span>
+    </button>
+    <button type="button" role="radio" aria-checked="false" data-tema="noche" title="@T["Noche"]">
+        <icono nombre="luna" tamano="16" /><span class="sr-only">@T["Noche"]</span>
+    </button>
+</div>

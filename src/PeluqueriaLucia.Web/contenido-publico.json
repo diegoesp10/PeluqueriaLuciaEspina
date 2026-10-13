@@ -1,0 +1,20 @@
+{
+  "Publico": {
+    "Nombre": "Lucía Peluquería Ecológica",
+    "Lema": "Peluquería ecológica en Oviedo",
+    "Direccion": "C. de Pío XII, 10, bajo 1",
+    "CodigoPostal": "33013",
+    "Ciudad": "Oviedo",
+    "Telefono": "659 306 659",
+    "Titular": "",
+    "Nif": "",
+    "Correo": "",
+    "Mapa": "https://www.google.com/maps/search/?api=1&query=Calle+P%C3%ADo+XII+10%2C+33013+Oviedo",
+    "Comodidades": [
+      "Servicio a domicilio",
+      "Pago con tarjeta",
+      "Se admiten mascotas",
+      "Wi-Fi"
+    ]
+  }
+}

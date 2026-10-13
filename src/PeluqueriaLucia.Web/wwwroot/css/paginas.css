@@ -1,0 +1,406 @@
+/* Piezas propias de cada pantalla. */
+
+/* ── Barra de herramientas bajo el título ─────────────────────────────────── */
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.date-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.date-picker .input {
+  width: auto;
+  min-height: 34px;
+  padding: 4px 12px;
+  border-radius: 17px;
+  background: var(--fill);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+/* ── Cabeceras con avatar (cliente, visita) ───────────────────────────────── */
+
+.titulo-con-avatar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.titulo-con-avatar h1 {
+  overflow-wrap: anywhere;
+}
+
+/* Dos columnas en pantallas anchas: información a la izquierda, acción a la derecha */
+.detalle-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .detalle-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.stats-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.row-kv svg {
+  margin-right: 6px;
+  vertical-align: -3px;
+}
+
+.enlace {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.enlace:hover {
+  text-decoration: underline;
+}
+
+/* ── Cobro ────────────────────────────────────────────────────────────────── */
+
+.cobro {
+  display: grid;
+  gap: 20px;
+}
+
+.cobro-formas {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.cobro-mixto {
+  display: grid;
+  gap: 10px;
+}
+
+.cobro-mixto .is-ok {
+  color: var(--green-text);
+  font-weight: 600;
+}
+
+.cobro-mixto .is-error {
+  color: var(--red);
+  font-weight: 600;
+}
+
+/* ── Nueva visita ─────────────────────────────────────────────────────────── */
+
+.nueva-visita {
+  padding-bottom: 96px;
+}
+
+.form-ancho {
+  max-width: 760px;
+}
+
+.cliente-elegido {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.combo {
+  position: relative;
+}
+
+.search-full {
+  max-width: none;
+}
+
+.search-full > .input {
+  min-height: 44px;
+  font-size: 16px;
+}
+
+.combo-lista {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  left: 0;
+  z-index: 10;
+  max-height: 340px;
+  overflow-y: auto;
+  box-shadow: var(--glass-shadow), var(--card-edge);
+  animation: pop-in 0.2s var(--ease);
+}
+
+.combo-lista .row {
+  cursor: pointer;
+}
+
+.combo-lista .row[aria-selected='true'] {
+  background: color-mix(in oklab, var(--accent) 12%, transparent);
+}
+
+.combo-lista .row-vacia {
+  color: var(--label-2);
+  cursor: default;
+}
+
+.servicio-opcion {
+  cursor: pointer;
+}
+
+.servicio-opcion .row-amount {
+  margin-right: 6px;
+}
+
+.servicio-opcion:has(input:checked) {
+  background: color-mix(in oklab, var(--green) 7%, transparent);
+}
+
+/* Barra flotante con el total y los botones de guardar */
+.barra-total {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: var(--sidebar-w);
+  z-index: 15;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  padding: 14px 40px calc(14px + env(safe-area-inset-bottom));
+  border-top: 0.5px solid var(--separator);
+}
+
+.barra-total-cifras {
+  display: grid;
+  line-height: 1.2;
+}
+
+.barra-total-cifras strong {
+  font: 650 26px/1.15 var(--font);
+  letter-spacing: -0.02em;
+}
+
+@media (max-width: 560px) {
+  .page-head .acciones,
+  .toolbar > .segmented,
+  .toolbar > .search {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+
+  .page-head .acciones > .btn {
+    flex: 1;
+  }
+
+  .toolbar > .segmented > * {
+    padding-inline: 8px;
+  }
+
+  .titulo-con-avatar .avatar-lg {
+    width: 56px;
+    height: 56px;
+    font-size: 20px;
+  }
+
+  .catalogo {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .barra-total .acciones {
+    flex: 1;
+  }
+
+  .barra-total .acciones > .btn {
+    flex: 1;
+  }
+}
+
+@media (max-width: 900px) {
+  .barra-total {
+    bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
+    left: 0;
+    padding: 10px 16px;
+  }
+
+  .barra-total-cifras strong {
+    font-size: 21px;
+  }
+}
+
+/* ── Catálogo ─────────────────────────────────────────────────────────────── */
+
+.catalogo {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 16px;
+}
+
+.servicio-tarjeta {
+  display: grid;
+  overflow: hidden;
+  transition: transform 0.25s var(--ease), box-shadow 0.25s;
+}
+
+.servicio-tarjeta:hover {
+  box-shadow: var(--card-edge), 0 10px 30px light-dark(rgb(0 0 0 / 0.1), rgb(0 0 0 / 0.5));
+  transform: translateY(-2px);
+}
+
+.servicio-foto {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: color-mix(in oklab, var(--tint, var(--gray)) 13%, var(--surface));
+  color: var(--tint, var(--gray));
+}
+
+/* La foto tapa el icono; si el fichero falta, se quita y queda el icono */
+.servicio-foto {
+  position: relative;
+}
+
+.servicio-foto img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.servicio-cuerpo {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px 14px;
+}
+
+.servicio-pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.servicio-precio {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.foto-editor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px;
+}
+
+.foto-preview {
+  width: 168px;
+  border-radius: var(--r-ctl);
+}
+
+.foto-acciones {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+}
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14.5px;
+  cursor: pointer;
+}
+
+.check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--red);
+}
+
+.acciones-form {
+  justify-content: flex-end;
+}
+
+.zona-peligro {
+  display: flex;
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 0.5px solid var(--separator);
+}
+
+/* Identidad del salón dentro del espacio de trabajo. */
+.nav-label { padding:6px 10px 10px; color:var(--olive); font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; }
+.cuenta-actual { padding:12px; background:var(--fill); border:1px solid var(--separator); border-radius:var(--r-ctl); }
+.cuenta-actual strong { display:block; margin-top:3px; font-size:15px; font-weight:600; color:var(--label); }
+.enlace-cuenta { display:block; padding-block:6px; color:var(--accent); font-weight:500; }
+.sitio-admin .main { background:radial-gradient(ellipse at 100% 0,var(--fill),transparent 40%); min-height:100dvh; }
+.sitio-admin .stat { padding:22px; border-left:3px solid var(--tint); }
+.sitio-admin .section-head h2 { color:var(--olive); letter-spacing:.08em; font-size:11px; }
+.sitio-admin .brand-text small { letter-spacing:.02em; }
+.panel-bienvenida { display:grid; grid-template-columns:minmax(0,1fr) minmax(280px,.65fr); gap:32px; align-items:center; margin-bottom:28px; padding:32px; border:1px solid var(--separator); border-radius:var(--r-card); background:var(--surface); overflow:hidden; }
+.panel-bienvenida h1 { font:400 clamp(36px,3.3vw,58px)/1.06 var(--font-display); letter-spacing:-.035em; margin:12px 0; }
+.panel-bienvenida h1 em { color:var(--olive); font-weight:400; }
+.panel-bienvenida .subtitle { color:var(--label-2); margin-bottom:24px; }
+.panel-fecha { color:var(--olive); font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.09em; }
+.panel-foto { width:min(100%,320px); height:auto; aspect-ratio:1369/1306; justify-self:end; border:8px solid var(--sand); border-radius:var(--r-card); }
+.panel-grid { display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr); gap:28px; }
+.panel-grid .row-title { flex:1; }
+.panel-grid .row>svg { color:var(--olive); }
+.panel-actividad { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; padding:26px; }
+.panel-actividad strong { display:block; font-size:32px; font-weight:600; font-variant-numeric:tabular-nums; }
+.panel-actividad span { font-size:13px; color:var(--label-2); }
+.panel-cuenta { padding:22px 26px; display:flex; flex-wrap:wrap; gap:16px; align-items:center; justify-content:space-between; }
+.panel-cuenta p { color:var(--label-2); font-size:13px; margin-top:4px; }
+@media(min-width:901px) and (max-width:1180px) { .nav-label { display:none; } }
+@media(max-width:900px) {
+  .panel-bienvenida { grid-template-columns:minmax(0,1fr); padding:26px; gap:24px; }
+  .panel-foto { display:none; }
+  .panel-grid { grid-template-columns:minmax(0,1fr); gap:0; }
+}
+@media(max-width:560px) {
+  .sitio-admin .stat { padding:16px; }
+  .panel-bienvenida { padding:22px; }
+  .panel-cuenta,.panel-actividad { padding:22px; }
+  .sitio-admin .row:has(.row-body) { flex-wrap:wrap; }
+}
+.form-pagina { width: min(100%, 820px); margin-inline: auto; }
+.form-pagina .form { max-width: none; }
+.nueva-visita { width: min(100%, 960px); margin-inline: auto; }
+.nueva-visita .form-ancho { max-width: none; }
+@media (min-width:901px) { .barra-total { padding-inline:max(40px,calc((100vw - var(--sidebar-w) - 960px) / 2)); } }
+.main > .form { margin-inline: auto; }
+.resena-card form { display:grid; gap:16px; }
+
+.importe-visita { display:flex; align-items:center; gap:8px; width:140px; min-width:0; } .importe-visita input { min-width:0; text-align:right; }
+
+/* ── Orden de la web: posición y flechas de subir/bajar ── */
+.orden-fila { gap: 14px; }
+.orden-posicion { flex: 0 0 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; background: var(--fill); color: var(--label-2); font-size: 13px; font-weight: 600; }
+.orden-flechas { display: flex; gap: 6px; }
+.orden-flechas > form { margin: 0; }
+.btn-icono { width: 36px; min-height: 36px; padding: 0; justify-content: center; border-radius: 50%; }
+.btn-icono:disabled { opacity: .35; cursor: default; }
+:target.orden-fila { background: color-mix(in oklab, var(--accent) 8%, transparent); }
+
+/* ── Reseñas: filtros separados de la lista ── */
+.resenas-filtros { margin-bottom: 28px; }
+.resenas-filtros .segmented > a { padding-inline: 18px; }
+@media (max-width: 560px) { .orden-fila { flex-wrap: wrap; } .orden-flechas { margin-left: auto; } }

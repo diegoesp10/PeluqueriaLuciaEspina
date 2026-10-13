@@ -1,0 +1,439 @@
+/* Estructura: barra lateral en pantallas anchas; en pantallas estrechas, barra superior y la misma barra lateral
+   como menú deslizante (botón hamburguesa). */
+
+.app {
+  min-height: 100dvh;
+}
+
+/* ── Barra lateral ─────────────────────────────────────────────────────────── */
+
+.sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: var(--sidebar-w);
+  padding: 22px 16px 18px;
+  border-right: 0.5px solid var(--separator);
+  overflow-y: auto;
+}
+
+.sidebar > * { flex-shrink: 0; }
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 2px 6px;
+}
+
+.brand-logo {
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  border-radius: 16px;
+  object-fit: contain;
+  box-shadow: var(--card-edge);
+}
+
+.brand-text {
+  display: grid;
+  line-height: 1.2;
+}
+
+.sidebar .brand { flex-wrap:wrap; gap:12px; }
+.sidebar .brand-text small { max-width:126px; }
+
+.brand-text strong {
+  font: 400 32px/1.15 var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+.brand-text small {
+  color: var(--label-2);
+  font-size: 11.5px;
+}
+
+.nav {
+  display: grid;
+  gap: 2px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 6px 10px;
+  border-radius: 11px;
+  font-size: 15px;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.nav-item:hover {
+  background: var(--fill);
+}
+
+.nav-item.is-active {
+  background: color-mix(in oklab, var(--tint) 14%, transparent);
+  color: var(--label);
+  font-weight: 600;
+}
+
+.nav-tile {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--tint) 12%, var(--surface));
+  color: var(--tint);
+}
+
+.sidebar-foot {
+  display: grid;
+  gap: 12px;
+  margin-top: auto;
+  padding: 0 6px;
+  color: var(--label-2);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* ── Selector de apariencia ───────────────────────────────────────────────── */
+
+/* ── Contenido ────────────────────────────────────────────────────────────── */
+
+.main {
+  margin-left: var(--sidebar-w);
+  padding: 34px 40px 64px;
+  outline: none;
+}
+
+.main > * {
+  margin-inline: 0;
+}
+
+/* Cabecera de página: título grande y acciones a la derecha */
+.page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px 24px;
+  margin-bottom: 26px;
+}
+
+.page-head h1 {
+  font: 400 44px/1.12 var(--font-display);
+  letter-spacing: -0.025em;
+}
+
+.page-head .subtitle {
+  margin-top: 4px;
+  color: var(--label-2);
+  font-size: 15px;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin: 0 0 10px -6px;
+  padding: 4px 6px;
+  border-radius: var(--r-sm);
+  color: var(--accent);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.back-link:hover {
+  background: var(--fill);
+}
+
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+}
+
+/* ── Tablet apaisada y portátiles pequeños: barra lateral solo con iconos ── */
+
+@media (min-width: 901px) and (max-width: 1180px) {
+  :root {
+    --sidebar-w: 84px;
+  }
+
+  .sidebar {
+    align-items: center;
+    padding-inline: 12px;
+  }
+
+  .brand {
+    padding: 0;
+  }
+
+  .sidebar .brand-logo { width:56px; height:56px; }
+
+  .brand-text,
+  .sidebar-foot p {
+    display: none;
+  }
+
+  .sidebar > .btn {
+    width: 48px;
+    min-height: 48px;
+    padding: 0;
+    border-radius: 50%;
+    font-size: 0;
+  }
+
+  .nav-item {
+    justify-content: center;
+    width: 52px;
+    padding: 6px;
+    font-size: 0;
+  }
+
+  .sidebar-foot {
+    padding: 0;
+  }
+
+  .selector-tema {
+    flex-direction: column;
+  }
+
+  .main {
+    padding-inline: 28px;
+  }
+}
+
+/* ── Móvil y tablet vertical: barra superior y menú lateral deslizante ────── */
+
+.topbar,
+.menu-fondo,
+.sidebar-cerrar {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  :root {
+    --tabbar-h: 0px;
+    --menu-w: min(320px, 86vw);
+  }
+
+  /* La barra lateral se convierte en un cajón que entra desde la izquierda */
+  .sidebar {
+    z-index: 50;
+    width: var(--menu-w);
+    padding: calc(20px + env(safe-area-inset-top)) 18px calc(20px + env(safe-area-inset-bottom));
+    border-right: 0;
+    border-radius: 0 24px 24px 0;
+    background: var(--surface);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    overscroll-behavior: contain;
+    transform: translateX(-104%);
+    visibility: hidden;
+    transition: transform 0.38s var(--ease), visibility 0s linear 0.38s, box-shadow 0.38s;
+  }
+
+  .sidebar:target,
+  .menu-abierto .sidebar {
+    transform: none;
+    visibility: visible;
+    box-shadow: 0 24px 80px rgb(0 0 0 / 0.28);
+    transition: transform 0.38s var(--ease), box-shadow 0.38s;
+  }
+
+  .sidebar .brand { flex-wrap: nowrap; padding-right: 52px; }
+  .sidebar .brand-logo { width: 56px; height: 56px; }
+  .sidebar .brand-text strong { font-size: 28px; }
+  .nav-item { min-height: 48px; font-size: 16px; }
+
+  .sidebar-cerrar {
+    position: absolute;
+    top: calc(20px + env(safe-area-inset-top));
+    right: 14px;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--fill);
+    color: var(--label);
+  }
+
+  .sidebar-cerrar:hover { background: var(--fill-2); }
+
+  .sidebar-foot {
+    padding-top: 16px;
+    border-top: 0.5px solid var(--separator);
+    font-size: 13px;
+  }
+
+  .sidebar-foot > a { padding: 6px 0; }
+
+  /* Fondo oscurecido detrás del menú: tocarlo lo cierra */
+  .menu-fondo {
+    position: fixed;
+    inset: 0;
+    z-index: 45;
+    display: block;
+    background: rgb(10 20 17 / 0.42);
+    -webkit-backdrop-filter: blur(3px);
+    backdrop-filter: blur(3px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+
+  .sidebar:target ~ .menu-fondo,
+  .menu-abierto .menu-fondo {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .menu-abierto,
+  .menu-abierto body {
+    overflow: hidden;
+  }
+
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    height: calc(var(--topbar-h) + env(safe-area-inset-top));
+    padding: env(safe-area-inset-top) 12px 0;
+    border-bottom: 0.5px solid var(--separator);
+  }
+
+  .topbar-menu {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    color: var(--label);
+  }
+
+  .topbar-menu:hover,
+  .topbar-menu[aria-expanded="true"] { background: var(--fill); }
+
+  .topbar .brand { gap: 10px; padding: 0; min-width: 0; }
+
+  .topbar .brand-logo {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+  }
+
+  .topbar .brand-text strong {
+    font-size: 22px;
+  }
+
+  .topbar-nueva { gap: 6px; white-space: nowrap; }
+
+  .main {
+    margin-left: 0;
+    padding: 20px 16px calc(40px + env(safe-area-inset-bottom));
+  }
+
+  .page-head h1 {
+    font-size: 36px;
+  }
+}
+
+/* Teléfonos estrechos: «Nueva visita» queda como botón redondo con el icono */
+@media (max-width: 420px) {
+  .topbar-nueva { width: 44px; min-height: 44px; padding: 0; border-radius: 50%; justify-content: center; }
+  .topbar-nueva > span { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar, .menu-fondo { transition: none !important; }
+}
+
+/* ── Notificaciones ───────────────────────────────────────────────────────── */
+
+.toasts {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 60;
+  display: grid;
+  gap: 10px;
+  width: min(420px, calc(100vw - 32px));
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 12px 12px 16px;
+  border-radius: 16px;
+  border: 0.5px solid var(--glass-edge);
+  box-shadow: var(--glass-shadow);
+  font-size: 14.5px;
+  font-weight: 500;
+  pointer-events: auto;
+  animation: toast-in 0.4s var(--ease) both;
+  transition: opacity 0.3s, transform 0.3s var(--ease);
+}
+
+.toast.is-leaving {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.toast > span:nth-child(2) {
+  flex: 1;
+}
+
+.toast-icon {
+  display: grid;
+  color: var(--tint);
+}
+
+.toast-close {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: var(--label-2);
+}
+
+.toast-close:hover {
+  background: var(--fill);
+}
+
+@media (max-width: 900px) {
+  .toasts {
+    top: calc(var(--topbar-h) + env(safe-area-inset-top) + 8px);
+    right: 16px;
+  }
+}
+/* Un panel pendiente de validación no expone la copia privada que conserva el navegador. */
+.sitio-admin.sesion-en-comprobacion > :not(.sesion-aviso) { visibility: hidden !important; }
+.sesion-aviso { display: none; }
+.sesion-en-comprobacion > .sesion-aviso {
+  display: grid;
+  position: fixed;
+  inset: 0;
+  place-content: center;
+  padding: 32px;
+  text-align: center;
+  color: var(--label-2);
+  background: var(--bg);
+  z-index: 9999;
+}

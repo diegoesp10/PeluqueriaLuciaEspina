@@ -1,0 +1,15 @@
+@model SeguridadModelo
+@{ ViewData["Title"] = "Seguridad"; string Hora(DateTime fecha) => fecha.ToLocalTime().ToString("dd/MM/yyyy HH:mm"); }
+<header class="page-head"><div><h1>Seguridad</h1><p class="subtitle">Sesiones, accesos y límites por IP.</p></div><a class="btn btn-primary" asp-action="Contrasena">Cambiar contraseña</a></header>
+<section class="section"><div class="card card-pad"><p class="etiqueta">VERIFICACIÓN EN DOS PASOS ACTIVA</p><p>Tu contraseña y Authenticator protegen todos los accesos al panel.</p><a class="btn btn-gray" asp-action="Authenticator">Vincular otro Authenticator</a></div></section>
+<section class="section"><div class="section-head"><h2>Sesiones abiertas</h2><form method="post" asp-action="CerrarOtras"><button class="btn btn-gray" type="submit">Cerrar las otras sesiones</button></form></div><div class="list">
+@foreach(var sesion in Model.Sesiones) { <div class="row"><div class="row-body"><strong>@(sesion.Id == Model.SesionActual ? "Esta sesión" : "Otra sesión") · @sesion.Ip</strong><p class="muted small">Último uso: @Hora(sesion.UltimoUsoEn) · Caduca: @Hora(sesion.ExpiraEn)</p><p class="muted small">@sesion.Agente</p></div><form method="post" asp-action="Revocar" asp-route-id="@sesion.Id"><button class="btn btn-gray" type="submit">@(sesion.Id == Model.SesionActual ? "Cerrar esta sesión" : "Cerrar")</button></form></div> }
+</div></section>
+<section class="section"><div class="section-head"><h2>Cerrar todos los accesos</h2></div><p class="muted small">Incluye esta sesión. Al confirmar volverás a la pantalla de acceso.</p><form method="post" asp-action="CerrarTodas" data-confirmar="Se cerrarán todas tus sesiones, incluida esta." data-confirmar-accion="Cerrar sesiones"><button class="btn btn-gray" type="submit">Cerrar todas las sesiones</button></form></section>
+<section class="section"><div class="section-head"><h2>Límites activos</h2></div><p class="row">Por IP: @Model.Opciones.Limites.PublicoPorMinuto páginas públicas/min · @Model.Opciones.Limites.PanelPorMinuto peticiones al panel/min · @Model.Opciones.Limites.AccesoPorCuartoDeHora intentos de acceso/15 min.</p><p class="row muted small">La cuenta se bloquea 15 minutos tras 5 fallos. Las sesiones caducan tras 12 horas de inactividad y a los 14 días como máximo.</p></section>
+<section class="section"><div class="section-head"><h2>Peticiones por IP · última hora</h2></div><p class="row muted small">Contadores de páginas y llamadas al servidor. Se reinician al reiniciar la aplicación.</p><div class="list">
+@foreach(var actividad in Model.Actividad) { <div class="row"><strong class="row-body">@actividad.Ip</strong><span>@actividad.Peticiones llamadas · @actividad.AlPanel al panel · @actividad.Rechazadas rechazadas</span></div> }
+</div></section>
+<section class="section"><div class="section-head"><h2>Últimos 50 intentos de acceso</h2></div><div class="list">
+@foreach(var intento in Model.Intentos) { <div class="row"><div class="row-body"><strong>@intento.Usuario · @(intento.Exito ? "Correcto" : "Fallido")</strong><p class="small muted">@Hora(intento.Fecha) · @intento.Ip · @intento.Motivo</p></div></div> }
+</div></section>

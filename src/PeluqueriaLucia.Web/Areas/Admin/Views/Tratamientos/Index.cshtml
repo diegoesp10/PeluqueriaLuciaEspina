@@ -1,0 +1,54 @@
+@model TratamientosIndice
+@{
+    ViewData["Title"] = "Servicios de la web";
+    var buscando = !string.IsNullOrWhiteSpace(Model.Texto);
+}
+<header class="page-head">
+    <div>
+        <h1>Lo que ofreces.</h1>
+        <p class="subtitle">Servicios del catálogo publicados en la web, en el orden en que se ven. El nombre y el precio se editan en su ficha común.</p>
+    </div>
+    <div class="acciones"><a class="btn btn-gray" asp-action="Categorias">Categorías</a><a class="btn btn-primary" asp-action="Nuevo">Publicar del catálogo</a></div>
+</header>
+
+<form class="toolbar" method="get" asp-action="Index" role="search">
+    <label class="search">
+        <icono nombre="buscar" tamano="17" />
+        <input class="input" type="search" name="q" value="@Model.Texto" placeholder="Buscar por nombre o descripción"
+               aria-label="Buscar servicios de la web" autocomplete="off" data-buscar-al-escribir />
+    </label>
+    <a class="enlace-flecha" asp-area="" asp-controller="Inicio" asp-action="Servicios" target="_blank">Ver cómo queda en la web ↗</a>
+</form>
+
+@if (buscando)
+{
+    <p class="section muted">@Model.Tratamientos.Count @(Model.Tratamientos.Count == 1 ? "servicio encontrado" : "servicios encontrados"). Borra la búsqueda para cambiar el orden con las flechas.</p>
+}
+@if (Model.Tratamientos.Count == 0)
+{
+    <div class="estado-vacio">
+        <span class="estado-icono tint-orange"><icono nombre="buscar" tamano="30" /></span>
+        <h2>@(buscando ? "Sin resultados" : "Aún no hay servicios publicados")</h2>
+        <p>@(buscando ? "Prueba con otra palabra o parte del nombre." : "Publica un servicio del catálogo para que aparezca en la web.")</p>
+    </div>
+}
+@foreach (var categoria in Model.Categorias)
+{
+    var lista = Model.Tratamientos.Where(x => x.CategoriaId == categoria.Id).ToList();
+    if (lista.Count == 0) { continue; }
+    <section class="section">
+        <div class="section-head"><h2>@categoria.Nombre</h2></div>
+        <div class="list">
+            @for (var i = 0; i < lista.Count; i++)
+            {
+                var t = lista[i];
+                <div class="row orden-fila" id="servicio-@t.Id">
+                    @if (!buscando) { <span class="orden-posicion num" aria-hidden="true">@(i + 1)</span> }
+                    <div class="row-body"><strong>@t.Nombre</strong><p class="muted small">@(t.Publicado ? "Publicado" : "Oculto") · @t.DuracionMinutos min · @(t.TipoPrecio == PeluqueriaLucia.Domain.Publico.TipoPrecioPublico.Consultar ? "Consultar" : (t.TipoPrecio == PeluqueriaLucia.Domain.Publico.TipoPrecioPublico.Desde ? "Desde " : "") + Formato.Euros(t.Precio!.Value))</p></div>
+                    @if (!buscando) { <partial name="_FlechasOrden" model="@(new FlechasOrden("MoverTratamiento", t.Id, t.Nombre, i == 0, i == lista.Count - 1))" /> }
+                    <a class="btn btn-gray btn-sm" asp-controller="Catalogo" asp-action="Editar" asp-route-id="@t.Id">Editar</a>
+                </div>
+            }
+        </div>
+    </section>
+}

@@ -1,0 +1,28 @@
+@model ErrorModelo
+@{
+    ViewData["Title"] = T[Model.Titulo];
+}
+
+<section class="seccion-publica pagina-error">
+    <div class="error-numero" aria-hidden="true" data-error-numero>
+        @foreach (var cifra in Model.Numero)
+        {
+            <span>@cifra</span>
+        }
+        <svg class="error-hoja" viewBox="0 0 200 320"><path d="M100 8C40 70 18 150 40 222c14 46 42 78 60 90 18-12 46-44 60-90C182 150 160 70 100 8Z" /><path class="nervio" d="M100 30v280M100 110l-34-30M100 150l38-34M100 196l-44-36M100 236l46-38" /></svg>
+    </div>
+    <div class="error-texto">
+        <p class="etiqueta" data-anima="subir">@T["ERROR"] @Model.Codigo</p>
+        <h1 data-dividir>@T[Model.Titulo]</h1>
+        <p class="intro" data-anima="subir">@T[Model.Descripcion]</p>
+        <div class="botones" data-anima="subir">
+            <a class="btn btn-primary" asp-area="" asp-controller="Inicio" asp-action="Index" data-magnetico>@T["Volver al inicio"]</a>
+            <a class="enlace-flecha" asp-area="" asp-controller="Inicio" asp-action="Servicios">@T["Ver los servicios"] →</a>
+            <a class="enlace-flecha" asp-area="" asp-controller="Agenda" asp-action="Index">@T["Pedir cita"] →</a>
+        </div>
+        @if (Model.Codigo >= 500 && Model.IdPeticion is not null)
+        {
+            <p class="nota" data-anima="subir">@T["Referencia del error"]: <span class="mono">@Model.IdPeticion</span></p>
+        }
+    </div>
+</section>

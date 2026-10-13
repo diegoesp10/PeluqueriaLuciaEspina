@@ -1,0 +1,138 @@
+/*
+ * Ticket de caja. En pantalla se ve como un recibo; al imprimir solo sale el ticket, arriba a la izquierda y con el mismo
+ * ancho que en la primera versión. No se fuerza un tamaño de papel: lo decide la impresora de tiques.
+ */
+
+.ticket-pagina {
+  display: grid;
+  justify-items: center;
+  gap: 18px;
+}
+
+.ticket-barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  max-width: 380px;
+}
+
+.ticket-barra .back-link {
+  margin: 0;
+}
+
+.ticket {
+  width: 100%;
+  max-width: 340px;
+  padding: 24px 22px 28px;
+  border-radius: 4px;
+  background: #fff;
+  color: #000;
+  box-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.08), 0 12px 40px rgb(0 0 0 / 0.14);
+  font: 13px/1.6 'Courier New', Courier, monospace;
+  letter-spacing: 0;
+  /* Borde inferior dentado, como el papel cortado */
+  -webkit-mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / 12px 100%;
+  mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / 12px 100%;
+}
+
+.ticket-logo {
+  height: 60px;
+  margin: 0 auto 6px;
+  filter: grayscale(1);
+}
+
+.ticket-centro {
+  text-align: center;
+}
+
+.ticket-fuerte {
+  font-weight: 700;
+}
+
+.ticket-tenue {
+  color: #555;
+  font-size: 11px;
+}
+
+.ticket hr {
+  margin: 8px 0;
+  border: 0;
+  border-top: 1px dashed #888;
+}
+
+.ticket-fila {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ticket table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ticket th {
+  font-weight: 700;
+  text-align: left;
+}
+
+.ticket th,
+.ticket td {
+  padding: 1px 0;
+  vertical-align: top;
+}
+
+.ticket .uds {
+  width: 2.5em;
+}
+
+.ticket .importe,
+.ticket .derecha {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.ticket tfoot td {
+  padding-top: 5px;
+  border-top: 1px dashed #888;
+}
+
+@media print {
+  body {
+    background: #fff;
+  }
+
+  .sidebar,
+  .topbar,
+  .tabbar,
+  .toasts,
+  .skip-link,
+  .no-print {
+    display: none !important;
+  }
+
+  .main {
+    margin: 0;
+    padding: 0;
+  }
+
+  .ticket-pagina {
+    justify-items: start;
+  }
+
+  .ticket {
+    max-width: 360px;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+    -webkit-mask: none;
+    mask: none;
+  }
+}
+.ticket-opinion { border-block:1px dashed currentColor; padding-block:14px; margin-bottom:18px; text-align:center; }
+.ticket-codigo { font-size:11px; font-family:monospace; overflow-wrap:anywhere; }
+.ticket-estado { margin: 0 0 14px; font-size: 14px; color: var(--text-2, #555); }
+.ticket-estado.es-error { color: var(--red, #b3261e); }

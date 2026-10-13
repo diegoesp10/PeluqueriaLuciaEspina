@@ -1,0 +1,824 @@
+/* Componentes reutilizables. Los controles principales miden 44 px de alto, cómodos con ratón y con el dedo. */
+
+/* ── Botones ──────────────────────────────────────────────────────────────── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 10px 22px;
+  border-radius: var(--r-pill);
+  background: var(--fill);
+  color: var(--accent);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  flex-shrink: 0;
+  transition: transform 0.2s var(--ease), opacity 0.2s, background 0.2s;
+}
+
+.btn:hover {
+  background: var(--fill-2);
+}
+
+.btn:active {
+  transform: scale(0.97);
+  opacity: 0.85;
+}
+
+.btn:disabled,
+.btn[aria-disabled='true'] {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.btn-primary:hover {
+  background: color-mix(in oklab, var(--accent) 86%, #000);
+}
+
+.btn-success {
+  background: var(--green);
+  color: var(--accent-ink);
+}
+
+.btn-success:hover {
+  background: color-mix(in oklab, var(--green) 86%, #000);
+}
+
+.btn-gray {
+  color: var(--label);
+}
+
+.btn-destructive {
+  color: var(--red);
+}
+
+.btn-sm {
+  min-height: 38px;
+  padding: 8px 16px;
+  border-radius: 17px;
+  font-size: 13.5px;
+}
+
+.btn-lg {
+  min-height: 52px;
+  padding: 12px 28px;
+  border-radius: var(--r-pill);
+  font-size: 17px;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.btn-icon {
+  width: 44px;
+  padding: 0;
+}
+
+.btn-icon.btn-sm {
+  width: 38px;
+}
+
+/* Grupos de acciones compartidos por el frontal y el espacio profesional. */
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+}
+.acciones > form { margin: 0; max-width: 100%; }
+.acciones-form { margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--separator); }
+:where(.card-pad, .section) > p + :is(.btn, form:has(> .btn)) { margin-top: 20px; }
+.btn > svg { flex-shrink: 0; }
+
+/* La imagen de marca es rectangular: el marco respeta todo el original. */
+:is(.sitio-publico, .sitio-admin) img[src$="/Img/Icono.jpg"] {
+  object-fit: contain;
+  object-position: center;
+  border-radius: 16px;
+  padding: 6px;
+  background: #081c26;
+  flex-shrink: 0;
+}
+
+/* ── Control segmentado (radios o enlaces) ────────────────────────────────── */
+
+.segmented {
+  display: inline-flex;
+  max-width: 100%;
+  padding: 2px;
+  border-radius: 11px;
+  background: var(--fill);
+}
+
+.segmented > a,
+.segmented > label {
+  position: relative;
+  display: inline-flex;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 4px 16px;
+  border-radius: 9px;
+  color: var(--label);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.segmented input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.segmented > a.is-active,
+.segmented > label:has(input:checked) {
+  background: var(--surface);
+  box-shadow: 0 3px 8px rgb(0 0 0 / 0.12), 0 0 0 0.5px rgb(0 0 0 / 0.04);
+  font-weight: 600;
+}
+
+.segmented > label:has(input:focus-visible) {
+  outline: 3px solid color-mix(in oklab, var(--accent) 55%, transparent);
+}
+
+.segmented-lg > a,
+.segmented-lg > label {
+  min-height: 40px;
+  font-size: 15px;
+}
+
+.segmented-block {
+  display: flex;
+  width: 100%;
+}
+
+/* ── Tarjetas y secciones agrupadas ───────────────────────────────────────── */
+
+.card {
+  border-radius: var(--r-card);
+  background: var(--surface);
+  box-shadow: var(--card-shadow);
+}
+
+.card-pad {
+  padding: 24px;
+}
+
+.section {
+  margin-top: 28px;
+}
+
+.section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px 16px;
+  padding: 0 16px 8px;
+}
+
+.section-head h2 {
+  color: var(--label-2);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.section-head > span,
+.section-head > a {
+  color: var(--label-2);
+  font-size: 13px;
+}
+
+.section-head > a {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.section-foot {
+  padding: 8px 16px 0;
+  color: var(--label-2);
+  font-size: 13px;
+}
+
+/* ── Listas agrupadas ─────────────────────────────────────────────────────── */
+
+.list {
+  overflow: hidden;
+  border-radius: var(--r-card);
+  background: var(--surface);
+  box-shadow: var(--card-shadow);
+}
+
+.row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 60px;
+  padding: 10px 16px;
+  transition: background 0.15s;
+}
+
+/* Separador que empieza donde empieza el texto, como en las listas del sistema */
+.row + .row::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: var(--row-inset, 16px);
+  border-top: 0.5px solid var(--separator);
+}
+
+.list-avatars {
+  --row-inset: 70px;
+}
+
+a.row:hover,
+label.row:hover {
+  background: var(--surface-hover);
+}
+
+.row-main {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 1px;
+}
+
+.row-title {
+  overflow: hidden;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row-sub {
+  overflow: hidden;
+  color: var(--label-2);
+  font-size: 13.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row-end {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+  color: var(--label-2);
+}
+
+.row-chevron {
+  color: var(--label-3);
+}
+
+.row-amount {
+  color: var(--label);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.row-total {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+/* Filas de clave y valor (detalle) */
+.row-kv {
+  justify-content: space-between;
+  min-height: 48px;
+}
+
+.row-kv > :first-child {
+  color: var(--label-2);
+}
+
+.row-kv > :last-child {
+  text-align: right;
+}
+
+/* ── Avatares y etiquetas ─────────────────────────────────────────────────── */
+
+.avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--tint, var(--gray)) 18%, var(--surface));
+  color: var(--tint-text, var(--tint, var(--gray)));
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.avatar-lg {
+  width: 72px;
+  height: 72px;
+  font-size: 26px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 24px;
+  padding: 2px 10px;
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--tint, var(--gray)) 15%, transparent);
+  color: var(--tint-text, var(--tint, var(--gray)));
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ── Cifras ───────────────────────────────────────────────────────────────── */
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.stat {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  padding: 16px 18px;
+  border-radius: var(--r-card);
+  background: var(--surface);
+  box-shadow: var(--card-shadow);
+}
+
+.stat-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--label-2);
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.stat-label svg {
+  color: var(--tint);
+}
+
+.stat-value {
+  font: 650 30px/1.15 var(--font);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.stat-foot {
+  color: var(--label-2);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 1100px) {
+  .stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 420px) {
+  .stats {
+    gap: 10px;
+  }
+
+  .stat {
+    padding: 14px;
+  }
+
+  .stat-value {
+    font-size: 22px;
+  }
+}
+
+/* Pantallas estrechas: en las filas, la etiqueta de estado baja bajo el importe para dejar sitio al nombre */
+@media (max-width: 560px) {
+  .row {
+    gap: 12px;
+    padding-inline: 14px;
+  }
+
+  .row-end:has(.pill) {
+    flex-direction: column-reverse;
+    align-items: flex-end;
+    gap: 4px;
+  }
+
+  .row-end:has(.pill) .row-chevron {
+    display: none;
+  }
+
+  .list-avatars {
+    --row-inset: 66px;
+  }
+
+  .btn {
+    padding-inline: 16px;
+  }
+}
+
+/* ── Formularios ──────────────────────────────────────────────────────────── */
+
+.form {
+  display: grid;
+  gap: 28px;
+  max-width: 720px;
+}
+
+.fields {
+  display: grid;
+  gap: 24px;
+  padding: 24px;
+  border-radius: var(--r-card);
+  background: var(--surface);
+  box-shadow: var(--card-shadow);
+}
+
+.fields-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+@media (max-width: 600px) {
+  .fields-2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.field {
+  display: grid;
+  gap: 10px;
+}
+
+.field > label,
+.field-label {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.field-hint {
+  color: var(--label-2);
+  font-size: 12.5px;
+}
+
+.input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: var(--r-ctl);
+  outline: none;
+  background: var(--surface-2);
+  font-size: 16px;
+  transition: box-shadow 0.2s;
+}
+
+.input::placeholder {
+  color: var(--label-3);
+}
+
+.input:focus {
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 45%, transparent);
+}
+
+.input.input-validation-error,
+.input[aria-invalid='true'] {
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--red) 70%, transparent);
+}
+
+input[type='date'].input,
+input[type='datetime-local'].input {
+  min-width: 0;
+}
+
+.input-affix {
+  position: relative;
+}
+
+.input-affix > .input {
+  padding-right: 40px;
+}
+
+.input-affix > span {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  color: var(--label-2);
+  font-weight: 500;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.field-validation-error,
+.validation-message {
+  color: var(--red);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.field-validation-valid {
+  display: none;
+}
+
+/* Resumen de errores generales del formulario */
+.validation-summary-errors {
+  display: flex;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: var(--r-ctl);
+  background: color-mix(in oklab, var(--red) 10%, var(--surface));
+  color: var(--red);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.validation-summary-errors ul {
+  display: grid;
+  gap: 4px;
+}
+
+.validation-summary-valid {
+  display: none;
+}
+
+/* Campo de búsqueda */
+.search {
+  position: relative;
+  flex: 1 1 280px;
+  max-width: 420px;
+}
+
+.search > svg {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  color: var(--label-2);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.search > .input {
+  min-height: 40px;
+  padding-left: 38px;
+  background: var(--fill);
+}
+
+/* Interruptor (checkbox) */
+.switch {
+  position: relative;
+  flex: none;
+  width: 51px;
+  height: 31px;
+  margin: 0;
+  border-radius: 16px;
+  background: var(--fill-2);
+  cursor: pointer;
+  appearance: none;
+  transition: background 0.25s var(--ease);
+}
+
+.switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 27px;
+  height: 27px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 3px 8px rgb(0 0 0 / 0.15), 0 1px 1px rgb(0 0 0 / 0.16);
+  transition: transform 0.25s var(--ease);
+}
+
+.switch:checked {
+  background: var(--green);
+}
+
+.switch:checked::after {
+  transform: translateX(20px);
+}
+
+/* ── Paginación ───────────────────────────────────────────────────────────── */
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 18px;
+  color: var(--label-2);
+  font-size: 14px;
+}
+
+/* ── Estado vacío ─────────────────────────────────────────────────────────── */
+
+.estado-vacio {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 56px 24px;
+  border-radius: var(--r-card);
+  background: var(--surface);
+  box-shadow: var(--card-shadow);
+  text-align: center;
+}
+
+.estado-vacio h1,
+.estado-vacio h2 {
+  font: 400 28px/1.2 var(--font-display);
+}
+
+.estado-vacio p {
+  max-width: 440px;
+  color: var(--label-2);
+}
+
+.estado-vacio .acciones {
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.estado-icono {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 4px;
+  border-radius: 20px;
+  background: color-mix(in oklab, var(--tint, var(--gray)) 15%, transparent);
+  color: var(--tint, var(--gray));
+}
+
+.estado-error {
+  max-width: 560px;
+  margin-top: 8vh;
+}
+
+/* ── Diálogo de confirmación (alerta) ─────────────────────────────────────── */
+
+.alerta {
+  width: min(300px, calc(100vw - 48px));
+  padding: 0;
+  border: 0;
+  border-radius: 16px;
+  background: var(--glass);
+  color: var(--label);
+  box-shadow: var(--glass-shadow);
+  text-align: center;
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  backdrop-filter: blur(30px) saturate(180%);
+}
+
+.alerta[open] {
+  animation: pop-in 0.25s var(--ease);
+}
+
+.alerta::backdrop {
+  background: rgb(0 0 0 / 0.3);
+}
+
+.alerta h2 {
+  padding: 20px 18px 4px;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.alerta p {
+  padding: 0 18px 18px;
+  font-size: 13.5px;
+}
+
+.alerta-botones {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-top: 0.5px solid var(--separator);
+}
+
+.alerta-boton {
+  min-height: 46px;
+  color: var(--accent);
+  font-size: 17px;
+}
+
+.alerta-boton + .alerta-boton {
+  border-left: 0.5px solid var(--separator);
+  font-weight: 600;
+}
+
+.alerta-boton:hover {
+  background: var(--fill);
+}
+
+.alerta-boton.is-destructive {
+  color: var(--red);
+}
+
+/* Apariencia compartida por la web y el panel. */
+.selector-tema {
+  display: inline-flex;
+  justify-self: start;
+  padding: 2px;
+  border-radius: 10px;
+  background: var(--fill);
+}
+
+.selector-tema button {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 30px;
+  border-radius: 8px;
+  color: var(--label-2);
+  transition: background 0.2s, color 0.2s;
+}
+
+.selector-tema button:hover {
+  color: var(--label);
+}
+
+.selector-tema button[aria-checked='true'] {
+  background: var(--surface);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.12);
+  color: var(--label);
+}
+
+.btn-light { background:var(--cream); color:var(--forest); }
+.btn-light:hover { background:color-mix(in oklab,var(--cream) 92%,var(--olive)); }
+.row-body { flex:1; min-width:0; overflow-wrap:anywhere; }
+.fondo-identidad { position:relative; isolation:isolate; }
+/* Marca de agua del logo detrás del contenido: esquinas redondeadas y bordes que se funden con el fondo.
+   La web pública la mueve con GSAP a través de las variables --marca-* (movimiento.js); el panel la deja quieta. */
+.fondo-identidad::before {
+  content:''; position:fixed; z-index:-1; right:var(--page-gutter,24px); top:150px;
+  width:min(38vw,560px,calc(100dvh - 180px)); aspect-ratio:1;
+  /* El logo va dentro de una placa más grande del mismo azul que su fondo (#081a26): el redondeo queda lejos
+     de las letras y no recorta ni difumina nada del dibujo */
+  background:#081a26 url('../Img/Icono.jpg') center/76% no-repeat;
+  border-radius:24%;
+  opacity:var(--marca-opacidad,.07); pointer-events:none;
+  transform:translate3d(var(--marca-x,0), var(--marca-y,0), 0) rotate(var(--marca-giro,0deg)) scale(var(--marca-escala,1));
+  transform-origin:50% 50%; will-change:transform;
+}
+@media print { .fondo-identidad::before { display:none; } }
+.fecha-control { position:relative; min-width:0; }
+.fecha-original { position:absolute; width:1px !important; height:1px; opacity:0; pointer-events:none; padding:0; border:0; }
+.fecha-boton { text-align:left; cursor:pointer; min-width:200px; text-transform:capitalize; }
+.fecha-calendario { position:fixed; max-height:calc(100dvh - 40px); overflow-y:auto; z-index:60; width:min(330px,calc(100vw - 40px)); padding:20px; border:1px solid var(--separator); border-radius:24px; background:var(--surface); box-shadow:var(--glass-shadow); display:grid; gap:18px; }
+.fecha-cabecera,.fecha-pie { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.fecha-cabecera strong { text-transform:capitalize; font-size:15px; }
+.fecha-selectores { display:flex; gap:10px; flex:1; min-width:0; }
+.fecha-selector { display:grid; gap:5px; flex:1; min-width:0; font-size:10px; font-weight:600; color:var(--label-2); letter-spacing:.06em; text-transform:uppercase; }
+.fecha-selector .input { width:100%; min-height:40px; padding:8px 10px; font-size:13px; letter-spacing:normal; text-transform:none; color:var(--label); }
+.fecha-selector:has(select) { flex:1.4; }
+.fecha-cabecera>button { width:28px; flex-shrink:0; }
+.fecha-calendario button { border:0; border-radius:999px; min-height:36px; background:transparent; color:var(--label); font:inherit; cursor:pointer; }
+.fecha-calendario button:hover { background:var(--fill); }
+.fecha-calendario button:focus-visible { outline:2px solid var(--olive); outline-offset:2px; }
+.fecha-calendario button:disabled { opacity:.35; cursor:default; }
+.fecha-dias { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; text-align:center; }
+.fecha-semana { color:var(--label-2); font-size:11px; margin-bottom:6px; }
+.fecha-meses { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.fecha-calendario .is-active { background:var(--accent); color:var(--accent-ink); }
+.fecha-calendario .es-hoy { box-shadow:inset 0 0 0 1px var(--olive); }
+.fecha-pie button { padding:4px 14px; background:var(--fill); }
+@media(min-width:1200px) {
+  .fecha-calendario { width:304px; padding:16px; gap:14px; }
+  .fecha-selector .input { min-height:36px; padding:6px 8px; }
+}
+.check-opcion { display:flex; gap:12px; align-items:flex-start; line-height:1.5; }
+.check-opcion input { accent-color:var(--olive); flex-shrink:0; width:18px; height:18px; }
+
+.resenas-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr)); gap:24px; }
+.resena-card { background:var(--surface); border:1px solid var(--separator); border-radius:var(--radius-card); padding:28px; display:flex; flex-direction:column; gap:16px; min-width:0; }
+.resena-cabecera { display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+.resena-cabecera span { font-size:12px; color:var(--label-2); }
+.resena-estrellas { font-size:22px; color:var(--olive); letter-spacing:3px; }
+.resena-verificada { font-size:12px; color:var(--olive); }
+.resena-comentario { white-space:pre-wrap; overflow-wrap:anywhere; }
+.resena-foto { width:100%; max-height:420px; object-fit:cover; border-radius:18px; }
+.resena-respuesta { padding:16px; background:var(--fill); border-radius:16px; }

@@ -1,0 +1,136 @@
+@model VisitasIndiceModelo
+@{
+    ViewData["Title"] = Model.Titulo;
+    var fecha = Model.Fecha.ToString("yyyy-MM-dd");
+    var r = Model.Resumen;
+    var grupos = Model.Pagina.Elementos.GroupBy(v => DateOnly.FromDateTime(v.Fecha));
+}
+
+<div>
+    <header class="page-head">
+        <div>
+            <h1>@Model.Titulo</h1>
+            @if (Model.Subtitulo is not null)
+            {
+                <p class="subtitle">@Model.Subtitulo</p>
+            }
+        </div>
+        <div class="acciones">
+            <a class="btn btn-gray" asp-action="Exportar" asp-route-periodo="@Model.Periodo" asp-route-fecha="@fecha" title="Descargar estas visitas en Excel">
+                <icono nombre="excel" tamano="18" /> Exportar
+            </a>
+            <a class="btn btn-primary" asp-action="Nueva"><icono nombre="mas" tamano="18" /> Nueva visita</a>
+        </div>
+    </header>
+
+    <div class="toolbar">
+        <nav class="segmented" aria-label="Periodo">
+            <a class="@(Model.Periodo == Periodo.Dia ? "is-active" : "")" asp-action="Index" asp-route-periodo="Dia" asp-route-fecha="@fecha">Día</a>
+            <a class="@(Model.Periodo == Periodo.Mes ? "is-active" : "")" asp-action="Index" asp-route-periodo="Mes" asp-route-fecha="@fecha">Mes</a>
+            <a class="@(Model.Periodo == Periodo.Anio ? "is-active" : "")" asp-action="Index" asp-route-periodo="Anio" asp-route-fecha="@fecha">Año</a>
+            <a class="@(Model.Periodo == Periodo.Todo ? "is-active" : "")" asp-action="Index" asp-route-periodo="Todo" asp-route-fecha="@fecha">Todo</a>
+        </nav>
+
+        @if (Model.Periodo != Periodo.Todo)
+        {
+            <div class="date-nav">
+                @if (Model.Anterior is { } anterior)
+                {
+                <a class="btn btn-gray btn-icon btn-sm" asp-action="Index" asp-route-periodo="@Model.Periodo" asp-route-fecha="@anterior.ToString("yyyy-MM-dd")" aria-label="Anterior">
+                    <icono nombre="anterior" tamano="18" />
+                </a>
+                }
+                <form method="get" asp-action="Index" class="date-picker">
+                    <input type="hidden" name="periodo" value="@Model.Periodo" />
+                    @if (Model.Periodo == Periodo.Dia)
+                    {
+                        <input class="input" type="date" name="fecha" value="@fecha" aria-label="Elegir día" data-enviar-al-cambiar />
+                    }
+                    else if (Model.Periodo == Periodo.Mes)
+                    {
+                        <input class="input" type="month" value="@Model.Fecha.ToString("yyyy-MM")" aria-label="Elegir mes" data-mes-a-fecha />
+                        <input type="hidden" name="fecha" value="@fecha" />
+                    }
+                    else
+                    {
+                        <input class="input" type="date" name="fecha" value="@fecha" aria-label="Elegir año" data-fecha-anual data-enviar-al-cambiar />
+                    }
+                </form>
+                @if (Model.Siguiente is { } siguiente)
+                {
+                <a class="btn btn-gray btn-icon btn-sm" asp-action="Index" asp-route-periodo="@Model.Periodo" asp-route-fecha="@siguiente.ToString("yyyy-MM-dd")" aria-label="Siguiente">
+                    <icono nombre="siguiente" tamano="18" />
+                </a>
+                }
+                @if (!Model.MuestraHoy)
+                {
+                    <a class="btn btn-gray btn-sm" asp-action="Index" asp-route-periodo="@Model.Periodo">@(Model.Periodo == Periodo.Dia ? "Hoy" : Model.Periodo == Periodo.Mes ? "Este mes" : "Este año")</a>
+                }
+            </div>
+        }
+    </div>
+
+    <section class="stats" aria-label="Resumen">
+        <div class="stat tint-blue">
+            <span class="stat-label"><icono nombre="euro" tamano="16" /> Facturado</span>
+            <span class="stat-value">@Formato.Euros(r.Facturado)</span>
+            <span class="stat-foot">@r.Servicios @(r.Servicios == 1 ? "servicio" : "servicios")</span>
+        </div>
+        <div class="stat tint-green">
+            <span class="stat-label"><icono nombre="check-circulo" tamano="16" /> Cobrado</span>
+            <span class="stat-value">@Formato.Euros(r.Cobrado)</span>
+            <span class="stat-foot">@Formato.Euros(r.Efectivo) efectivo · @Formato.Euros(r.Tarjeta) tarjeta</span>
+        </div>
+        <div class="stat tint-orange">
+            <span class="stat-label"><icono nombre="reloj" tamano="16" /> Pendiente</span>
+            <span class="stat-value">@Formato.Euros(r.Pendiente)</span>
+            <span class="stat-foot">Por cobrar</span>
+        </div>
+        <div class="stat tint-purple">
+            <span class="stat-label"><icono nombre="clientes" tamano="16" /> Visitas</span>
+            <span class="stat-value">@r.Visitas</span>
+            <span class="stat-foot">@(r.Visitas == 0 ? "—" : $"Media {Formato.Euros(r.Facturado / r.Visitas)}")</span>
+        </div>
+    </section>
+
+    @if (Model.Pagina.TotalElementos == 0)
+    {
+        <div class="section estado-vacio">
+            <span class="estado-icono tint-blue"><icono nombre="calendario" tamano="30" /></span>
+            <h2>@Model.TextoVacio</h2>
+            <p>Las visitas que registres aparecerán aquí, con lo facturado y lo cobrado.</p>
+            <div class="acciones">
+                <a class="btn btn-primary" asp-action="Nueva"><icono nombre="mas" tamano="18" /> Nueva visita</a>
+            </div>
+        </div>
+    }
+    else
+    {
+        foreach (var grupo in grupos)
+        {
+            <section class="section">
+                @if (Model.AgruparPorDia)
+                {
+                    <div class="section-head">
+                        <h2>@Formato.Dia(grupo.Key, Model.Hoy)</h2>
+                        <span class="num">@Formato.Euros(grupo.Sum(v => v.Total))</span>
+                    </div>
+                }
+                else
+                {
+                    <div class="section-head">
+                        <h2>@Model.Pagina.TotalElementos @(Model.Pagina.TotalElementos == 1 ? "visita" : "visitas")</h2>
+                    </div>
+                }
+                <div class="list list-avatars">
+                    @foreach (var visita in grupo)
+                    {
+                        <partial name="_FilaVisita" model="visita" />
+                    }
+                </div>
+            </section>
+        }
+
+        <partial name="_Paginacion" model="@(new PaginacionModelo(Model.Pagina.Numero, Model.Pagina.TotalPaginas, Model.Pagina.TotalElementos, n => Url.Action("Index", new { periodo = Model.Periodo, fecha, pagina = n })!))" />
+    }
+</div>

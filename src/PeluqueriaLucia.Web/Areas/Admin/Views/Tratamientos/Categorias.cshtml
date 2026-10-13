@@ -1,0 +1,22 @@
+@model IReadOnlyList<PeluqueriaLucia.Domain.Publico.CategoriaTratamiento>
+@{ ViewData["Title"] = "Categorías de la web"; }
+<header class="page-head">
+    <div>
+        <a class="back-link" asp-action="Index">← Servicios de la web</a>
+        <h1>Cada cuidado,<br />en su lugar.</h1>
+        <p class="subtitle">Aparecen en la web en este mismo orden. Usa las flechas para subir o bajar una categoría.</p>
+    </div>
+    <a class="btn btn-primary" asp-action="Categoria">Nueva categoría</a>
+</header>
+<div class="list">
+    @for (var i = 0; i < Model.Count; i++)
+    {
+        var c = Model[i];
+        <div class="row orden-fila" id="categoria-@c.Id">
+            <span class="orden-posicion num" aria-hidden="true">@(i + 1)</span>
+            <strong class="row-body">@c.Nombre</strong>
+            <partial name="_FlechasOrden" model="@(new FlechasOrden("MoverCategoria", c.Id, c.Nombre, i == 0, i == Model.Count - 1))" />
+            <a class="btn btn-gray btn-sm" asp-action="Categoria" asp-route-id="@c.Id">Editar</a>
+        </div>
+    }
+</div>

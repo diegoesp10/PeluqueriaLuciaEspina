@@ -1,0 +1,12 @@
+@model FlechasOrden
+@* Subir y bajar un puesto. Cada flecha es un POST independiente, con antifalsificación. *@
+<div class="orden-flechas" role="group" aria-label="Cambiar la posición de @Model.Nombre">
+    <form method="post" asp-action="@Model.Accion" asp-route-id="@Model.Id">
+        <input type="hidden" name="desplazamiento" value="-1" />
+        <button class="btn btn-gray btn-icono" type="submit" disabled="@Model.Primero" title="Subir" aria-label="Subir @Model.Nombre"><icono nombre="arriba" tamano="16" /></button>
+    </form>
+    <form method="post" asp-action="@Model.Accion" asp-route-id="@Model.Id">
+        <input type="hidden" name="desplazamiento" value="1" />
+        <button class="btn btn-gray btn-icono" type="submit" disabled="@Model.Ultimo" title="Bajar" aria-label="Bajar @Model.Nombre"><icono nombre="abajo" tamano="16" /></button>
+    </form>
+</div>

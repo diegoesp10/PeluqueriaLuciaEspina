@@ -1,0 +1,156 @@
+@model PeluqueriaLucia.Web.Models.CitaManualPagina
+@{
+    var f = Model.Formulario;
+    ViewData["Title"] = f.Bloqueo ? "Bloquear tiempo" : "Nueva cita";
+    var dia = f.Dia?.ToString("yyyy-MM-dd");
+    var hora = f.Hora?.ToString("HH:mm");
+}
+
+<div class="form-pagina">
+    <a class="back-link" href="/admin/agenda?dia=@dia"><icono nombre="anterior" tamano="20" /> Agenda</a>
+    <header class="page-head">
+        <div>
+            <h1>@ViewData["Title"]</h1>
+            <p class="subtitle">@(f.Bloqueo ? "Reserva un rato sin clientes: descanso, recados, formación… La web no ofrecerá esas horas." : "Para las citas que das por teléfono o en persona. Queda confirmada al guardarla y no se envía ningún aviso.")</p>
+        </div>
+    </header>
+
+    <nav class="segmented segmented-lg segmented-block" aria-label="Tipo de anotación">
+        <a href="/admin/agenda/nueva?dia=@dia&hora=@hora" class="@(f.Bloqueo ? null : "is-active")" aria-current="@(f.Bloqueo ? null : "page")">Cita con cliente</a>
+        <a href="/admin/agenda/nueva?dia=@dia&hora=@hora&bloqueo=true" class="@(f.Bloqueo ? "is-active" : null)" aria-current="@(f.Bloqueo ? "page" : null)">Bloquear tiempo</a>
+    </nav>
+
+    @if (!f.Bloqueo)
+    {
+        <section class="cita-cliente">
+            <div class="section-head"><h2>Cliente</h2></div>
+            @if (Model.Cliente is { } c)
+            {
+                <div class="cliente-elegido">
+                    <span class="avatar @Formato.Tinte(c.Sexo)">@c.Iniciales</span>
+                    <span class="row-main">
+                        <span class="row-title">@c.NombreCompleto</span>
+                        <span class="row-sub">@(c.Telefono ?? c.Email)</span>
+                    </span>
+                    <a class="btn btn-gray btn-sm" href="/admin/agenda/nueva?dia=@dia&hora=@hora">Cambiar</a>
+                </div>
+            }
+            else
+            {
+                <form method="get" action="/admin/agenda/nueva" class="cita-buscar" role="search">
+                    <input type="hidden" name="dia" value="@dia" />
+                    <input type="hidden" name="hora" value="@hora" />
+                    <input class="input" type="search" name="q" value="@Model.Busqueda" placeholder="Buscar ficha por nombre, teléfono o correo" aria-label="Buscar cliente" autofocus />
+                    <button class="btn btn-gray">Buscar</button>
+                </form>
+                @if (Model.Busqueda is not null)
+                {
+                    <ul class="list cita-encontrados">
+                        @foreach (var e in Model.Encontrados)
+                        {
+                            <li>
+                                <a class="row" href="/admin/agenda/nueva?dia=@dia&hora=@hora&clienteId=@e.Id">
+                                    <span class="avatar @Formato.Tinte(e.Sexo)">@e.Iniciales</span>
+                                    <span class="row-main"><span class="row-title">@e.NombreCompleto</span><span class="row-sub">@(e.Telefono ?? e.Email)</span></span>
+                                </a>
+                            </li>
+                        }
+                        @if (Model.Encontrados.Count == 0)
+                        {
+                            <li class="row row-vacia">No hay fichas con ese texto. Escribe abajo el nombre o crea la ficha más tarde.</li>
+                        }
+                    </ul>
+                }
+                <p class="section-foot">Si no tiene ficha, escribe su nombre y teléfono abajo.</p>
+            }
+        </section>
+    }
+
+    <form class="form" method="post" action="/admin/agenda/nueva" novalidate>
+        <div asp-validation-summary="ModelOnly"></div>
+        <input type="hidden" name="Bloqueo" value="@(f.Bloqueo ? "true" : "false")" />
+        <input type="hidden" name="ClienteId" value="@(Model.Cliente?.Id)" />
+
+        <div class="fields">
+            <div class="fields-2">
+                <div class="field">
+                    <label for="Dia">Día</label>
+                    <input class="input" id="Dia" name="Dia" type="date" value="@dia" required />
+                    @Html.ValidationMessage("Dia")
+                </div>
+                <div class="field">
+                    <label for="Hora">Hora</label>
+                    <input class="input" id="Hora" name="Hora" type="time" step="300" value="@hora" required />
+                    @Html.ValidationMessage("Hora")
+                </div>
+            </div>
+            @if (!f.Bloqueo)
+            {
+                <div class="field">
+                    <label for="ServicioId">Servicio</label>
+                    <select class="input" id="ServicioId" name="ServicioId">
+                        <option value="">Sin indicar</option>
+                        @foreach (var s in Model.Servicios)
+                        {
+                            <option value="@s.Id" selected="@(f.ServicioId == s.Id)">@s.Nombre@(s.Minutos > 0 ? $" · {s.Minutos} min" : "")</option>
+                        }
+                    </select>
+                    @Html.ValidationMessage("ServicioId")
+                </div>
+            }
+            <div class="field">
+                <label for="Minutos">Duración (minutos)</label>
+                <input class="input" id="Minutos" name="Minutos" type="number" min="5" max="600" step="5" value="@f.Minutos" placeholder="@(f.Bloqueo ? "60" : "La del servicio, o 30")" required="@f.Bloqueo" />
+                @Html.ValidationMessage("Minutos")
+            </div>
+            @if (f.Bloqueo)
+            {
+                <div class="field">
+                    <label for="Nombre">Motivo</label>
+                    <input class="input" id="Nombre" name="Nombre" value="@f.Nombre" maxlength="100" placeholder="Descanso, médico, formación…" />
+                    @Html.ValidationMessage("Nombre")
+                </div>
+            }
+            else if (Model.Cliente is null)
+            {
+                <div class="fields-2">
+                    <div class="field">
+                        <label for="Nombre">Nombre del cliente</label>
+                        <input class="input" id="Nombre" name="Nombre" value="@f.Nombre" maxlength="100" autocomplete="off" />
+                        @Html.ValidationMessage("Nombre")
+                    </div>
+                    <div class="field">
+                        <label for="Telefono">Teléfono (opcional)</label>
+                        <input class="input" id="Telefono" name="Telefono" type="tel" value="@f.Telefono" maxlength="30" autocomplete="off" />
+                        @Html.ValidationMessage("Telefono")
+                    </div>
+                </div>
+            }
+            <div class="field">
+                <label for="Nota">Nota interna (opcional)</label>
+                <input class="input" id="Nota" name="Nota" value="@f.Nota" maxlength="500" />
+                @Html.ValidationMessage("Nota")
+            </div>
+        </div>
+
+        @if (Model.Dia is { } d)
+        {
+            <div class="cita-huecos">
+                <p class="field-label">Huecos libres de 30 min el @d.Dia.ToString("dddd d 'de' MMMM")</p>
+                @if (d.Horas.Count == 0)
+                {
+                    <p class="section-foot">No quedan huecos dentro del horario de apertura. Puedes anotar la cita igualmente fuera de ese horario si no se solapa.</p>
+                }
+                else
+                {
+                    <p class="cita-huecos-lista">@string.Join(" · ", d.Horas.Select(h => h.ToString("HH:mm")))</p>
+                }
+            </div>
+        }
+
+        <div class="acciones acciones-form">
+            <a class="btn btn-gray" href="/admin/agenda?dia=@dia">Cancelar</a>
+            <button class="btn btn-primary">@(f.Bloqueo ? "Bloquear" : "Guardar cita")</button>
+        </div>
+    </form>
+</div>

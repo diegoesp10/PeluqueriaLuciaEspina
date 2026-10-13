@@ -1,0 +1,26 @@
+@model CategoriaEdicion
+@{ ViewData["Title"] = Model.Id is null ? "Nueva categoría" : "Editar categoría"; }
+<div class="form-pagina">
+    <a class="back-link" asp-action="Categorias">← Categorías</a>
+    <header class="page-head"><h1>@ViewData["Title"]</h1></header>
+    <form class="form" method="post" asp-action="Categoria" asp-route-id="@Model.Id">
+        <div asp-validation-summary="All"></div>
+        <div class="fields">
+            <div class="field">
+                <label for="Nombre">Nombre</label>
+                <input class="input" name="Nombre" id="Nombre" value="@Model.Formulario.Nombre" required maxlength="80" />
+                <p class="field-hint">@(Model.Id is null ? "La categoría nueva aparecerá la última en la web." : "Para cambiar su posición en la web, usa las flechas de la lista de categorías.")</p>
+            </div>
+        </div>
+        <div class="acciones acciones-form">
+            <button class="btn btn-primary" type="submit">Guardar categoría</button>
+            <a class="btn btn-gray" asp-action="Categorias">Cancelar</a>
+        </div>
+    </form>
+    @if (Model.Id is not null)
+    {
+        <form class="section" method="post" asp-action="EliminarCategoria" asp-route-id="@Model.Id" data-confirmar="Se eliminará esta categoría si no contiene servicios.">
+            <button class="btn btn-gray btn-destructive">Eliminar categoría</button>
+        </form>
+    }
+</div>

@@ -1,0 +1,28 @@
+@model PanelModelo
+@{ ViewData["Title"] = "Panel de administración"; var r = Model.Resumen; }
+<section class="panel-bienvenida" aria-labelledby="titulo-panel">
+    <div><p class="panel-fecha">@Model.Hoy.ToString("dddd, d 'de' MMMM", Formato.Espanol)</p><h1 id="titulo-panel">Hola, @User.Identity?.Name.<br /><em>Este es tu salón hoy.</em></h1><p class="subtitle">Un espacio para cuidar de tus clientes y de cada detalle.</p><a class="btn btn-primary" asp-controller="Visitas" asp-action="Nueva"><icono nombre="mas" tamano="18" /> Nueva visita</a></div>
+    <img class="panel-foto" src="~/publico/fachada-lucia.png" asp-append-version="true" alt="Fachada de Lucía Peluquería Ecológica" width="1369" height="1306" />
+</section>
+<section class="stats" aria-label="Resumen de hoy">
+    <div class="stat tint-blue"><span class="stat-label"><icono nombre="euro" tamano="16" /> Facturado hoy</span><strong class="stat-value">@Formato.Euros(r.Facturado)</strong><span class="stat-foot">@r.Servicios servicios</span></div>
+    <div class="stat tint-green"><span class="stat-label"><icono nombre="check-circulo" tamano="16" /> Cobrado</span><strong class="stat-value">@Formato.Euros(r.Cobrado)</strong><span class="stat-foot">@Formato.Euros(r.Efectivo) efectivo · @Formato.Euros(r.Tarjeta) tarjeta</span></div>
+    <div class="stat tint-orange"><span class="stat-label"><icono nombre="reloj" tamano="16" /> Pendiente</span><strong class="stat-value">@Formato.Euros(r.Pendiente)</strong><span class="stat-foot">Por cobrar</span></div>
+    <div class="stat tint-purple"><span class="stat-label"><icono nombre="clientes" tamano="16" /> Visitas</span><strong class="stat-value">@r.Visitas</strong><span class="stat-foot">Hoy</span></div>
+</section>
+<div class="panel-grid">
+    <section class="section"><div class="section-head"><h2>Tu gestión diaria</h2></div><div class="list">
+        <a class="row" href="/admin/agenda"><icono nombre="calendario" /><span class="row-title">Agenda y solicitudes de cita</span><icono nombre="siguiente" tamano="16" /></a>
+        <a class="row" asp-controller="Visitas" asp-action="Index"><icono nombre="calendario" /><span class="row-title">Visitas y cobros</span><icono nombre="siguiente" tamano="16" /></a>
+        <a class="row" asp-controller="Clientes" asp-action="Index"><icono nombre="clientes" /><span class="row-title">Clientes e historiales</span><icono nombre="siguiente" tamano="16" /></a>
+        <a class="row" asp-controller="Catalogo" asp-action="Index"><icono nombre="tijeras" /><span class="row-title">Catálogo de servicios</span><icono nombre="siguiente" tamano="16" /></a>
+        <a class="row" asp-controller="Seguridad" asp-action="Index"><icono nombre="check-circulo" /><span class="row-title">Seguridad y sesiones</span><icono nombre="siguiente" tamano="16" /></a>
+        <a class="row" asp-controller="Tratamientos" asp-action="Index"><icono nombre="hoja" /><span class="row-title">Precios y servicios de la web</span><icono nombre="siguiente" tamano="16" /></a>
+        <a class="row" asp-controller="Resenas" asp-action="Index"><icono nombre="clientes" /><span class="row-title">Reseñas y fotos</span><icono nombre="siguiente" tamano="16" /></a>
+        <a class="row" asp-area="" asp-controller="Inicio" asp-action="Index"><icono nombre="casa" /><span class="row-title">Ver la web del salón</span><span aria-hidden="true">↗</span></a>
+    </div></section>
+    <div>
+        <section class="section"><div class="section-head"><h2>Actividad de la web · última hora</h2><a asp-controller="Seguridad" asp-action="Index">Ver detalle →</a></div><div class="card panel-actividad"><div><strong>@Model.Actividad.Sum(a => a.Peticiones)</strong><span>Peticiones</span></div><div><strong>@Model.Actividad.Sum(a => a.Rechazadas)</strong><span>Rechazadas por límite</span></div></div></section>
+        <section class="section"><div class="section-head"><h2>Tu cuenta</h2></div><div class="card panel-cuenta"><div><strong>@User.Identity?.Name</strong><p>Cuida también de tu acceso.</p></div><a class="btn btn-gray" asp-controller="Seguridad" asp-action="Contrasena">Cambiar contraseña</a></div></section>
+    </div>
+</div>
