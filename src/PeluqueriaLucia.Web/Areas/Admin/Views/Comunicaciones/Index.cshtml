@@ -1,0 +1,101 @@
+@model PeluqueriaLucia.Web.Models.ComunicacionesPagina
+@using PeluqueriaLucia.Domain.Agenda
+@{
+    ViewData["Title"] = "Comunicaciones";
+    string Estado(EstadoNotificacion e) => e switch
+    {
+        EstadoNotificacion.Pendiente => "Pendiente de enviar",
+        EstadoNotificacion.Enviando => "Enviando…",
+        EstadoNotificacion.AceptadoServidor => "Enviado",
+        EstadoNotificacion.Error => "Rechazado por el servidor",
+        EstadoNotificacion.Incierto => "Envío incierto",
+        EstadoNotificacion.Manual => "Enviado por WhatsApp",
+        EstadoNotificacion.Obsoleto => "Obsoleto",
+        var otro => otro.ToString(),
+    };
+    string Tinte(EstadoNotificacion e) => e switch
+    {
+        EstadoNotificacion.AceptadoServidor or EstadoNotificacion.Manual => "tint-green",
+        EstadoNotificacion.Error or EstadoNotificacion.Incierto => "tint-red",
+        EstadoNotificacion.Obsoleto => "tint-gray",
+        _ => "tint-orange",
+    };
+}
+<header class="page-head">
+    <div><p class="etiqueta">ESPACIO PROFESIONAL</p><h1>Comunicaciones</h1><p class="subtitle">Los avisos que la agenda prepara para tus clientes. Revisa el texto, cámbialo si quieres y envíalo.</p></div>
+    <div class="agenda-botones"><a class="btn btn-gray" href="/admin/agenda">Ir a la agenda</a></div>
+</header>
+
+<section class="agenda-avisos comunicaciones-estado" role="status">
+    <strong>@Model.Pendientes @(Model.Pendientes == 1 ? "aviso pendiente" : "avisos pendientes") de revisar</strong>
+    @if (!Model.CorreoConfigurado)
+    {
+        <p>El correo todavía no está configurado en el servidor: los avisos por correo esperan aquí y se enviarán cuando lo esté. Los de WhatsApp se pueden enviar ya.</p>
+    }
+    else if (Model.EnvioAutomatico)
+    {
+        <p>Envío automático activado: los correos salen solos en cuanto se crean. Aquí quedan los que han fallado o los de WhatsApp.</p>
+    }
+    else
+    {
+        <p>Los correos no salen hasta que los envías desde aquí. WhatsApp se envía desde tu teléfono: abre el mensaje, mándalo y márcalo como enviado. La cita queda confirmada cuando el cliente acepta el enlace.</p>
+    }
+    @if (!Model.EnlaceConfigurado) { <p class="nota">Falta configurar la URL pública HTTPS para generar los enlaces de aceptación.</p> }
+</section>
+
+<nav class="segmentos" aria-label="Filtrar avisos">
+    <a class="segmento @(Model.Filtro == "pendientes" ? "activo" : "")" href="/admin/comunicaciones" aria-current="@(Model.Filtro == "pendientes" ? "page" : null)">Pendientes</a>
+    <a class="segmento @(Model.Filtro == "enviados" ? "activo" : "")" href="/admin/comunicaciones?filtro=enviados" aria-current="@(Model.Filtro == "enviados" ? "page" : null)">Enviados</a>
+    <a class="segmento @(Model.Filtro == "todos" ? "activo" : "")" href="/admin/comunicaciones?filtro=todos" aria-current="@(Model.Filtro == "todos" ? "page" : null)">Todos</a>
+</nav>
+
+<section class="agenda-comunicaciones">
+@if (Model.Mensajes.Count == 0)
+{
+    <div class="card agenda-sin-huecos">@(Model.Filtro == "pendientes" ? "No hay avisos pendientes. Cuando gestiones una cita desde la agenda, su aviso aparecerá aquí." : "No hay avisos en este apartado.")</div>
+}
+@foreach (var m in Model.Mensajes)
+{
+    var correo = m.Canal == CanalConfirmacion.Correo;
+    <article class="card comunicacion" id="aviso-@m.Id">
+        <div class="comunicacion-cabecera">
+            <div><strong>@m.Destinatario</strong><span class="comunicacion-fecha">@m.CreadoUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span></div>
+            <div class="agenda-botones"><span class="badge">@(correo ? "Correo" : "WhatsApp")</span><span class="badge @Tinte(m.Estado)">@Estado(m.Estado)</span></div>
+        </div>
+        @if (m.Editable)
+        {
+            <form method="post" action="@(correo ? "/admin/comunicaciones/enviar" : "/admin/comunicaciones/texto")" class="comunicacion-form">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@m.Id" />
+                <label for="texto-@m.Id">Texto del aviso</label>
+                <textarea class="input" id="texto-@m.Id" name="texto" rows="5" minlength="10" maxlength="2000" required>@m.TextoBase</textarea>
+                @if (m.Texto.Length > (m.TextoBase?.Length ?? 0))
+                {
+                    <p class="field-hint">Al final se añade solo el enlace de aceptación: <code>@m.Texto[(m.TextoBase?.Length ?? 0)..].Trim()</code></p>
+                }
+                <div class="agenda-botones">
+                    @if (correo)
+                    {
+                        <button class="btn btn-primary" type="submit" disabled="@(!Model.CorreoConfigurado)">@(m.Estado == EstadoNotificacion.Error ? "Reenviar correo" : "Enviar correo")</button>
+                        <button class="btn btn-gray" type="submit" formaction="/admin/comunicaciones/texto">Guardar sin enviar</button>
+                    }
+                    else
+                    {
+                        <button class="btn btn-gray" type="submit">Guardar texto</button>
+                        @if (m.WhatsApp is not null) { <a class="btn btn-primary" href="@m.WhatsApp.AbsoluteUri" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">Abrir en WhatsApp</a> }
+                    }
+                </div>
+            </form>
+            @if (!correo && m.WhatsApp is not null)
+            {
+                <form method="post" action="/admin/comunicaciones/whatsapp-enviado" class="comunicacion-marcar">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@m.Id" /><button class="btn btn-gray">Ya lo he enviado en WhatsApp</button></form>
+            }
+        }
+        else
+        {
+            <p class="comunicacion-texto">@m.Texto</p>
+            @if (m.Estado == EstadoNotificacion.Incierto) { <p class="nota">Se desconoce si llegó a salir. Compruébalo antes de volver a contactar para no duplicar el mensaje.</p> }
+        }
+    </article>
+}
+</section>

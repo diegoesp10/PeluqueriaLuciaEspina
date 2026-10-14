@@ -4,6 +4,8 @@ using MimeKit;
 
 namespace Comunicaciones.Correo;
 
+/// <summary>En el JSON de configuración se admite como texto («StartTls», «Tls») o como número (0, 1).</summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SeguridadSmtp>))]
 public enum SeguridadSmtp { StartTls, Tls }
 public sealed record ConfiguracionSmtp(string Servidor, int Puerto, SeguridadSmtp Seguridad, string Usuario,
     string Contrasena, string Remitente, string NombreRemitente);

@@ -15,6 +15,7 @@ public sealed class ComunicacionesCitasTests
     private sealed class Reloj : TimeProvider
     { public DateTimeOffset Ahora = new(2026,10,10,8,0,0,TimeSpan.Zero); public override DateTimeOffset GetUtcNow() => Ahora; }
     private sealed class Url : IUrlPublica { public Uri? Obtener() => new("https://salon.example.test/"); }
+    private sealed class Ajustes : IAjustesComunicaciones { public bool EnvioAutomatico { get; set; } = true; }
     private sealed class Correo : IEnviadorCorreo
     {
         public bool Configurado { get; set; } = true;
@@ -29,7 +30,8 @@ public sealed class ComunicacionesCitasTests
         public Correo Correo { get; } = new();
         public ProtectorSecretos Protector { get; } = new(new EphemeralDataProtectionProvider());
         public AgendaService Agenda => new(new RepositorioAgenda(db), Protector, Reloj);
-        public ComunicacionesCitas Comunicaciones => new(new RepositorioAgenda(db), Protector, Correo, new WhatsAppManual(), new Url(), Reloj);
+        public Ajustes Ajustes { get; } = new();
+        public ComunicacionesCitas Comunicaciones => new(new RepositorioAgenda(db), Protector, Correo, new WhatsAppManual(), new Url(), Reloj, Ajustes);
         public async Task<(Guid Id, string Token)> ProponerAsync(CanalConfirmacion canal, string? apellido=null, PeluqueriaLucia.Domain.Comun.Sexo? sexo=null)
         {
             var admin = Administrador.Crear("comunicaciones", "hash-prueba", Reloj.Ahora.UtcDateTime);
@@ -115,7 +117,7 @@ public sealed class ComunicacionesCitasTests
         var m = await db.MensajesCitas.AsNoTracking().SingleAsync(x=>x.ReservaId==segunda.Id);
         var token2 = c.Protector.Leer(m.TokenProtegido!,"confirmacion-cita")!;
         await using var otroDb = bd.Contexto();
-        var otraComunicacion = new ComunicacionesCitas(new RepositorioAgenda(otroDb),c.Protector,c.Correo,new WhatsAppManual(),new Url(),c.Reloj);
+        var otraComunicacion = new ComunicacionesCitas(new RepositorioAgenda(otroDb),c.Protector,c.Correo,new WhatsAppManual(),new Url(),c.Reloj,c.Ajustes);
         var resultados = await Task.WhenAll(c.Comunicaciones.AceptarAsync(token1,default),otraComunicacion.AceptarAsync(token2,default));
         Assert.All(resultados,x=>Assert.True(x.Exito,x.Error?.Mensaje));
         Assert.Single(await db.Clientes.AsNoTracking().ToListAsync());
@@ -215,5 +217,49 @@ public sealed class ComunicacionesCitasTests
         Assert.False((await c.Agenda.SolicitarAsync(d, default)).Exito);
         Assert.False((await c.Agenda.SolicitarAsync(d with { Correo = "ana@example.test", Canal = (CanalConfirmacion)99 }, default)).Exito);
         Assert.Empty(await db.ReservasCitas.ToListAsync());
+    }
+    [Fact]
+    public async Task Sin_envio_automatico_el_correo_espera_y_se_envia_a_mano_con_el_texto_retocado()
+    {
+        await using var bd = await BaseDeDatosPrueba.CrearAsync(); await using var db = bd.Contexto(); var c = new Contexto(db);
+        c.Ajustes.EnvioAutomatico = false;
+        var (_, token) = await c.ProponerAsync(CanalConfirmacion.Correo);
+        await c.Comunicaciones.ProcesarColaAsync(default);
+        Assert.Empty(c.Correo.Enviados);
+        var aviso = Assert.Single(await c.Comunicaciones.ListarAsync(default));
+        Assert.True(aviso.Editable); Assert.EndsWith(token, aviso.Texto); Assert.DoesNotContain(token, aviso.TextoBase);
+
+        Assert.False((await c.Comunicaciones.EnviarCorreoAsync(aviso.Id, "corto", default)).Exito, "un texto de menos de 10 caracteres no vale");
+        var enviado = await c.Comunicaciones.EnviarCorreoAsync(aviso.Id, "Hola Ana, te propongo la cita del lunes a las 10. Acéptala con el enlace.", default);
+        Assert.True(enviado.Exito, enviado.Error?.Mensaje);
+        var correo = Assert.Single(c.Correo.Enviados);
+        Assert.StartsWith("Hola Ana, te propongo", correo.Texto); Assert.Contains(token, correo.Texto); Assert.Contains("Hola Ana, te propongo", correo.Html!);
+        var m = await db.MensajesCitas.AsNoTracking().SingleAsync();
+        Assert.Equal(EstadoNotificacion.AceptadoServidor, m.Estado); Assert.StartsWith("Hola Ana, te propongo", m.Texto);
+        Assert.False((await c.Comunicaciones.EnviarCorreoAsync(aviso.Id, null, default)).Exito, "ya enviado: no se repite");
+        Assert.False((await c.Comunicaciones.ActualizarTextoAsync(aviso.Id, "Otro texto cualquiera", default)).Exito);
+    }
+    [Fact]
+    public async Task El_texto_de_whatsapp_se_puede_retocar_y_el_enlace_lo_recoge_y_un_rechazo_se_reenvia()
+    {
+        await using var bd = await BaseDeDatosPrueba.CrearAsync(); await using var db = bd.Contexto(); var c = new Contexto(db);
+        c.Ajustes.EnvioAutomatico = false;
+        var (_, token) = await c.ProponerAsync(CanalConfirmacion.WhatsApp);
+        var aviso = Assert.Single(await c.Comunicaciones.ListarAsync(default));
+        Assert.True((await c.Comunicaciones.ActualizarTextoAsync(aviso.Id, "¡Hola! Aquí tienes tu propuesta de cita.", default)).Exito);
+        var retocado = Assert.Single(await c.Comunicaciones.ListarAsync(default));
+        Assert.Contains("Aquí tienes tu propuesta", Uri.UnescapeDataString(retocado.WhatsApp!.Query)); Assert.Contains(token, Uri.UnescapeDataString(retocado.WhatsApp.Query));
+
+        var segunda = await c.Agenda.SolicitarAsync(new(Guid.NewGuid(), new(2026,10,12), new(11,0), "623456789", "Eva", null, "ip-2", "eva@example.test", CanalConfirmacion.Correo, "Prueba", PeluqueriaLucia.Domain.Comun.Sexo.Otro), default);
+        var r = await db.ReservasCitas.AsNoTracking().SingleAsync(x => x.Id == segunda.Valor);
+        var admin = await db.Administradores.AsNoTracking().SingleAsync();
+        Assert.True((await c.Agenda.GestionarAsync(new(r.Id, Convert.ToBase64String(r.Version), EstadoCita.Confirmada, 30, true, null, admin.Id), default)).Exito);
+        var correoId = (await db.MensajesCitas.AsNoTracking().SingleAsync(x => x.ReservaId == r.Id)).Id;
+        c.Correo.Resultado = ResultadoEnvio.Rechazado;
+        Assert.False((await c.Comunicaciones.EnviarCorreoAsync(correoId, null, default)).Exito);
+        Assert.Equal(EstadoNotificacion.Error, (await db.MensajesCitas.AsNoTracking().SingleAsync(x => x.Id == correoId)).Estado);
+        c.Correo.Resultado = ResultadoEnvio.Aceptado;
+        Assert.True((await c.Comunicaciones.EnviarCorreoAsync(correoId, null, default)).Exito);
+        Assert.Equal(EstadoNotificacion.AceptadoServidor, (await db.MensajesCitas.AsNoTracking().SingleAsync(x => x.Id == correoId)).Estado);
     }
 }

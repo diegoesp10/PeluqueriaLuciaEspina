@@ -32,6 +32,7 @@ public static class DependencyInjection
         services.AddSingleton<Comunicaciones.Correo.IEnviadorCorreo, Comunicaciones.Correo.EnviadorCorreoSmtp>();
         services.AddSingleton<Comunicaciones.WhatsApp.IWhatsAppManual, Comunicaciones.WhatsApp.WhatsAppManual>();
         services.AddSingleton<PeluqueriaLucia.Application.Agenda.IUrlPublica, UrlPublica>();
+        services.AddSingleton<PeluqueriaLucia.Application.Agenda.IAjustesComunicaciones, AjustesComunicaciones>();
         services.AddSingleton<IFotosResenas, FotosResenas>();
         services.AddOptions<OpcionesFotosResenas>().Bind(configuracion.GetSection("FotosResenas"));
 

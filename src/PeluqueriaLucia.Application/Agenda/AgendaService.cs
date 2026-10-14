@@ -227,6 +227,21 @@ public sealed class AgendaService(IRepositorioAgenda datos, IProtectorSecretos s
         var a = desde.ToDateTime(TimeOnly.MinValue); var b = hasta.AddDays(1).ToDateTime(TimeOnly.MinValue);
         return (await datos.CitasConClientesAsync(x => x.Inicio >= a && x.Inicio < b, ct)).OrderBy(x => x.Inicio).Take(500).ToList();
     }
+    public Task<Resultado> EliminarCitaAsync(Guid id, CancellationToken ct) => datos.ExclusivoAsync<Resultado>(async () =>
+    {
+        var r = await datos.BuscarAsync<ReservaCita>(x => x.Id == id, ct);
+        if (r is null) return new Error("La cita no existe.");
+        var caducada = r.Estado is EstadoCita.Pendiente or EstadoCita.PendienteAceptacion && r.CaducaUtc <= Utc;
+        if (!(r.Estado is EstadoCita.Cancelada or EstadoCita.Rechazada or EstadoCita.NoPresentada || caducada))
+            return new Error("Solo se eliminan citas canceladas, rechazadas, no presentadas o caducadas. Cancela antes esta cita.");
+        if (await datos.ExisteAsync<MensajeCita>(x => x.ReservaId == r.Id && x.Estado == EstadoNotificacion.Enviando, ct))
+            return new Error("Se está enviando un aviso de esta cita. Espera unos segundos.");
+        if (await datos.ExisteAsync<PeluqueriaLucia.Domain.Clientes.FaltaAsistencia>(x => x.ReservaId == r.Id, ct))
+            return new Error("Esta cita tiene una falta registrada en la ficha del cliente y se conserva como historial.");
+        foreach (var m in await datos.ListarAsync<MensajeCita>(x => x.ReservaId == r.Id, ct)) datos.Quitar(m);
+        datos.Quitar(r);
+        return Resultado.Ok();
+    }, ct);
     public Task<IReadOnlyList<MensajeCita>> MensajesAsync(CancellationToken ct) => datos.UltimosMensajesAsync(ct);
     public async Task<AvisoAgenda> AvisosAsync(CancellationToken ct) => new(await datos.ContarAsync<ReservaCita>(x => x.Estado == EstadoCita.Pendiente && x.CaducaUtc > Utc && x.Inicio > Ahora, ct), await datos.UltimaSolicitudAsync(ct));
     public async Task<IReadOnlyList<ReservaCita>> PendientesAsync(CancellationToken ct) => (await datos.CitasConClientesAsync(x => (x.Estado == EstadoCita.Pendiente || x.Estado == EstadoCita.PendienteAceptacion) && x.CaducaUtc > Utc && x.Inicio > Ahora, ct)).OrderBy(x => x.Inicio).Take(500).ToList();

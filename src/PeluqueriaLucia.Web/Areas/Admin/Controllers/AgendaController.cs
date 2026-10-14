@@ -8,20 +8,45 @@ using PeluqueriaLucia.Web.Models;
 
 namespace PeluqueriaLucia.Web.Areas.Admin.Controllers;
 
-public sealed class AgendaController(IAgendaService agenda, IComunicacionesCitas comunicaciones, ClientesAgendaService clientesAgenda, ClientesService clientes) : AdminController
+public sealed class AgendaController(IAgendaService agenda, ClientesAgendaService clientesAgenda, ClientesService clientes) : AdminController
 {
+    /// <summary>Calendario del mes con el detalle del día elegido. «estado» filtra el día: abiertas, canceladas, completadas o todas.</summary>
     [HttpGet("/admin/agenda")]
-    public async Task<IActionResult> Index(DateOnly? dia, CancellationToken ct)
+    public async Task<IActionResult> Index(DateOnly? dia, FiltroCitas estado = FiltroCitas.Abiertas, CancellationToken ct = default)
     {
         var d = dia is null || dia < agenda.Hoy.AddDays(-365) || dia > agenda.Hoy.AddDays(365) ? agenda.Hoy : dia.Value;
-        var citas=(await agenda.ListarAsync(d, d.AddDays(6), ct)).Concat(await agenda.PendientesAsync(ct)).DistinctBy(x=>x.Id).OrderBy(x=>x.Inicio).ToList();
+        if (!Enum.IsDefined(estado)) estado = FiltroCitas.Abiertas;
+        var utc = DateTime.UtcNow;
+        var inicioMes = new DateOnly(d.Year, d.Month, 1);
+        var finMes = inicioMes.AddMonths(1).AddDays(-1);
+        var citasMes = await agenda.ListarAsync(inicioMes, finMes, ct);
+        var cierres = (await agenda.CierresAsync(ct)).Where(c => c.Dia >= inicioMes && c.Dia <= finMes).ToDictionary(c => c.Dia, c => c.Motivo);
+        var porDia = citasMes.GroupBy(c => DateOnly.FromDateTime(c.Inicio)).ToDictionary(g => g.Key, g => g.ToList());
+        var dias = new List<DiaCalendario>();
+        for (var dd = inicioMes; dd <= finMes; dd = dd.AddDays(1))
+        {
+            var lista = porDia.GetValueOrDefault(dd, []);
+            var bloqueos = lista.Count(c => c.Origen == OrigenCita.Bloqueo);
+            var citas = lista.Where(c => c.Origen != OrigenCita.Bloqueo).ToList();
+            dias.Add(new(dd, citas.Count(c => AgendaCalendario.GrupoDe(c, utc) == FiltroCitas.Abiertas), citas.Count(c => AgendaCalendario.GrupoDe(c, utc) == FiltroCitas.Canceladas),
+                citas.Count(c => AgendaCalendario.GrupoDe(c, utc) == FiltroCitas.Completadas), bloqueos, cierres.GetValueOrDefault(dd)));
+        }
+        var delDia = porDia.GetValueOrDefault(d, []).Where(c => estado == FiltroCitas.Todas || c.Origen == OrigenCita.Bloqueo && estado == FiltroCitas.Abiertas || AgendaCalendario.GrupoDe(c, utc) == estado)
+            .OrderBy(c => c.Inicio).ToList();
+        var pendientes = (await agenda.PendientesAsync(ct)).Where(c => DateOnly.FromDateTime(c.Inicio) != d).OrderBy(c => c.Inicio).ToList();
         ViewData["ClientesPendientes"] = await clientesAgenda.PendientesAsync(ct);
         var conflictos = await clientesAgenda.ConflictosAsync(ct);
         ViewData["ConflictosClientes"] = conflictos;
         var candidatos = new Dictionary<Guid, List<PeluqueriaLucia.Domain.Clientes.Cliente>>();
         foreach(var conflicto in conflictos) candidatos[conflicto.Id] = await clientesAgenda.CandidatosAsync(conflicto,ct);
         ViewData["CandidatosClientes"] = candidatos;
-        return View(new AgendaPanel(d, citas, await comunicaciones.ListarAsync(ct), comunicaciones.CorreoConfigurado, comunicaciones.EnlaceConfigurado, await agenda.AvisosAsync(ct)));
+        return View(new AgendaCalendario(d, agenda.Hoy, dias, delDia, pendientes, estado, await agenda.AvisosAsync(ct), utc));
+    }
+    [HttpPost("/admin/agenda/eliminar")]
+    public async Task<IActionResult> Eliminar(Guid id, DateOnly? dia, FiltroCitas estado, CancellationToken ct)
+    {
+        Avisar(await agenda.EliminarCitaAsync(id, ct), "Cita eliminada de la agenda.");
+        return RedirectToAction(nameof(Index), new { dia = dia?.ToString("yyyy-MM-dd"), estado });
     }
     [HttpGet("/admin/agenda/avisos"), ResponseCache(NoStore=true, Location=ResponseCacheLocation.None)]
     public async Task<IActionResult> Avisos(CancellationToken ct) => Json(await agenda.AvisosAsync(ct));
@@ -74,10 +99,6 @@ public sealed class AgendaController(IAgendaService agenda, IComunicacionesCitas
     public async Task<IActionResult> CerrarDia(DateOnly dia,string? motivo,CancellationToken ct) { if(ModelState.IsValid) Avisar(await agenda.CerrarDiaAsync(dia,motivo??"",ct),"Día cerrado."); return RedirectToAction(nameof(Horarios)); }
     [HttpPost("/admin/agenda/abrir-dia")]
     public async Task<IActionResult> AbrirDia(int id,CancellationToken ct) { Avisar(await agenda.AbrirDiaAsync(id,ct),"Día reabierto."); return RedirectToAction(nameof(Horarios)); }
-    [HttpPost("/admin/agenda/whatsapp-enviado")]
-    public async Task<IActionResult> WhatsAppEnviado(Guid id,CancellationToken ct) { Avisar(await comunicaciones.MarcarWhatsAppAsync(id,ct),"Mensaje marcado como enviado. La cita sigue pendiente de aceptación del cliente."); return RedirectToAction(nameof(Index)); }
-    [HttpPost("/admin/agenda/reintentar-correo")]
-    public async Task<IActionResult> ReintentarCorreo(Guid id,CancellationToken ct) { Avisar(await comunicaciones.ReintentarCorreoAsync(id,ct),"Correo preparado para reintentar."); return RedirectToAction(nameof(Index)); }
     [HttpPost("/admin/agenda/falta")]
     public async Task<IActionResult> Falta(Guid id, string version, string? nota, CancellationToken ct)
     { if (ModelState.IsValid) Avisar(await clientesAgenda.RegistrarFaltaAsync(id,version,nota,AdministradorId,ct),"Falta registrada en el historial del cliente."); else this.AvisarError("Revisa los datos."); return RedirectToAction(nameof(Index)); }

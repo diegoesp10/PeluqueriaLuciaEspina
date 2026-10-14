@@ -24,6 +24,11 @@ public sealed class ConfiguracionCorreo : IConfiguracionSmtp
         catch (Exception ex) when (ex is JsonException or InvalidOperationException or System.ComponentModel.Win32Exception) { return null; }
     }
 }
+/// <summary>Por defecto los correos de citas se revisan y envían a mano desde Comunicaciones; PELUQUERIA_CORREO_AUTOMATICO=true los envía la cola.</summary>
+internal sealed class AjustesComunicaciones : IAjustesComunicaciones
+{
+    public bool EnvioAutomatico => Environment.GetEnvironmentVariable("PELUQUERIA_CORREO_AUTOMATICO") == "true";
+}
 internal sealed class UrlPublica : IUrlPublica
 {
     public Uri? Obtener()
