@@ -64,3 +64,58 @@
   .agenda-semana { padding:6px; }
 }
 @media(max-width:800px){ .page-head .agenda-botones { justify-content: stretch; } }
+
+/* ── Calendario mensual del panel ───────────────────────────────────────── */
+.calendario-panel { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+.calendario-mes { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.calendario-mes h2 { margin: 0; text-transform: capitalize; }
+.calendario-mes .btn { min-width: 44px; padding: 10px 14px; }
+.calendario-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.calendario-semana { padding: 6px 0; text-align: center; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--label-2); }
+.calendario-dia { position: relative; display: grid; grid-template-rows: auto 1fr; gap: 6px; min-height: 76px; padding: 8px; border-radius: 14px; border: 1px solid var(--separator); background: var(--surface); color: inherit; text-decoration: none; transition: border-color .2s, background .2s, transform .2s; }
+.calendario-dia:hover { border-color: var(--olive); transform: translateY(-1px); }
+.calendario-dia.vacio { border: 0; background: transparent; pointer-events: none; }
+.calendario-dia.hoy .calendario-numero { background: var(--forest); color: var(--cream); }
+.calendario-dia.elegido { border-color: var(--olive); box-shadow: 0 0 0 2px color-mix(in oklab, var(--olive) 35%, var(--surface)); }
+.calendario-dia.pasado { opacity: .72; }
+.calendario-dia.cerrado { background: repeating-linear-gradient(135deg, var(--fill) 0 6px, var(--surface) 6px 12px); }
+.calendario-numero { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; font-weight: 600; font-variant-numeric: tabular-nums; }
+.calendario-puntos { display: flex; flex-wrap: wrap; gap: 4px; align-content: end; }
+.calendario-punto { display: inline-flex; align-items: center; gap: 3px; min-width: 18px; height: 18px; padding: 0 6px; border-radius: 9px; font-size: 11px; font-weight: 600; line-height: 1; color: #fff; }
+.calendario-punto.abiertas { background: var(--olive); }
+.calendario-punto.canceladas { background: var(--red); }
+.calendario-punto.completadas { background: var(--forest); }
+.calendario-punto.bloqueos { background: var(--label-2); }
+.calendario-cierre { font-size: 10px; color: var(--label-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.calendario-leyenda { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 14px; font-size: 12px; color: var(--label-2); }
+.calendario-leyenda span { display: inline-flex; align-items: center; gap: 6px; }
+.calendario-leyenda i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.calendario-dia-panel > h2 { margin: 0 0 4px; text-transform: capitalize; }
+.calendario-dia-panel > .subtitle { margin-bottom: 16px; }
+.segmentos { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px; margin: 0 0 20px; border-radius: var(--r-pill); background: var(--fill); width: fit-content; }
+.segmento { padding: 8px 14px; border-radius: var(--r-pill); font-size: 13px; font-weight: 600; color: var(--label-2); text-decoration: none; }
+.segmento.activo { background: var(--surface); color: var(--label); box-shadow: 0 1px 3px #0002; }
+.segmento:hover { color: var(--label); }
+.calendario-dia-panel .agenda-cita { margin-bottom: 14px; }
+.cita-eliminar { margin-top: 12px; }
+.comunicaciones-estado p { margin-top: 8px; }
+.comunicacion-cabecera { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px 16px; margin-bottom: 14px; }
+.comunicacion-fecha { margin-left: 10px; font-size: 13px; color: var(--label-2); }
+.comunicacion-form { display: grid; gap: 10px; }
+.comunicacion-form textarea { min-height: 120px; white-space: pre-line; }
+.comunicacion-form code { font-size: 12px; overflow-wrap: anywhere; }
+.comunicacion-marcar { margin-top: 12px; }
+.comunicacion-texto { white-space: pre-line; overflow-wrap: anywhere; }
+@media (max-width: 1100px) { .calendario-panel { grid-template-columns: 1fr; } }
+@media (max-width: 800px) {
+  .calendario-grid { gap: 4px; }
+  .calendario-dia { min-height: 58px; padding: 6px; border-radius: 10px; }
+  .calendario-punto { min-width: 16px; height: 16px; padding: 0 5px; font-size: 10px; }
+  .calendario-cierre { display: none; }
+}
+@media (max-width: 800px) {
+  .calendario-mes { display: grid; grid-template-columns: auto 1fr auto; align-items: center; }
+  .calendario-mes h2 { font-size: 20px; text-align: center; }
+  .calendario-mes .agenda-botones { flex-wrap: nowrap; gap: 6px; }
+  .calendario-mes .agenda-botones > .btn, .calendario-mes > .btn { width: auto; min-width: 40px; padding: 8px 10px; }
+}

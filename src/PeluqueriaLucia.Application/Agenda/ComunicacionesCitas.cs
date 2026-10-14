@@ -11,11 +11,14 @@ using PeluqueriaLucia.Domain.Agenda;
 namespace PeluqueriaLucia.Application.Agenda;
 
 public sealed class ComunicacionesCitas(IRepositorioAgenda datos, IProtectorSecretos secretos, IEnviadorCorreo correo,
-    IWhatsAppManual whatsApp, IUrlPublica urlPublica, TimeProvider reloj) : IComunicacionesCitas
+    IWhatsAppManual whatsApp, IUrlPublica urlPublica, TimeProvider reloj, IAjustesComunicaciones ajustes) : IComunicacionesCitas
 {
+    public const int LongitudTexto = 2000;
     private DateTime Utc => reloj.GetUtcNow().UtcDateTime;
     public bool CorreoConfigurado => correo.Configurado;
     public bool EnlaceConfigurado => urlPublica.Obtener() is not null;
+    public bool EnvioAutomatico => ajustes.EnvioAutomatico;
+    private static bool Editable(MensajeCita m) => m.Estado is EstadoNotificacion.Pendiente or EstadoNotificacion.Error;
     internal static string Hash(string token) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
     private static bool TokenValido(string? token) => token is { Length: 64 } && Regex.IsMatch(token, "^[A-F0-9]{64}$");
     private async Task<ReservaCita?> PropuestaAsync(string token, CancellationToken ct)
@@ -60,9 +63,74 @@ public sealed class ComunicacionesCitas(IRepositorioAgenda datos, IProtectorSecr
             var texto = m.Estado == EstadoNotificacion.Obsoleto ? null : await TextoAsync(m, ct);
             var enlace = texto is not null && m.Canal == CanalConfirmacion.WhatsApp && m.Estado == EstadoNotificacion.Pendiente
                 ? whatsApp.Preparar(m.Destinatario, texto) : null;
-            lista.Add(new(m.Id, m.Destinatario, m.Canal, m.Estado, texto ?? m.Texto, enlace, m.CreadoUtc));
+            lista.Add(new(m.Id, m.ReservaId, m.Destinatario, m.Canal, m.Estado, texto ?? m.Texto, enlace, m.CreadoUtc, Editable(m), m.Texto));
         }
         return lista;
+    }
+    public Task<Resultado> ActualizarTextoAsync(Guid id, string texto, CancellationToken ct) => datos.ExclusivoAsync<Resultado>(async () =>
+    {
+        var limpio = (texto ?? string.Empty).Trim();
+        if (limpio.Length is < 10 or > LongitudTexto) return new Error($"El texto del aviso debe tener entre 10 y {LongitudTexto} caracteres.", "Texto");
+        var m = await datos.BuscarAsync<MensajeCita>(x => x.Id == id, ct);
+        if (m is null || !Editable(m)) return new Error("Este aviso ya se ha enviado o gestionado y no se puede cambiar.");
+        m.Texto = limpio;
+        return Resultado.Ok();
+    }, ct);
+
+    /// <summary>Correo listo para salir: texto plano con el enlace al final y versión HTML con botón.</summary>
+    private static CorreoSaliente CorreoDe(MensajeCita m, string texto)
+    {
+        var boton = m.TokenProtegido is null ? "" : "<p><a href=\"" + WebUtility.HtmlEncode(texto[(texto.LastIndexOf("\n\n", StringComparison.Ordinal) + 2)..]) + "\" style=\"display:inline-block;padding:14px 24px;border-radius:12px;background:#183a35;color:#fff;text-decoration:none\">Revisar y aceptar cita</a></p>";
+        var parrafos = string.Concat(m.Texto.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(p => "<p>" + WebUtility.HtmlEncode(p.Trim()) + "</p>"));
+        return new CorreoSaliente(m.Destinatario, "Tu cita en el salón", texto,
+            "<html lang=\"es\"><body style=\"background:#f4f1e9;color:#183a35;font-family:'Source Serif 4',Georgia,serif;padding:24px\"><h1>Tu próxima cita</h1>" + parrafos + boton + "<p>El equipo del salón</p></body></html>");
+    }
+
+    public async Task<Resultado> EnviarCorreoAsync(Guid id, string? texto, CancellationToken ct)
+    {
+        if (!correo.Configurado) return new Error("El correo no está configurado todavía. Revisa la configuración SMTP del servidor.");
+        var preparado = await datos.ExclusivoAsync<Resultado<CorreoSaliente>>(async () =>
+        {
+            var m = await datos.BuscarAsync<MensajeCita>(x => x.Id == id, ct);
+            if (m is null || m.Canal != CanalConfirmacion.Correo || !Editable(m)) return new Error("Este correo ya se ha enviado o gestionado.");
+            if (texto is not null)
+            {
+                var limpio = texto.Trim();
+                if (limpio.Length is < 10 or > LongitudTexto) return new Error($"El texto del aviso debe tener entre 10 y {LongitudTexto} caracteres.", "Texto");
+                m.Texto = limpio;
+            }
+            var completo = await TextoAsync(m, ct);
+            if (completo is null)
+            {
+                if (EnlaceConfigurado) m.Estado = EstadoNotificacion.Obsoleto;
+                return new Error(EnlaceConfigurado ? "La propuesta ha caducado o el cliente ya la ha aceptado: el aviso queda obsoleto." : "Falta configurar la URL pública para generar el enlace de aceptación.");
+            }
+            m.Estado = EstadoNotificacion.Enviando; m.ProcesadoUtc = Utc;
+            return Resultado.Ok(CorreoDe(m, completo));
+        }, ct);
+        if (!preparado.Exito) return preparado.Error!;
+        var resultado = await EnviarYAnotarAsync(id, preparado.Valor!, ct);
+        return resultado switch
+        {
+            ResultadoEnvio.Aceptado => Resultado.Ok(),
+            ResultadoEnvio.Rechazado => new Error("El servidor de correo ha rechazado el envío. Revisa la dirección o la configuración SMTP y vuelve a intentarlo."),
+            _ => new Error("No se sabe si el correo llegó a salir. Compruébalo antes de volver a enviarlo para no duplicarlo."),
+        };
+    }
+
+    private async Task<ResultadoEnvio> EnviarYAnotarAsync(Guid id, CorreoSaliente mensaje, CancellationToken ct)
+    {
+        ResultadoEnvio resultado;
+        try { resultado = await correo.EnviarAsync(mensaje, ct); }
+        catch (Exception) { resultado = ResultadoEnvio.Incierto; }
+        await datos.ExclusivoAsync(async () =>
+        {
+            var m = await datos.BuscarAsync<MensajeCita>(x => x.Id == id, CancellationToken.None);
+            if (m is { Estado: EstadoNotificacion.Enviando })
+            { m.Estado = resultado switch { ResultadoEnvio.Aceptado => EstadoNotificacion.AceptadoServidor, ResultadoEnvio.Rechazado => EstadoNotificacion.Error, _ => EstadoNotificacion.Incierto }; m.ProcesadoUtc = Utc; }
+            return true;
+        }, CancellationToken.None);
+        return resultado;
     }
     public Task<Resultado> MarcarWhatsAppAsync(Guid id, CancellationToken ct) => datos.ExclusivoAsync<Resultado>(async () =>
     {
@@ -89,7 +157,8 @@ public sealed class ComunicacionesCitas(IRepositorioAgenda datos, IProtectorSecr
             foreach (var m in await datos.ListarAsync<MensajeCita>(x => x.Estado == EstadoNotificacion.Enviando && x.ProcesadoUtc < Utc.AddMinutes(-10), ct)) m.Estado = EstadoNotificacion.Incierto;
             return true;
         }, ct);
-        if (!correo.Configurado) return;
+        // Sin envío automático, los correos esperan en Comunicaciones a que el salón los revise y los envíe
+        if (!correo.Configurado || !ajustes.EnvioAutomatico) return;
         var pendientes = (await datos.ListarAsync<MensajeCita>(x => x.Canal == CanalConfirmacion.Correo && x.Estado == EstadoNotificacion.Pendiente, ct)).OrderBy(x => x.CreadoUtc).Take(10).Select(x => x.Id).ToArray();
         foreach (var id in pendientes)
         {
@@ -104,21 +173,10 @@ public sealed class ComunicacionesCitas(IRepositorioAgenda datos, IProtectorSecr
                     return null;
                 }
                 m.Estado = EstadoNotificacion.Enviando; m.ProcesadoUtc = Utc;
-                var boton = m.TokenProtegido is null ? "" : "<p><a href=\"" + WebUtility.HtmlEncode(texto[(texto.LastIndexOf("\n\n", StringComparison.Ordinal) + 2)..]) + "\" style=\"display:inline-block;padding:14px 24px;border-radius:12px;background:#183a35;color:#fff;text-decoration:none\">Revisar y aceptar cita</a></p>";
-                return new CorreoSaliente(m.Destinatario, "Tu cita en el salón", texto,
-                    "<html lang=\"es\"><body style=\"background:#f4f1e9;color:#183a35;font-family:'Source Serif 4',Georgia,serif;padding:24px\"><h1>Tu próxima cita</h1><p>" + WebUtility.HtmlEncode(m.Texto) + "</p>" + boton + "<p>El equipo del salón</p></body></html>");
+                return CorreoDe(m, texto);
             }, ct);
             if (mensaje is null) continue;
-            ResultadoEnvio resultado;
-            try { resultado = await correo.EnviarAsync(mensaje, ct); }
-            catch (Exception) { resultado = ResultadoEnvio.Incierto; }
-            await datos.ExclusivoAsync(async () =>
-            {
-                var m = await datos.BuscarAsync<MensajeCita>(x => x.Id == id, CancellationToken.None);
-                if (m is { Estado: EstadoNotificacion.Enviando })
-                { m.Estado = resultado switch { ResultadoEnvio.Aceptado => EstadoNotificacion.AceptadoServidor, ResultadoEnvio.Rechazado => EstadoNotificacion.Error, _ => EstadoNotificacion.Incierto }; m.ProcesadoUtc = Utc; }
-                return true;
-            }, CancellationToken.None);
+            await EnviarYAnotarAsync(id, mensaje, ct);
             ct.ThrowIfCancellationRequested();
         }
     }

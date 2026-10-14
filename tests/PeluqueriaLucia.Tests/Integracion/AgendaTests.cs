@@ -168,4 +168,19 @@ public sealed class AgendaTests
         var aviso=await db.MensajesCitas.AsNoTracking().SingleAsync();
         Assert.Null(aviso.TokenProtegido); Assert.Contains("queda confirmada",aviso.Texto);
     }
+
+    [Fact]
+    public async Task Eliminar_solo_quita_citas_cerradas_y_se_lleva_sus_avisos()
+    {
+        await using var bd=await BaseDeDatosPrueba.CrearAsync(); await using var db=bd.Contexto(); var reloj=new Reloj(); var agenda=Crear(db,reloj);
+        var admin=PeluqueriaLucia.Domain.Seguridad.Administrador.Crear("agenda","hash",reloj.Ahora.UtcDateTime); db.Add(admin); await db.SaveChangesAsync();
+        var solicitud=await agenda.SolicitarAsync(Datos(new(10,0)),default); Assert.True(solicitud.Exito,solicitud.Error?.Mensaje);
+        Assert.False((await agenda.EliminarCitaAsync(solicitud.Valor,default)).Exito,"una solicitud abierta no se elimina");
+        var r=await db.ReservasCitas.AsNoTracking().SingleAsync(x=>x.Id==solicitud.Valor);
+        Assert.True((await agenda.GestionarAsync(new(r.Id,Convert.ToBase64String(r.Version),EstadoCita.Rechazada,30,true,null,admin.Id),default)).Exito);
+        Assert.Single(await db.MensajesCitas.AsNoTracking().Where(x=>x.ReservaId==r.Id).ToListAsync());
+        Assert.True((await agenda.EliminarCitaAsync(r.Id,default)).Exito);
+        Assert.Empty(await db.ReservasCitas.AsNoTracking().ToListAsync()); Assert.Empty(await db.MensajesCitas.AsNoTracking().ToListAsync());
+        Assert.False((await agenda.EliminarCitaAsync(r.Id,default)).Exito,"ya no existe");
+    }
 }

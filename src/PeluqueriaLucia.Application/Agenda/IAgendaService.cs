@@ -25,6 +25,8 @@ public interface IAgendaService
     Task<IReadOnlyList<ServicioAgenda>> ServiciosPanelAsync(CancellationToken ct);
     Task<Resultado<Guid>> CrearCitaAsync(CitaManual datos, CancellationToken ct);
     Task<IReadOnlyList<ReservaCita>> ListarAsync(DateOnly desde, DateOnly hasta, CancellationToken ct);
+    /// <summary>Quita de la agenda una cita ya cerrada (cancelada, rechazada, no presentada o caducada) con sus avisos. Las activas se cancelan antes.</summary>
+    Task<Resultado> EliminarCitaAsync(Guid id, CancellationToken ct);
     Task<IReadOnlyList<MensajeCita>> MensajesAsync(CancellationToken ct);
     Task<AvisoAgenda> AvisosAsync(CancellationToken ct);
     Task<IReadOnlyList<ReservaCita>> PendientesAsync(CancellationToken ct);

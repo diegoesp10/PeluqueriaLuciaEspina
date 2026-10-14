@@ -40,6 +40,9 @@ Ninguna pieza usa contraseñas: la Web App entra en SQL y en Key Vault con su **
 | `AllowedHosts` | `luciapeluqueriaecologica.com;www.luciapeluqueriaecologica.com;webappluciapeluqueria-a9dycjgph4f0etaz.spaincentral-01.azurewebsites.net` | Dominios que acepta la app |
 | `Seguridad__CabeceraIpCliente` | `CF-Connecting-IP` | **Solo cuando Cloudflare esté delante y la Web App restringida a sus IPs** (paso 5) |
 | `PELUQUERIA_URL_PUBLICA` | `https://luciapeluqueriaecologica.com/` | Cuando el dominio funcione |
+| `PELUQUERIA_CORREO_SMTP` | `@Microsoft.KeyVault(SecretUri=https://kv-lucia-peluqueria.vault.azure.net/secrets/correo-smtp/)` | Referencia al secreto con el JSON de SMTP (ver docs/AGENDA.md, «Correo con Gmail») |
+| `PELUQUERIA_CORREO_ACTIVO` | `true` | Activa el correo; sin él los avisos esperan en Comunicaciones |
+| `PELUQUERIA_CORREO_AUTOMATICO` | `true` | Opcional: la cola envía los correos sola en vez de esperar a revisarlos |
 
 **Cadenas de conexión:** `Peluqueria`, tipo `SQLAzure`:
 

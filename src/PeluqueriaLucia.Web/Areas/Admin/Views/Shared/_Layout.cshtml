@@ -50,6 +50,7 @@
             <nav class="nav">
                 <p class="nav-label">Espacio profesional</p>
                 <a class="nav-item @Activo("Agenda")" href="/admin/agenda" title="Agenda y solicitudes de cita"><span class="nav-tile"><icono nombre="calendario" tamano="17" /></span> Agenda <span class="agenda-contador" data-agenda-contador aria-label="Solicitudes pendientes"></span></a>
+                <a class="nav-item @Activo("Comunicaciones")" asp-controller="Comunicaciones" asp-action="Index" title="Avisos a clientes por correo y WhatsApp"><span class="nav-tile"><icono nombre="email" tamano="17" /></span> Comunicaciones</a>
                 <a class="nav-item @Activo("Panel")" asp-controller="Panel" asp-action="Index" title="Panel"><span class="nav-tile"><icono nombre="casa" tamano="17" /></span> Panel</a>
                 <a class="nav-item tint-blue @Activo("Visitas")" asp-controller="Visitas" asp-action="Index" title="Visitas">
                     <span class="nav-tile"><icono nombre="ticket" tamano="17" /></span> Visitas

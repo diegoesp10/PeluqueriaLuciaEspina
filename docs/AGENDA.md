@@ -68,8 +68,11 @@ En `/admin/agenda/horarios` se gestionan tramos y cierres. Revisar el horario in
 | GET/POST `/citas/confirmar/{token}` | Revisión y aceptación privada; GET no modifica |
 | GET `/admin/agenda`, `/admin/agenda/avisos` | Panel protegido por sesión con MFA |
 | POST `/admin/agenda/gestionar` | Validación y propuesta con control de versión |
-| POST `/admin/agenda/whatsapp-enviado` | Registro manual del envío, sin aceptar la cita |
-| POST `/admin/agenda/reintentar-correo` | Reintento explícito de un correo rechazado |
+| ~~POST `/admin/agenda/whatsapp-enviado`~~ (ahora en Comunicaciones) | Registro manual del envío, sin aceptar la cita |
+| POST `/admin/comunicaciones/texto` | Guarda el texto retocado de un aviso aún no enviado |
+| POST `/admin/comunicaciones/enviar` | Envía ahora un correo pendiente o rechazado (con el texto retocado, si se envía) |
+| POST `/admin/comunicaciones/whatsapp-enviado` | Marca un WhatsApp como enviado desde el teléfono |
+| POST `/admin/agenda/eliminar` | Elimina de la agenda una cita cerrada (cancelada, rechazada, no presentada o caducada) con sus avisos |
 
 Todos los botones públicos de reserva llevan a la agenda propia; la web no enlaza a plataformas de reservas externas.
 
@@ -118,3 +121,37 @@ En una solicitud de la web, **Confirmar ya (acordada por teléfono)** confirma l
 Las citas confirmadas o completadas con ficha muestran **Registrar visita**, que abre Nueva visita con el cliente elegido.
 
 La migración `OrigenDeLasCitas` añade la columna `Origen` a `ReservasCitas` (0 web, 1 salón, 2 bloqueo). Las reservas existentes quedan como web. No borra ni modifica datos.
+
+## Calendario del panel y Comunicaciones
+
+`/admin/agenda` es un calendario mensual: cada día muestra cuántas citas tiene (abiertas, completadas, canceladas y bloqueos) y los días de cierre. Al pulsar un día se ven sus citas a la derecha, con el filtro **Abiertas · Canceladas · Completadas · Todas** (`?dia=AAAA-MM-DD&estado=…`). Las solicitudes pendientes de otros días se listan debajo. Una cita cerrada (cancelada, rechazada, no presentada o caducada) se puede **eliminar de la agenda** con sus avisos; una cita con falta registrada se conserva como historial.
+
+`/admin/comunicaciones` reúne los avisos a clientes, fuera de la agenda: **Pendientes · Enviados · Todos**. Cada aviso pendiente se muestra con su texto en un cuadro editable:
+
+- **Correo:** «Enviar correo» lo manda en ese momento con el texto que haya en el cuadro (el enlace de aceptación se añade solo, al final, y no se edita); «Guardar sin enviar» solo conserva el cambio. Los correos **no salen solos**: esperan a esta revisión. Si se prefiere el envío automático de antes, se activa con `PELUQUERIA_CORREO_AUTOMATICO=true` y la cola los manda cada 15 segundos.
+- **WhatsApp:** «Guardar texto» actualiza el mensaje y el botón «Abrir en WhatsApp» lo lleva al teléfono; después, «Ya lo he enviado en WhatsApp».
+- Un correo rechazado por el servidor queda editable para reenviarlo. Un envío incierto no se repite desde la app.
+
+## Correo con Gmail en producción
+
+La cuenta de envío es `luciaespina.p.e@gmail.com`. Gmail no admite la contraseña normal desde aplicaciones: hay que crear una **contraseña de aplicación**, y para eso la cuenta necesita la verificación en dos pasos.
+
+1. Entra en https://myaccount.google.com/security con esa cuenta → **Verificación en dos pasos** → actívala (con el móvil del salón).
+2. En https://myaccount.google.com/apppasswords → nombre `Peluquería web` → **Crear**. Google enseña una contraseña de 16 letras una sola vez: cópiala sin espacios.
+3. Guarda la configuración como secreto en Key Vault, desde tu PC (sustituye la contraseña):
+
+```powershell
+az keyvault secret set --vault-name kv-lucia-peluqueria --name correo-smtp --value '{"Servidor":"smtp.gmail.com","Puerto":587,"Seguridad":"StartTls","Usuario":"luciaespina.p.e@gmail.com","Contrasena":"xxxxxxxxxxxxxxxx","Remitente":"luciaespina.p.e@gmail.com","NombreRemitente":"Lucía Peluquería Ecológica"}'
+```
+
+4. En la Web App → **Variables de entorno**, añade:
+
+| Nombre | Valor |
+|---|---|
+| `PELUQUERIA_CORREO_SMTP` | `@Microsoft.KeyVault(SecretUri=https://kv-lucia-peluqueria.vault.azure.net/secrets/correo-smtp/)` |
+| `PELUQUERIA_CORREO_ACTIVO` | `true` |
+
+   La Web App ya tiene el rol *Key Vault Secrets User*, así que lee el secreto con su identidad; el panel pasa de «Correo pendiente de configurar» a «Correo configurado» sin reiniciar nada más.
+5. Prueba: gestiona una cita de prueba con tu propio correo, ve a **Comunicaciones** y pulsa «Enviar correo». El remitente que verá el cliente es la cuenta de Gmail.
+
+Límites de Gmail: unos 500 correos al día por cuenta, de sobra para el salón. Si Google revoca la contraseña de aplicación (cambio de contraseña de la cuenta, por ejemplo), crea otra y actualiza el secreto con el mismo comando; la Web App la recoge en unos minutos.
