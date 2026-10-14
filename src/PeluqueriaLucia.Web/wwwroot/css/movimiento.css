@@ -7,15 +7,17 @@ html.lenis { scroll-behavior: auto; }
 
 /* ── Fondo vivo: hojas y manchas de color que se desplazan con el scroll ── */
 .fondo-vivo { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
-.fondo-hoja { position: absolute; width: clamp(140px, 18vw, 300px); height: auto; fill: color-mix(in oklab, var(--olive) 9%, transparent); }
-.fondo-hoja .nervio { fill: none; stroke: color-mix(in oklab, var(--olive) 16%, transparent); stroke-width: 2; stroke-linecap: round; }
+/* Colores sólidos con opacidad en vez de color-mix(…, transparent), y degradados radiales en vez de filter: blur():
+   Safari en iOS pintaba las manchas desenfocadas como bloques verdes sólidos y los adornos sin transparencia. */
+.fondo-hoja { position: absolute; width: clamp(140px, 18vw, 300px); height: auto; fill: var(--olive); fill-opacity: .09; }
+.fondo-hoja .nervio { fill: none; stroke: var(--olive); stroke-opacity: .16; stroke-width: 2; stroke-linecap: round; }
 .fondo-hoja-1 { top: 58vh; left: -60px; rotate: -28deg; }
 .fondo-hoja-2 { top: 8vh; right: 32vw; width: clamp(90px, 9vw, 150px); rotate: 34deg; opacity: .8; }
 .fondo-hoja-3 { bottom: -90px; right: -40px; rotate: 152deg; }
-.fondo-mancha { position: absolute; border-radius: 50%; filter: blur(70px); opacity: .5; }
-.fondo-mancha-1 { width: 42vw; height: 42vw; top: -12vw; left: -10vw; background: color-mix(in oklab, var(--olive) 22%, transparent); }
-.fondo-mancha-2 { width: 34vw; height: 34vw; bottom: -10vw; right: -6vw; background: color-mix(in oklab, var(--sand) 90%, transparent); }
-.fondo-mancha-3 { width: 26vw; height: 26vw; top: 40vh; left: 45vw; background: color-mix(in oklab, var(--olive) 12%, transparent); }
+.fondo-mancha { position: absolute; border-radius: 50%; background: radial-gradient(circle closest-side, var(--olive) 0%, transparent 100%); opacity: .11; transform: translateZ(0); }
+.fondo-mancha-1 { width: 56vw; height: 56vw; top: -18vw; left: -16vw; }
+.fondo-mancha-2 { width: 46vw; height: 46vw; bottom: -14vw; right: -12vw; background: radial-gradient(circle closest-side, var(--sand) 0%, transparent 100%); opacity: .6; }
+.fondo-mancha-3 { width: 36vw; height: 36vw; top: 38vh; left: 40vw; opacity: .07; }
 
 /* Grano de papel muy suave sobre toda la web, como una impresión natural */
 .sitio-publico::after {
@@ -93,8 +95,8 @@ html.lenis { scroll-behavior: auto; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="dia"]) .error-numero { color: var(--cream); } }
 .error-numero span { display: inline-block; }
 .error-numero span:nth-child(2) { color: var(--olive); font-style: italic; }
-.error-hoja { position: absolute; width: 28%; right: 4%; top: -18%; fill: color-mix(in oklab, var(--olive) 30%, transparent); transform-origin: 50% 100%; }
-.error-hoja .nervio { fill: none; stroke: color-mix(in oklab, var(--olive) 60%, transparent); stroke-width: 3; stroke-linecap: round; }
+.error-hoja { position: absolute; width: 28%; right: 4%; top: -18%; fill: var(--olive); fill-opacity: .30; transform-origin: 50% 100%; }
+.error-hoja .nervio { fill: none; stroke: var(--olive); stroke-opacity: .60; stroke-width: 3; stroke-linecap: round; }
 .error-texto h1 { margin-bottom: 20px; }
 .error-texto .botones { margin-bottom: 20px; }
 
