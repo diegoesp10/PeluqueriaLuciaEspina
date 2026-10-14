@@ -13,6 +13,21 @@
   let pendiente = false;
   let aviso;
   let proximaComprobacion = 0;
+  let cargando = false;
+  // Mientras se comprueba la sesión se enseña el indicador de carga (cargando.js), no el texto; el texto queda
+  // para cuando la comprobación falla de verdad (sin conexión, servidor caído).
+  const iniciarCarga = () => {
+    if (cargando || !window.Cargando) return;
+    cargando = true;
+    cuerpo.classList.add('sesion-cargando');
+    window.Cargando.iniciar();
+  };
+  const terminarCarga = () => {
+    if (!cargando) return;
+    cargando = false;
+    cuerpo.classList.remove('sesion-cargando');
+    window.Cargando.terminar();
+  };
   const bloquear = () => {
     cuerpo.classList.add('sesion-en-comprobacion');
     if (!aviso) {
@@ -22,6 +37,7 @@
       aviso.textContent = 'Comprobando tu sesión. Si se interrumpe la conexión, el panel permanecerá protegido.';
       cuerpo.append(aviso);
     }
+    iniciarCarga();
   };
 
   const expulsar = () => {
@@ -43,7 +59,7 @@
     try {
       const respuesta = await fetch(sesionEstado, {
         method: 'GET', credentials: 'same-origin', cache: 'no-store', redirect: 'error',
-        headers: { Accept: 'application/json' }, signal: cancelacion.signal,
+        headers: { Accept: 'application/json' }, signal: cancelacion.signal, silencioso: true,
       });
       if (respuesta.status === 401 || respuesta.status === 403) { expulsar(); return; }
       if (!respuesta.ok) {
@@ -56,10 +72,11 @@
       const estado = await respuesta.json();
       // Otra entrada en el mismo navegador puede haber sustituido la cookie de esta pestaña.
       if (estado.sesionId !== sesionId) { expulsar(); return; }
-      if (!pendiente && !saliendo) cuerpo.classList.remove('sesion-en-comprobacion');
+      if (!pendiente && !saliendo) { cuerpo.classList.remove('sesion-en-comprobacion'); terminarCarga(); }
     } catch {
-      // Sin una respuesta válida no se muestran ni se pueden usar los datos ya cargados.
+      // Sin una respuesta válida no se muestran ni se pueden usar los datos ya cargados: queda el texto, no el indicador.
       bloquear();
+      terminarCarga();
     } finally {
       clearTimeout(plazo);
       enCurso = false;

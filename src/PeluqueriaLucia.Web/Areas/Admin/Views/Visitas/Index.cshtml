@@ -16,7 +16,7 @@
             }
         </div>
         <div class="acciones">
-            <a class="btn btn-gray" asp-action="Exportar" asp-route-periodo="@Model.Periodo" asp-route-fecha="@fecha" title="Descargar estas visitas en Excel">
+            <a class="btn btn-gray" asp-action="Exportar" asp-route-periodo="@Model.Periodo" asp-route-fecha="@fecha" title="Descargar estas visitas en Excel" data-sin-cargando>
                 <icono nombre="excel" tamano="18" /> Exportar
             </a>
             <a class="btn btn-primary" asp-action="Nueva"><icono nombre="mas" tamano="18" /> Nueva visita</a>

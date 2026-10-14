@@ -72,3 +72,12 @@ La cabeza del logo, en crema sobre el azul noche del logo (`#081c26`), con esqui
 | `iconos/icono-512.png`, `iconos/icono-mascara-512.png` | `site.webmanifest`, Android y `og:image` |
 
 Los enlaza el partial `Views/Shared/_Iconos.cshtml` en la web pública y en el panel. La portada declara además el logo y la foto de la fachada en los datos estructurados (`HairSalon`) para Google.
+
+## Indicador de carga
+
+`wwwroot/js/cargando.js` se carga antes que el resto de scripts en la web pública y en el panel. Con cada navegación (enlaces de la propia web y envíos de formulario) y con cada `fetch` al servidor enseña una barra fina arriba si la espera pasa de 150 ms y, si sigue, una tarjeta verde bosque con la hoja del salón y «Cargando…» (o «Loading…»). Se retira cuando llega la página nueva o termina la respuesta; al volver atrás desde la caché del navegador también. El botón que envía un formulario queda marcado con `.is-cargando` (pequeño giro) hasta entonces.
+
+- Las llamadas periódicas (`sesion.js`, `agenda-avisos.js`) pasan `{ silencioso: true }` a `fetch` y no lo activan.
+- Un enlace que descarga sin cambiar de página lleva `data-sin-cargando` (la exportación a Excel); por seguridad el indicador se retira solo a los 20 s.
+- En el panel, mientras `sesion.js` comprueba la sesión al abrir cada pantalla, se ve este indicador en lugar del texto «Comprobando tu sesión…», que queda para cuando la comprobación falla.
+- Procesos propios: `window.Cargando.iniciar()` y `window.Cargando.terminar()`.
