@@ -83,7 +83,7 @@ Cierra la terminal al acabar (o `Remove-Item Env:ConnectionStrings__Peluqueria`)
 
 - `main` está protegida: solo cambia por pull request (normalmente desde `develop`), con la comprobación «Compilar y probar» en verde y la aprobación del propietario del repositorio (`CODEOWNERS`); el propietario puede fusionar las suyas sin aprobación. `develop` no lanza ningún workflow.
 - Cada pull request a `main` compila y pasa las pruebas en Linux con un SQL Server temporal.
-- Al fusionar en **`main`**, el workflow repite las pruebas, espera la aprobación del entorno `produccion` en Actions («Review deployments»), publica en Azure y comprueba que la web responde. Tarda unos 5 minutos.
+- Al fusionar en **`main`**, el workflow repite las pruebas, espera la aprobación del entorno `produccion` en Actions («Review deployments»), publica en Azure y comprueba que la web responde. Tarda unos 5 minutos. La comprobación se hace contra el origen (`azurewebsites.net`) abriendo paso a la IP del runner en las restricciones de acceso solo durante el job, porque Cloudflare desafía a las IP de centros de datos con un 403; la consulta por el dominio público es solo informativa.
 - También se puede lanzar a mano: **Actions → Pruebas y despliegue en Azure → Run workflow** (sobre `main`).
 
 ## 5. Cloudflare (dominio)

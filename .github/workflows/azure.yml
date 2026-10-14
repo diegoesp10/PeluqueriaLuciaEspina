@@ -98,12 +98,28 @@ jobs:
         with:
           app-name: WebAppLuciaPeluqueria
           package: publicacion
+      # Cloudflare desafía a las IP de centros de datos (como la de este runner) y devuelve 403, y la Web App solo
+      # admite tráfico de Cloudflare. Para comprobar el origen se abre paso a la IP del runner solo durante este job.
+      - name: Abrir paso a este runner en la Web App
+        id: paso
+        run: |
+          ip=$(curl -s https://api.ipify.org)
+          echo "ip=$ip" >> "$GITHUB_OUTPUT"
+          az webapp config access-restriction add -g rg-lucia-prod -n WebAppLuciaPeluqueria \
+            --rule-name "github-${{ github.run_id }}" --action Allow --priority 50 --ip-address "$ip/32" -o none
       - name: Comprobar que responde
         run: |
           for intento in $(seq 1 20); do
-            codigo=$(curl -s -o /dev/null -w "%{http_code}" https://luciapeluqueriaecologica.com/)
+            codigo=$(curl -s -o /dev/null -w "%{http_code}" https://webappluciapeluqueria-a9dycjgph4f0etaz.spaincentral-01.azurewebsites.net/)
             echo "Intento $intento: HTTP $codigo"
             [ "$codigo" = "200" ] && exit 0
             sleep 15
           done
           echo "La web no responde 200 tras el despliegue" && exit 1
+      - name: Cerrar el paso al runner
+        if: always() && steps.paso.outcome == 'success'
+        run: az webapp config access-restriction remove -g rg-lucia-prod -n WebAppLuciaPeluqueria --rule-name "github-${{ github.run_id }}" -o none
+      - name: Comprobar por Cloudflare (informativo)
+        run: |
+          codigo=$(curl -s -o /dev/null -w "%{http_code}" -A "Mozilla/5.0 (compatible; despliegue-lucia)" https://luciapeluqueriaecologica.com/)
+          echo "Por Cloudflare: HTTP $codigo (un 403 aquí es el desafío de Cloudflare a la IP del runner, no un fallo de la web)"
