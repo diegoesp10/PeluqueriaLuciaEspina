@@ -88,7 +88,7 @@
             <a asp-area="" asp-controller="Agenda" asp-action="Index" aria-current="@(controlador == "Agenda" ? "page" : null)">@T["Citas"]</a>
             <a href="@(raiz)#contacto">@T["Contacto"]</a>
             <div class="menu-publico-pie">
-                <a class="btn btn-primary btn-block" asp-area="" asp-controller="Agenda" asp-action="Index">@T["Reservar cita"] <span aria-hidden="true">↗</span></a>
+                <a class="btn btn-primary btn-block" asp-area="" asp-controller="Agenda" asp-action="Index">@T["Reservar cita"] <icono nombre="flecha-salir" tamano="14" /></a>
                 <a class="menu-publico-telefono" href="@n.TelefonoEnlace">@n.Telefono</a>
                 <p>@n.Direccion · @n.Ciudad</p>
             </div>
@@ -116,7 +116,7 @@
                     </div>
                 </div>
             </details>
-            <a class="btn btn-primary cabecera-reservar" asp-area="" asp-controller="Agenda" asp-action="Index" data-magnetico>@T["Reservar cita"] <span aria-hidden="true">↗</span></a>
+            <a class="btn btn-primary cabecera-reservar" asp-area="" asp-controller="Agenda" asp-action="Index" data-magnetico>@T["Reservar cita"] <icono nombre="flecha-salir" tamano="14" /></a>
             <a class="boton-menu" href="#menu-publico" aria-controls="menu-publico" aria-expanded="false" data-menu-abrir>
                 <icono nombre="menu" tamano="22" /><span class="sr-only">@T["Abrir menú"]</span>
             </a>
@@ -126,7 +126,7 @@
     <footer class="pie-publico">
         <div class="firma-pie"><img src="~/Img/Icono.jpg" alt="" width="76" height="76" /><div><strong>Lucía</strong><p>@T["Peluquería ecológica"] · @n.Ciudad</p></div></div>
         <div><a href="@n.TelefonoEnlace">@n.Telefono</a><p>@n.Direccion · @n.CodigoPostal @n.Ciudad</p></div>
-        <div><a asp-area="" asp-controller="Agenda" asp-action="Index">@T["Reservar cita"] ↗</a><p><a href="@Idioma.SinIdioma(Context, "/admin")" hreflang="es">@T["Panel de administración"] ↗</a></p></div>
+        <div><a asp-area="" asp-controller="Agenda" asp-action="Index">@T["Reservar cita"] <icono nombre="flecha-salir" tamano="14" /></a><p><a href="@Idioma.SinIdioma(Context, "/admin")" hreflang="es">@T["Panel de administración"] <icono nombre="flecha-salir" tamano="14" /></a></p></div>
         <div class="pie-nota">
             <nav class="pie-legal" aria-label="@T["Información legal"]">
                 <a asp-area="" asp-controller="Legal" asp-action="Privacidad">@T["Política de privacidad"]</a>

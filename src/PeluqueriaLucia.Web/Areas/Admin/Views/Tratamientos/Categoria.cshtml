@@ -1,7 +1,7 @@
 @model CategoriaEdicion
 @{ ViewData["Title"] = Model.Id is null ? "Nueva categoría" : "Editar categoría"; }
 <div class="form-pagina">
-    <a class="back-link" asp-action="Categorias">← Categorías</a>
+    <a class="back-link" asp-action="Categorias"><icono nombre="volver" tamano="16" /> Categorías</a>
     <header class="page-head"><h1>@ViewData["Title"]</h1></header>
     <form class="form" method="post" asp-action="Categoria" asp-route-id="@Model.Id">
         <div asp-validation-summary="All"></div>

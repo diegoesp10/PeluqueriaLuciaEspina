@@ -17,8 +17,8 @@
         <p class="intro" data-anima="subir">@T[Model.Descripcion]</p>
         <div class="botones" data-anima="subir">
             <a class="btn btn-primary" asp-area="" asp-controller="Inicio" asp-action="Index" data-magnetico>@T["Volver al inicio"]</a>
-            <a class="enlace-flecha" asp-area="" asp-controller="Inicio" asp-action="Servicios">@T["Ver los servicios"] →</a>
-            <a class="enlace-flecha" asp-area="" asp-controller="Agenda" asp-action="Index">@T["Pedir cita"] →</a>
+            <a class="enlace-flecha" asp-area="" asp-controller="Inicio" asp-action="Servicios">@T["Ver los servicios"] <icono nombre="flecha" tamano="14" /></a>
+            <a class="enlace-flecha" asp-area="" asp-controller="Agenda" asp-action="Index">@T["Pedir cita"] <icono nombre="flecha" tamano="14" /></a>
         </div>
         @if (Model.Codigo >= 500 && Model.IdPeticion is not null)
         {

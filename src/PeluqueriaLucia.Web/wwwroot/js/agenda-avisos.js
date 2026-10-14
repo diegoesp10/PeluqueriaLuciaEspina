@@ -15,7 +15,7 @@
         aviso = document.createElement('div'); aviso.className = 'agenda-notificacion'; aviso.setAttribute('role','status');
         const cerrar = document.createElement('button'); cerrar.type='button'; cerrar.textContent='×'; cerrar.setAttribute('aria-label','Cerrar aviso'); cerrar.addEventListener('click',()=>aviso.remove());
         const texto = document.createElement('strong'); texto.textContent='Ha llegado una nueva solicitud de cita';
-        const enlace = document.createElement('a'); enlace.href='/admin/agenda'; enlace.textContent='Revisar la agenda →';
+        const enlace = document.createElement('a'); enlace.href='/admin/agenda'; enlace.textContent='Revisar la agenda';
         aviso.append(cerrar,texto,enlace); document.body.append(aviso);
         document.title = 'Nueva cita · ' + document.title.replace(/^Nueva cita · /,'');
       }

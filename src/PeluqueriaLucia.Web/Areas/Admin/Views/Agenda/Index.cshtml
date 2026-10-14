@@ -26,9 +26,9 @@
 <div class="calendario-panel">
     <section class="card calendario-tarjeta" aria-label="Calendario del mes">
         <div class="calendario-mes">
-            <a class="btn btn-gray" href="@Ruta(Model.MesAnterior)" aria-label="Mes anterior">←</a>
+            <a class="btn btn-gray" href="@Ruta(Model.MesAnterior)" aria-label="Mes anterior"><icono nombre="anterior" tamano="18" /></a>
             <h2>@Model.InicioMes.ToString("MMMM yyyy")</h2>
-            <div class="agenda-botones"><a class="btn btn-gray" href="@Ruta(Model.Hoy)">Hoy</a><a class="btn btn-gray" href="@Ruta(Model.MesSiguiente)" aria-label="Mes siguiente">→</a></div>
+            <div class="agenda-botones"><a class="btn btn-gray" href="@Ruta(Model.Hoy)">Hoy</a><a class="btn btn-gray" href="@Ruta(Model.MesSiguiente)" aria-label="Mes siguiente"><icono nombre="siguiente" tamano="18" /></a></div>
         </div>
         <div class="calendario-grid">
             @foreach (var nombre in new[] { "L", "M", "X", "J", "V", "S", "D" }) { <span class="calendario-semana" aria-hidden="true">@nombre</span> }
@@ -71,7 +71,7 @@
             else
             {
                 <h3>@(string.IsNullOrEmpty(c.Nombre) ? "Solicitud de cita" : (c.Nombre + " " + c.Apellido).Trim())</h3><p>@c.ServicioNombre</p>
-                @if (!string.IsNullOrEmpty(c.Telefono)) { <a class="agenda-telefono" href="tel:@c.Telefono">@c.Telefono ↗</a> }
+                @if (!string.IsNullOrEmpty(c.Telefono)) { <a class="agenda-telefono" href="tel:@c.Telefono">@c.Telefono <icono nombre="flecha-salir" tamano="14" /></a> }
                 @if (web) { <p>@c.Correo · @c.Canal</p> }
                 @if (c.AceptadaUtc is not null) { <p class="nota">Aceptada por el cliente.</p> }
             }

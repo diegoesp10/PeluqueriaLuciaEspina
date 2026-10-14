@@ -3,10 +3,10 @@
 <section class="acceso-publico"><div class="acceso-panel mfa-panel">
 <header class="acceso-intro"><img src="~/Img/Icono.jpg" alt="Lucía" width="72" height="72" /><p class="etiqueta">SEGUNDO PASO · @Model.Usuario</p><h1>@(Model.Secreto is null ? "Confirma que" : "Un cuidado más")<br /><em>@(Model.Secreto is null ? "eres tú." : "para tu acceso.")</em></h1></header>
 @if (Model.Secreto is not null) {
-<p>En Microsoft Authenticator, pulsa <strong>+ → Otra cuenta → Escanear código QR</strong>. Después escribe el código de seis dígitos que aparece en la app.</p>
+<p>En Microsoft Authenticator, pulsa <strong>+</strong>, después <strong>Otra cuenta</strong> y <strong>Escanear código QR</strong>. Después escribe el código de seis dígitos que aparece en la app.</p>
 <img class="mfa-qr" src="@Model.Qr" alt="QR privado para vincular Authenticator" width="240" height="240" />
 <details class="mfa-manual"><summary>Vincular sin cámara</summary><p>Introduce esta clave en tu app. Guárdala en privado.</p><code>@Model.Secreto</code></details>
 } else { <p>Escribe el código de seis dígitos de Authenticator. Si has perdido el móvil, puedes usar uno de tus códigos de recuperación.</p> }
-<form class="form-acceso" method="post" asp-action="Verificar"><div asp-validation-summary="All" role="alert"></div><div class="field"><label for="Codigo">Código de verificación</label><input class="input" id="Codigo" name="Codigo" autocomplete="one-time-code" maxlength="64" required autofocus /></div><button class="btn btn-primary" type="submit">Verificar y entrar →</button></form>
+<form class="form-acceso" method="post" asp-action="Verificar"><div asp-validation-summary="All" role="alert"></div><div class="field"><label for="Codigo">Código de verificación</label><input class="input" id="Codigo" name="Codigo" autocomplete="one-time-code" maxlength="64" required autofocus /></div><button class="btn btn-primary" type="submit">Verificar y entrar <icono nombre="flecha" tamano="14" /></button></form>
 <a class="acceso-volver" asp-action="Index">Volver al acceso</a>
 </div></section>

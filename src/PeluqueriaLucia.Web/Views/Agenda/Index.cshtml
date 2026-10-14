@@ -18,7 +18,7 @@
             <select id="servicio-agenda" name="servicioId"><option value="">@T["Consultar con el equipo"]</option>@foreach(var s in Model.Servicios){<option value="@s.Id" selected="@(servicio==s.Id)">@s.Nombre · @s.Minutos min</option>}</select>
             <button class="btn btn-gray" type="submit">@T["Ver disponibilidad"]</button>
         </form>
-        <div class="agenda-mes"><a class="btn btn-gray" href="@citas?dia=@(anterior<Model.Hoy?Model.Hoy.ToString("yyyy-MM-dd"):anterior.ToString("yyyy-MM-dd"))&amp;servicioId=@servicio" aria-label="@T["Mes anterior"]">←</a><h2>@inicio.ToString("MMMM yyyy")</h2><a class="btn btn-gray" href="@citas?dia=@siguiente.ToString("yyyy-MM-dd")&amp;servicioId=@servicio" aria-label="@T["Mes siguiente"]">→</a></div>
+        <div class="agenda-mes"><a class="btn btn-gray" href="@citas?dia=@(anterior<Model.Hoy?Model.Hoy.ToString("yyyy-MM-dd"):anterior.ToString("yyyy-MM-dd"))&amp;servicioId=@servicio" aria-label="@T["Mes anterior"]"><icono nombre="anterior" tamano="18" /></a><h2>@inicio.ToString("MMMM yyyy")</h2><a class="btn btn-gray" href="@citas?dia=@siguiente.ToString("yyyy-MM-dd")&amp;servicioId=@servicio" aria-label="@T["Mes siguiente"]"><icono nombre="siguiente" tamano="18" /></a></div>
         <div class="agenda-dias" aria-label="@T["Calendario de citas"]">
             @foreach(var nombre in Textos.EnIngles ? new[]{"M","T","W","T","F","S","S"} : new[]{"L","M","X","J","V","S","D"}){<span class="agenda-semana" aria-hidden="true">@nombre</span>}
             @for(var i=0;i<desplazamiento;i++){<span></span>}
@@ -59,7 +59,7 @@
             <label><input asp-for="Formulario.Canal" id="canal-whatsapp" type="radio" value="WhatsApp" required /><span>WhatsApp</span></label>
         </fieldset>
         <label class="agenda-consentimiento"><input asp-for="Formulario.Consentimiento" required /> <span>@T["Acepto que el salón use mi teléfono y correo para gestionar esta cita y contactar por el canal elegido."] <a asp-controller="Legal" asp-action="Privacidad" target="_blank">@T["Política de privacidad"]</a> · <a asp-controller="Legal" asp-action="Terminos" target="_blank">@T["Términos y condiciones"]</a></span></label>
-        <button class="btn btn-primary btn-block" type="submit" disabled="@(Model.Disponibilidad.Horas.Count==0)">@T["Solicitar mi cita"] →</button>
+        <button class="btn btn-primary btn-block" type="submit" disabled="@(Model.Disponibilidad.Horas.Count==0)">@T["Solicitar mi cita"] <icono nombre="flecha" tamano="14" /></button>
         <p class="nota">@T["El equipo revisará tu solicitud y te enviará una propuesta por el canal elegido. La cita quedará confirmada cuando la aceptes en el enlace recibido. Las solicitudes sin revisar caducan en 24 horas. Tus datos nunca se muestran al público."]</p>
     </form>
 </section>

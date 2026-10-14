@@ -19,10 +19,10 @@
         <a class="row" asp-controller="Seguridad" asp-action="Index"><icono nombre="check-circulo" /><span class="row-title">Seguridad y sesiones</span><icono nombre="siguiente" tamano="16" /></a>
         <a class="row" asp-controller="Tratamientos" asp-action="Index"><icono nombre="hoja" /><span class="row-title">Precios y servicios de la web</span><icono nombre="siguiente" tamano="16" /></a>
         <a class="row" asp-controller="Resenas" asp-action="Index"><icono nombre="clientes" /><span class="row-title">Reseñas y fotos</span><icono nombre="siguiente" tamano="16" /></a>
-        <a class="row" asp-area="" asp-controller="Inicio" asp-action="Index"><icono nombre="casa" /><span class="row-title">Ver la web del salón</span><span aria-hidden="true">↗</span></a>
+        <a class="row" asp-area="" asp-controller="Inicio" asp-action="Index"><icono nombre="casa" /><span class="row-title">Ver la web del salón</span><icono nombre="flecha-salir" tamano="14" /></a>
     </div></section>
     <div>
-        <section class="section"><div class="section-head"><h2>Actividad de la web · última hora</h2><a asp-controller="Seguridad" asp-action="Index">Ver detalle →</a></div><div class="card panel-actividad"><div><strong>@Model.Actividad.Sum(a => a.Peticiones)</strong><span>Peticiones</span></div><div><strong>@Model.Actividad.Sum(a => a.Rechazadas)</strong><span>Rechazadas por límite</span></div></div></section>
+        <section class="section"><div class="section-head"><h2>Actividad de la web · última hora</h2><a asp-controller="Seguridad" asp-action="Index">Ver detalle <icono nombre="flecha" tamano="14" /></a></div><div class="card panel-actividad"><div><strong>@Model.Actividad.Sum(a => a.Peticiones)</strong><span>Peticiones</span></div><div><strong>@Model.Actividad.Sum(a => a.Rechazadas)</strong><span>Rechazadas por límite</span></div></div></section>
         <section class="section"><div class="section-head"><h2>Tu cuenta</h2></div><div class="card panel-cuenta"><div><strong>@User.Identity?.Name</strong><p>Cuida también de tu acceso.</p></div><a class="btn btn-gray" asp-controller="Seguridad" asp-action="Contrasena">Cambiar contraseña</a></div></section>
     </div>
 </div>

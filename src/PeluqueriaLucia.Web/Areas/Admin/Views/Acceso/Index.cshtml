@@ -13,9 +13,9 @@
             <input type="hidden" asp-for="Volver" />
             <div class="field"><label asp-for="Usuario">Usuario</label><input class="input" asp-for="Usuario" autocomplete="username" required maxlength="50" autofocus /></div>
             <div class="field"><label asp-for="Contrasena">Contraseña</label><input class="input" asp-for="Contrasena" type="password" autocomplete="current-password" required maxlength="256" /></div>
-            <button class="btn btn-primary" type="submit">Entrar al panel <span aria-hidden="true">→</span></button>
+            <button class="btn btn-primary" type="submit">Entrar al panel <icono nombre="flecha" tamano="14" /></button>
             <p class="nota">Acceso exclusivo para la administración del salón.</p>
         </form>
-        <a class="acceso-volver" asp-area="" asp-controller="Inicio" asp-action="Index">← Volver al salón</a>
+        <a class="acceso-volver" asp-area="" asp-controller="Inicio" asp-action="Index"><icono nombre="volver" tamano="16" /> Volver al salón</a>
     </div>
 </section>
