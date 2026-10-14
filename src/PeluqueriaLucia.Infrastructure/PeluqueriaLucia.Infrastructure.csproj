@@ -5,6 +5,8 @@
     <PackageReference Include="Otp.NET" Version="1.4.1" />
     <PackageReference Include="SkiaSharp" Version="4.151.0" />
     <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.151.0" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
+    <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.13" />
     <ProjectReference Include="..\PeluqueriaLucia.Application\PeluqueriaLucia.Application.csproj" />
   </ItemGroup>
   <ItemGroup>
