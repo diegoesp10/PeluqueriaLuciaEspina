@@ -5,7 +5,7 @@
   const revisar = async () => {
     if (document.hidden) return;
     try {
-      const r = await fetch('/admin/agenda/avisos', { credentials:'same-origin', cache:'no-store', redirect:'error' });
+      const r = await fetch('/admin/agenda/avisos', { credentials:'same-origin', cache:'no-store', redirect:'error', silencioso:true });
       if (!r.ok) return;
       const datos = await r.json();
       contador.textContent = datos.pendientes ? String(datos.pendientes) : '';

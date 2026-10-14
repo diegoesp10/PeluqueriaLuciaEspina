@@ -424,7 +424,9 @@
   }
 }
 /* Un panel pendiente de validación no expone la copia privada que conserva el navegador. */
-.sitio-admin.sesion-en-comprobacion > :not(.sesion-aviso) { visibility: hidden !important; }
+.sitio-admin.sesion-en-comprobacion > :not(.sesion-aviso):not(#cargando) { visibility: hidden !important; }
+/* Mientras el indicador de carga está en marcha, el texto de comprobación no se enseña */
+.sitio-admin.sesion-cargando > .sesion-aviso { visibility: hidden; }
 .sesion-aviso { display: none; }
 .sesion-en-comprobacion > .sesion-aviso {
   display: grid;
