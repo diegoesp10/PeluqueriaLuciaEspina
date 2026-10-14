@@ -69,7 +69,7 @@
             <div class="sidebar-foot">
                 <p class="cuenta-actual">Sesión de <strong>@User.Identity?.Name</strong></p>
                 <a class="enlace-cuenta" asp-controller="Seguridad" asp-action="Contrasena">Cambiar contraseña</a>
-                <a asp-area="" asp-controller="Inicio" asp-action="Index">Ver web pública ↗</a>
+                <a asp-area="" asp-controller="Inicio" asp-action="Index">Ver web pública <icono nombre="flecha-salir" tamano="14" /></a>
                 <form method="post" asp-controller="Acceso" asp-action="Salir"><button class="btn btn-gray btn-block" type="submit">Cerrar sesión</button></form>
                 <partial name="_SelectorTema" />
                 <p>© @DateTime.Now.Year Peluquería Ecológica Lucía Espina</p>

@@ -26,7 +26,7 @@
       panel.style.left = `${Math.max(20,Math.min(r.left,innerWidth-panel.offsetWidth-20))}px`;
       panel.style.top = `${r.bottom+10+alto <= innerHeight-20 ? r.bottom+10 : r.top-alto-10 >= 20 ? r.top-alto-10 : 20}px`;
     };
-    const rotular = () => { const d = seleccion(); boton.textContent = (input.value ? anual ? `${window.Peluqueria.texto('anio', t('Año'))} ${d.getFullYear()}` : new Intl.DateTimeFormat(window.Peluqueria.cultura, mensual ? { month:'long',year:'numeric' } : { day:'numeric',month:'long',year:'numeric' }).format(d) : t('Elegir fecha')) + (conHora && input.value ? ` · ${input.value.slice(11,16)}` : '') + ' ▾'; };
+    const rotular = () => { const d = seleccion(); boton.textContent = (input.value ? anual ? `${window.Peluqueria.texto('anio', t('Año'))} ${d.getFullYear()}` : new Intl.DateTimeFormat(window.Peluqueria.cultura, mensual ? { month:'long',year:'numeric' } : { day:'numeric',month:'long',year:'numeric' }).format(d) : t('Elegir fecha')) + (conHora && input.value ? ` · ${input.value.slice(11,16)}` : '') + ''; };
     const aplicar = (valor) => { input.value = valor; input.dispatchEvent(new Event('change',{bubbles:true})); rotular(); };
     const crearBoton = (texto, nombre, accion) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = texto; b.setAttribute('aria-label',nombre); b.addEventListener('click',accion); return b; };
     const pintar = () => {

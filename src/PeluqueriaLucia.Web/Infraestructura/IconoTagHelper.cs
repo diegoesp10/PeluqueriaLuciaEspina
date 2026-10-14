@@ -35,6 +35,12 @@ public sealed class IconoTagHelper : TagHelper
         ["alerta"] = """<circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>""",
         ["cerrar"] = """<path d="M18 6 6 18M6 6l12 12"/>""",
         ["menu"] = """<path d="M4 7h16M4 12h16M4 17h16"/>""",
+        // Flechas y adornos que antes eran caracteres de texto (↗ → ✳ ★): como SVG se ven igual en todos los sistemas
+        ["flecha"] = """<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>""",
+        ["flecha-salir"] = """<path d="M7 7h10v10"/><path d="M7 17 17 7"/>""",
+        ["asterisco"] = """<path d="M12 5v14"/><path d="m17.2 8.5-10.4 7"/><path d="m6.8 8.5 10.4 7"/>""",
+        ["estrella"] = """<polygon fill="currentColor" points="12 2.5 15 8.6 21.7 9.6 16.9 14.3 18 21 12 17.8 6 21 7.1 14.3 2.3 9.6 9 8.6"/>""",
+        ["estrella-vacia"] = """<polygon points="12 2.5 15 8.6 21.7 9.6 16.9 14.3 18 21 12 17.8 6 21 7.1 14.3 2.3 9.6 9 8.6"/>""",
         ["ajustes"] = """<path d="M12.2 2h-.4a2 2 0 0 0-2 2v.2a2 2 0 0 1-1 1.7l-.4.3a2 2 0 0 1-2 0l-.2-.1a2 2 0 0 0-2.7.7l-.2.4a2 2 0 0 0 .7 2.7l.2.1a2 2 0 0 1 1 1.8v.4a2 2 0 0 1-1 1.8l-.2.1a2 2 0 0 0-.7 2.7l.2.4a2 2 0 0 0 2.7.7l.2-.1a2 2 0 0 1 2 0l.4.3a2 2 0 0 1 1 1.7v.2a2 2 0 0 0 2 2h.4a2 2 0 0 0 2-2v-.2a2 2 0 0 1 1-1.7l.4-.3a2 2 0 0 1 2 0l.2.1a2 2 0 0 0 2.7-.7l.2-.4a2 2 0 0 0-.7-2.7l-.2-.1a2 2 0 0 1-1-1.8v-.4a2 2 0 0 1 1-1.8l.2-.1a2 2 0 0 0 .7-2.7l-.2-.4a2 2 0 0 0-2.7-.7l-.2.1a2 2 0 0 1-2 0l-.4-.3a2 2 0 0 1-1-1.7V4a2 2 0 0 0-2-2Z"/><circle cx="12" cy="12" r="3"/>""",
         ["euro"] = """<path d="M4 10h12M4 14h9M19 6a7.7 7.7 0 0 0-5.2-2A7.9 7.9 0 0 0 6 12c0 4.4 3.5 8 7.8 8 2 0 3.8-.8 5.2-2"/>""",
         ["tarjeta"] = """<rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/>""",
