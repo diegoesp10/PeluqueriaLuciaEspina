@@ -35,6 +35,14 @@
     <script nonce="@SeguridadMiddleware.Nonce(Context)">if(!matchMedia('(prefers-reduced-motion: reduce)').matches){var h=document.documentElement;h.classList.add('anima');setTimeout(function(){if(!window.movimientoListo)h.classList.remove('anima')},3000)}</script>
     <meta name="description" content="@descripcion" />
     <title>@ViewData["Title"] · @n.Nombre</title>
+    @if (Context.Request.Path.StartsWithSegments("/admin"))
+    {
+        @* Las pantallas de acceso al panel usan este diseño, pero no son para los buscadores *@
+        <meta name="robots" content="noindex, nofollow" />
+    }
+    @* Canónica sin parámetros: la misma página con ?pagina=2 o con el idioma en /en es una entrada distinta para el buscador *@
+    <link rel="canonical" href="@(absoluta + Context.Request.PathBase + Context.Request.Path)" />
+    <meta property="og:url" content="@(absoluta + Context.Request.PathBase + Context.Request.Path)" />
     <link rel="alternate" hreflang="es" href="@(absoluta + Idioma.UrlEn(Context, Idioma.Espanol))" />
     <link rel="alternate" hreflang="en" href="@(absoluta + Idioma.UrlEn(Context, Idioma.Ingles))" />
     <link rel="alternate" hreflang="x-default" href="@(absoluta + Idioma.UrlEn(Context, Idioma.Espanol))" />
