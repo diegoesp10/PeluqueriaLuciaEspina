@@ -60,7 +60,8 @@ html { scroll-behavior:smooth; scroll-padding-top:120px; }
 .especialidades h3 { font:27px/1.2 var(--font-display); margin-bottom:15px; letter-spacing:-.03em; }
 .especialidades p { font-size:14px; color:var(--label-2); margin-bottom:25px; flex:1; }
 .cita-publica { text-align:center; background:var(--forest); color:var(--cream); padding:80px 24px; position:relative; overflow:hidden; }
-.estrella-fondo { position:absolute; font:350px/1 var(--font-display); color:color-mix(in oklab,var(--cream) 5%,transparent); top:0; left:-75px; pointer-events:none; user-select:none; }
+/* Color sólido con opacidad: Safari en iOS pintaba el color-mix con transparente como un asterisco blanco opaco */
+.estrella-fondo { position:absolute; font:350px/1 var(--font-display); color:var(--cream); opacity:.05; top:0; left:-75px; pointer-events:none; user-select:none; -webkit-user-select:none; }
 .estrella-fondo-2 { left:auto; right:-75px; top:auto; bottom:-70px; }
 .cita-publica em,.cita-publica .etiqueta { color:color-mix(in oklab,var(--cream) 75%,var(--olive)); }
 .cita-publica .btn { margin-top:30px; }
