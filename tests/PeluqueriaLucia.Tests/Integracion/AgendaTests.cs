@@ -133,10 +133,44 @@ public sealed class AgendaTests
         Assert.False((await agenda.SolicitarAsync(Datos(new(10,30)),default)).Exito);
         var solape=await agenda.CrearCitaAsync(new(Dia,new(10,45),30,null,"Otra","600000000",null,null,false,admin.Id),default);
         Assert.False(solape.Exito); Assert.Contains("10:00",solape.Error!.Mensaje);
-        // Fuera del horario público también se puede anotar (horas extra), pero no en un día cerrado.
-        Assert.True((await agenda.CrearCitaAsync(new(Dia,new(20,0),30,null,"Vecina",null,null,null,false,admin.Id),default)).Exito);
+        // Las citas solo van en horas libres del horario de apertura: fuera de él ya no se anotan (el tiempo bloqueado sí)
+        var fuera=await agenda.CrearCitaAsync(new(Dia,new(20,0),30,null,"Vecina",null,null,null,false,admin.Id),default);
+        Assert.False(fuera.Exito); Assert.Equal(("Elige una de las horas libres de ese día.","Hora"),(fuera.Error!.Mensaje,fuera.Error.Campo));
+        Assert.True((await agenda.CrearCitaAsync(new(Dia,new(11,0),30,null,"Vecina",null,null,null,false,admin.Id),default)).Exito);
+        Assert.True((await agenda.CrearCitaAsync(new(Dia,new(20,0),30,null,"Formación",null,null,null,true,admin.Id),default)).Exito);
         Assert.True((await agenda.CerrarDiaAsync(Dia.AddDays(1),"Festivo",default)).Exito);
         Assert.False((await agenda.CrearCitaAsync(new(Dia.AddDays(1),new(10,0),30,null,"Ana",null,null,null,false,admin.Id),default)).Exito);
+    }
+
+    [Fact]
+    public async Task Huecos_del_panel_son_las_horas_libres_del_horario_para_esa_duracion()
+    {
+        await using var bd=await BaseDeDatosPrueba.CrearAsync(); await using var db=bd.Contexto(); var reloj=new Reloj(); var agenda=Crear(db,reloj);
+        var admin=Administrador.Crear("huecos","hash-prueba",reloj.Ahora.UtcDateTime); db.Add(admin); await db.SaveChangesAsync();
+        Assert.True((await agenda.CrearCitaAsync(new(Dia,new(10,0),60,null,"Marta",null,null,null,false,admin.Id),default)).Exito);
+        var media=await agenda.HuecosPanelAsync(Dia,30,default);
+        Assert.Contains(new TimeOnly(11,0),media.Horas);
+        // 9:45 durante media hora pisaría la cita de las 10:00; de 10:00 a 10:45 están ocupadas
+        foreach(var h in new[]{new TimeOnly(9,45),new TimeOnly(10,0),new TimeOnly(10,45)}) { Assert.DoesNotContain(h,media.Horas); Assert.Contains(h,media.Ocupadas!); }
+        Assert.DoesNotContain(new TimeOnly(20,0),media.Horas);
+        // Con dos horas solo cabe empezar a las 11:00 (el tramo de la mañana acaba a las 13:00)
+        var larga=await agenda.HuecosPanelAsync(Dia,120,default);
+        Assert.Contains(new TimeOnly(11,0),larga.Horas); Assert.DoesNotContain(new TimeOnly(11,15),larga.Horas);
+        Assert.Empty((await agenda.HuecosPanelAsync(Dia.AddDays(-5),30,default)).Horas);
+        Assert.Empty((await agenda.HuecosPanelAsync(Dia,0,default)).Horas);
+        var pasada=await agenda.CrearCitaAsync(new(Dia.AddDays(-5),new(10,0),30,null,"Ana",null,null,null,false,admin.Id),default);
+        Assert.Equal(("Las citas se dan de hoy en adelante.","Dia"),(pasada.Error!.Mensaje,pasada.Error.Campo));
+    }
+
+    [Fact]
+    public async Task Solicitud_sin_servicio_de_la_lista_guarda_lo_que_escribe_el_cliente()
+    {
+        await using var bd=await BaseDeDatosPrueba.CrearAsync(); await using var db=bd.Contexto(); var agenda=Crear(db,new Reloj());
+        var larga=await agenda.SolicitarAsync(Datos(new(10,0)) with { ServicioOtro=new string('a',AgendaService.LongitudServicioOtro+1) },default);
+        Assert.False(larga.Exito); Assert.Equal("ServicioOtro",larga.Error!.Campo);
+        Assert.True((await agenda.SolicitarAsync(Datos(new(10,0)) with { ServicioOtro="  ¿Hacéis alisado\n de   keratina?  " },default)).Exito);
+        var r=await db.ReservasCitas.AsNoTracking().SingleAsync();
+        Assert.Equal(("Consulta: ¿Hacéis alisado de keratina?",(int?)null),(r.ServicioNombre,r.ServicioId));
     }
 
     [Fact]

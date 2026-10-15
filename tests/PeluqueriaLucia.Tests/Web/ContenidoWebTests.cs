@@ -86,7 +86,7 @@ public sealed class ContenidoWebTests(SeguridadWebFixture fixture) : IClassFixtu
         Assert.Equal(HttpStatusCode.Redirect,(await admin.PostAsync("/admin/Catalogo/Nuevo",new FormUrlEncodedContent(datos))).StatusCode);
         await using var db=fixture.Bd.Contexto();var servicio=await db.Servicios.SingleAsync(x=>x.Nombre==datos["Nombre"]);var total=await db.Servicios.CountAsync();
         Assert.DoesNotContain(datos["Nombre"],await publico.GetStringAsync("/servicios"));
-        var campos=new Dictionary<string,string> { ["ServicioId"]=servicio.Id.ToString(),["CategoriaId"]=(await db.CategoriasPublicas.FirstAsync()).Id.ToString(),["TipoPrecio"]="Fijo",["DuracionMinutos"]="30",["Publicado"]="true",["__RequestVerificationToken"]=await Token(admin,"/admin/Tratamientos/Nuevo") };
+        var campos=new Dictionary<string,string> { ["ServicioId"]=servicio.Id.ToString(),["CategoriaId"]=(await db.CategoriasPublicas.OrderBy(c=>c.Id).FirstAsync()).Id.ToString(),["TipoPrecio"]="Fijo",["DuracionMinutos"]="30",["Publicado"]="true",["__RequestVerificationToken"]=await Token(admin,"/admin/Tratamientos/Nuevo") };
         Assert.Equal(HttpStatusCode.Redirect,(await admin.PostAsync("/admin/Tratamientos/Nuevo",new FormUrlEncodedContent(campos))).StatusCode);
         Assert.Equal(total,await db.Servicios.CountAsync());Assert.Contains(datos["Nombre"],await publico.GetStringAsync("/servicios"));
         Assert.Contains(datos["Nombre"],await admin.GetStringAsync("/admin/Visitas/Nueva"));

@@ -42,6 +42,29 @@ public sealed class VerificacionContactoTests
         v=await db.Set<VerificacionContacto>().AsNoTracking().SingleAsync();Assert.NotNull(v.ConsumidaUtc);Assert.Null(v.SecretoProtegido);Assert.Null(v.CodigoProtegido);
     }
     [Fact]
+    public async Task Con_otro_movil_se_reconoce_por_el_correo_y_el_codigo_va_a_la_ficha()
+    {
+        await using var bd=await BaseDeDatosPrueba.CrearAsync();await using var db=bd.Contexto();var c=new Caso(db);await c.AltaAsync();
+        // Móvil nuevo (no está en la ficha) y el correo de la ficha: se reconoce por el correo
+        var id=await c.Servicio.SolicitarAsync("699999999","ip",default,"  ANA@example.test ");await c.Servicio.ProcesarColaAsync(default);
+        var enviado=Assert.Single(c.Correo.Enviados);Assert.Equal("ana@example.test",enviado.Destinatario);
+        Assert.Contains("Tu código es "+c.Codigo,enviado.Texto);Assert.Contains("Completa tus datos",enviado.Html!);
+        Assert.Equal("+34612345678",(await db.Set<VerificacionContacto>().AsNoTracking().SingleAsync()).Telefono);
+        var perfil=await c.Servicio.VerificarAsync(id,c.Codigo,default);Assert.True(perfil.Exito);Assert.Equal(("Ana","García"),(perfil.Valor!.Nombre,perfil.Valor.Apellido));
+        // Solo con el correo también
+        var soloCorreo=await c.Servicio.SolicitarAsync(null,"ip",default,"ana@example.test");await c.Servicio.ProcesarColaAsync(default);
+        Assert.Equal(2,c.Correo.Enviados.Count);Assert.True((await c.Servicio.VerificarAsync(soloCorreo,c.Codigo,default)).Exito);
+    }
+    [Fact]
+    public async Task Correo_desconocido_no_envia_nada_y_un_correo_no_recibe_mas_de_tres_codigos_por_hora()
+    {
+        await using var bd=await BaseDeDatosPrueba.CrearAsync();await using var db=bd.Contexto();var c=new Caso(db);await c.AltaAsync();
+        Assert.NotEqual(Guid.Empty,await c.Servicio.SolicitarAsync("699999999","ip-1",default,"nadie@example.test"));
+        await c.Servicio.ProcesarColaAsync(default);Assert.Empty(c.Correo.Enviados);
+        for(var i=0;i<4;i++){await c.Servicio.SolicitarAsync(null,"ip-"+i,default,"ana@example.test");await c.Servicio.ProcesarColaAsync(default);}
+        Assert.Equal(3,c.Correo.Enviados.Count);
+    }
+    [Fact]
     public async Task Cinco_intentos_incorrectos_bloquean_un_codigo_correcto()
     {
         await using var bd=await BaseDeDatosPrueba.CrearAsync();await using var db=bd.Contexto();var c=new Caso(db);await c.AltaAsync();

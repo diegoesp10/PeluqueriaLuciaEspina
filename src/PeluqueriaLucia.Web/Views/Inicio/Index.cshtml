@@ -1,5 +1,6 @@
 @model ContenidoPublico
-@{ ViewData["Title"] = T["Tu cabello, en buenas manos"]; }
+@inject TelefonosPublicos TelefonosContacto
+@{ ViewData["Title"] = T["Tu cabello, en buenas manos"]; var telefonos = await TelefonosContacto.ListarAsync(); }
 <section class="hero-publico">
     <div class="hero-texto">
         <p class="etiqueta" data-anima="subir"><icono nombre="asterisco" tamano="16" /> @T["BELLEZA CON RAÍCES · OVIEDO"]</p>
@@ -45,12 +46,12 @@
 </section>
 <section class="seccion-publica contacto-publico" id="contacto">
     <div><p class="etiqueta" data-anima="subir">03 / @T["NOS VEMOS EN OVIEDO"]</p><h2 data-dividir>@T["Muy cerca."]<br /><em>@T["Muy tuyo."]</em></h2><p data-anima="subir">@T["Te esperamos en"] @Model.Direccion,<br />@Model.CodigoPostal @Model.Ciudad.</p><a class="enlace-flecha" href="@Model.Mapa" target="_blank" rel="noopener noreferrer" data-anima="subir">@T["Cómo llegar"] <icono nombre="flecha" tamano="14" /></a></div>
-    <div class="contacto-tarjeta" data-anima="subir"><p class="etiqueta">@T["CONTACTO"]</p><a class="telefono-grande" href="@Model.TelefonoEnlace" data-dividir="letras">@Model.Telefono</a><p>@T["Contacta con el equipo para consultar un servicio o preparar tu visita."]</p><a class="btn btn-primary" asp-controller="Agenda" asp-action="Index">@T["Solicitar mi cita"] <icono nombre="flecha" tamano="14" /></a><p class="nota">@T["Elige día y hora. El equipo del salón validará tu solicitud por teléfono."]</p><div class="comodidades">@foreach (var comodidad in Model.Comodidades) { <span>@T[comodidad]</span> }</div></div>
+    <div class="contacto-tarjeta" data-anima="subir"><p class="etiqueta">@T["CONTACTO"]</p><div class="telefonos-grandes">@foreach (var t in telefonos) { <a class="telefono-grande" href="@t.Enlace" data-dividir="letras">@t.Numero</a> }</div><p>@T["Contacta con el equipo para consultar un servicio o preparar tu visita."]</p><a class="btn btn-primary" asp-controller="Agenda" asp-action="Index">@T["Solicitar mi cita"] <icono nombre="flecha" tamano="14" /></a><p class="nota">@T["Elige día y hora. El equipo del salón validará tu solicitud por teléfono."]</p><div class="comodidades">@foreach (var comodidad in Model.Comodidades) { <span>@T[comodidad]</span> }</div></div>
 </section>
 @section Scripts {
     <script type="application/ld+json">@Json.Serialize(new Dictionary<string, object>
     {
-        ["@context"] = "https://schema.org", ["@type"] = "HairSalon", ["name"] = Model.Nombre, ["telephone"] = "+34 " + Model.Telefono,
+        ["@context"] = "https://schema.org", ["@type"] = "HairSalon", ["name"] = Model.Nombre, ["telephone"] = telefonos.FirstOrDefault()?.Internacional ?? "",
         ["url"] = Context.Request.Scheme + "://" + Context.Request.Host + Url.Content("~/"),
         ["logo"] = Context.Request.Scheme + "://" + Context.Request.Host + Idioma.SinIdioma(Context, "/iconos/icono-512.png"),
         ["image"] = Context.Request.Scheme + "://" + Context.Request.Host + Idioma.SinIdioma(Context, "/publico/fachada-lucia.png"),

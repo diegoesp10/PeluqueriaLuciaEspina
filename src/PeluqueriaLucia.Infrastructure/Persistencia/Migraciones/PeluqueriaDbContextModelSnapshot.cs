@@ -654,6 +654,27 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
                     b.ToTable("Resenas", (string)null);
                 });
 
+            modelBuilder.Entity("PeluqueriaLucia.Domain.Publico.TelefonoContacto", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Numero")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<int>("Orden")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("TelefonosContacto", (string)null);
+                });
+
             modelBuilder.Entity("PeluqueriaLucia.Domain.Seguridad.Administrador", b =>
                 {
                     b.Property<int>("Id")

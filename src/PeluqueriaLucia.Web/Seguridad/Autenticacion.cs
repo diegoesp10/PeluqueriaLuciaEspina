@@ -65,9 +65,16 @@ public static class Autenticacion
         return services;
     }
 
+    /// <summary>
+    /// NameIdentifier identifica a la persona, no a la sesión: los tokens antifalsificación de los formularios se atan a
+    /// él, así que un formulario abierto sigue valiendo si la sesión caduca y se vuelve a entrar con la misma cuenta.
+    /// Sin ese claim, el token se calculaba con todos los claims (sesión y token incluidos) y cualquier reinicio de sesión
+    /// convertía el envío en un 400.
+    /// </summary>
     public static ClaimsPrincipal CrearPrincipal(SesionIniciada sesion) => new(new ClaimsIdentity(
         [
             new Claim(ClaimTypes.Name, sesion.Usuario),
+            new Claim(ClaimTypes.NameIdentifier, sesion.AdministradorId.ToString(System.Globalization.CultureInfo.InvariantCulture)),
             new Claim(ClaimAdministrador, sesion.AdministradorId.ToString(System.Globalization.CultureInfo.InvariantCulture)),
             new Claim(ClaimSesion, sesion.SesionId.ToString()),
             new Claim(ClaimToken, sesion.Token),

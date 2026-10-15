@@ -11,6 +11,10 @@ internal sealed class CategoriaTratamientoConfiguracion : IEntityTypeConfigurati
 {
     public void Configure(EntityTypeBuilder<CategoriaTratamiento> b) { b.ToTable("CategoriasPublicas"); b.Property(x => x.Nombre).HasMaxLength(CategoriaTratamiento.LongitudNombre); b.Property(x => x.NombreEn).HasMaxLength(CategoriaTratamiento.LongitudNombre); b.Property(x => x.Slug).HasMaxLength(80).IsUnicode(false); b.HasIndex(x => x.Slug).IsUnique(); }
 }
+internal sealed class TelefonoContactoConfiguracion : IEntityTypeConfiguration<TelefonoContacto>
+{
+    public void Configure(EntityTypeBuilder<TelefonoContacto> b) { b.ToTable("TelefonosContacto"); b.Property(x => x.Numero).HasMaxLength(TelefonoContacto.LongitudMaxima).IsRequired(); }
+}
 internal sealed class PermisoResenaConfiguracion : IEntityTypeConfiguration<PermisoResena>
 {
     public void Configure(EntityTypeBuilder<PermisoResena> b) { b.ToTable("PermisosResenas"); b.Property(x => x.Id).ValueGeneratedNever(); b.Property(x => x.CodigoHash).HasMaxLength(64).IsUnicode(false); b.Property(x => x.CodigoProtegido).HasMaxLength(1000); b.HasIndex(x => x.CodigoHash).IsUnique(); b.HasIndex(x => x.VisitaId).IsUnique(); b.HasOne<Visita>().WithMany().HasForeignKey(x => x.VisitaId).OnDelete(DeleteBehavior.Restrict); b.Property<byte[]>("Version").IsRowVersion(); }
@@ -52,6 +56,15 @@ internal sealed class ContenidoRepositorio(PeluqueriaDbContext db) : IContenidoR
         var total = await q.CountAsync(ct); pagina = Math.Clamp(pagina, 1, Math.Max(1, (total + 11) / 12));
         return new(await q.OrderByDescending(x => x.CreadaEn).ThenBy(x => x.Id).Skip((pagina - 1) * 12).Take(12).ToListAsync(ct), pagina, 12, total);
     }
+    public async Task<IReadOnlyList<TelefonoContacto>> TelefonosAsync(CancellationToken ct)
+    {
+        try { return await db.TelefonosContacto.OrderBy(x => x.Orden).ThenBy(x => x.Id).ToListAsync(ct); }
+        // Sin la migración TelefonosDeContacto aplicada (208: la tabla no existe), la web sigue con el teléfono de
+        // contenido-publico.json en lugar de caerse
+        catch (Microsoft.Data.SqlClient.SqlException ex) when (ex.Number == 208) { return []; }
+    }
+    public void Agregar(TelefonoContacto x) => db.TelefonosContacto.Add(x);
+    public void Eliminar(TelefonoContacto x) => db.TelefonosContacto.Remove(x);
     public async Task<(int Total, double Media)> ValoracionAsync(CancellationToken ct)
     {
         var q = db.Resenas.Where(x => x.Estado == EstadoResena.Publicada);

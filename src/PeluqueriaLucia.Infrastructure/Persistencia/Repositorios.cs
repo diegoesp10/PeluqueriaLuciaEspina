@@ -128,7 +128,8 @@ internal sealed class VisitaRepositorio(PeluqueriaDbContext db) : IVisitaReposit
         var visitas = Filtrar(filtro);
         var cobradas = visitas.Where(v => v.Estado == EstadoVisita.Cobrada);
 
-        // Tres consultas agregadas pequeñas: ninguna trae filas a memoria
+        // Tres consultas agregadas pequeñas: ninguna trae filas a memoria.
+        // Agrupar por una constante da cero o un grupo: SingleOrDefault lo dice tal cual y EF no avisa (First sin OrderBy sí).
         var porVisita = await visitas
             .GroupBy(_ => 1)
             .Select(g => new
@@ -137,7 +138,7 @@ internal sealed class VisitaRepositorio(PeluqueriaDbContext db) : IVisitaReposit
                 Efectivo = g.Where(v => v.Estado == EstadoVisita.Cobrada).Sum(v => v.TotalEfectivo ?? 0),
                 Tarjeta = g.Where(v => v.Estado == EstadoVisita.Cobrada).Sum(v => v.TotalTarjeta ?? 0),
             })
-            .FirstOrDefaultAsync(ct);
+            .SingleOrDefaultAsync(ct);
         if (porVisita is null)
             return ResumenVisitas.Vacio;
 

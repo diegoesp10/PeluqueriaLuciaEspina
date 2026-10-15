@@ -56,6 +56,10 @@ public static class PresentacionServiceCollectionExtensions
         services.Configure<DatosNegocio>(configuration.GetSection(DatosNegocio.Seccion));
         services.Configure<Infraestructura.Impresion.ImpresoraTickets>(configuration.GetSection(Infraestructura.Impresion.ImpresoraTickets.Seccion));
         services.Configure<ContenidoPublico>(configuration.GetSection(ContenidoPublico.Seccion));
+        // Nombre, teléfono, dirección y logo del salón para los avisos a clientes (plantilla de correo y textos)
+        services.AddMemoryCache();
+        services.AddScoped<TelefonosPublicos>();
+        services.AddScoped<PeluqueriaLucia.Application.Agenda.IDatosSalon, DatosSalonWeb>();
         services.Configure<OpcionesBaseDeDatos>(configuration.GetSection(OpcionesBaseDeDatos.Seccion));
         services.PostConfigure<OpcionesImagenes>(o => o.Carpeta = string.IsNullOrWhiteSpace(o.Carpeta)
             ? Path.Combine(environment.WebRootPath, "imagenes")

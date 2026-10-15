@@ -1,6 +1,8 @@
 @inject Microsoft.Extensions.Options.IOptionsSnapshot<ContenidoPublico> Publico
+@inject TelefonosPublicos TelefonosContacto
 @{
     var n = Publico.Value;
+    var telefonos = await TelefonosContacto.ListarAsync();
     var accion = ViewContext.RouteData.Values["action"]?.ToString();
     var controlador = ViewContext.RouteData.Values["controller"]?.ToString();
     var enServicios = accion == "Servicios";
@@ -14,7 +16,7 @@
     var textosJs = new Dictionary<string, string>
     {
         ["contactoError"] = T["No se ha podido verificar el contacto. Puedes completar tus datos manualmente."],
-        ["contactoEnviado"] = T["Si el teléfono corresponde a una ficha con correo, recibirás un código en ese correo. También puedes continuar rellenando los datos manualmente."],
+        ["contactoEnviado"] = T["Si tu móvil o tu correo corresponden a una ficha, recibirás un código en el correo de esa ficha. Escríbelo y tus datos se rellenarán solos; también puedes seguir rellenándolos tú."],
         ["contactoCodigo"] = T["Introduce el código de seis dígitos recibido por correo."],
         ["contactoVerificado"] = T["Contacto verificado. Tus datos se han completado; revísalos antes de solicitar la cita."],
         ["sinConexion"] = T["No hay conexión con el salón. Revisa tu conexión a internet y vuelve a intentarlo."],
@@ -28,7 +30,8 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#183a35" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#5c2d91" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#191424" />
     <meta name="color-scheme" content="light dark" />
     <partial name="_TemaInicial" />
     @* Oculta lo que se va a animar antes de pintar; si el script de movimiento no llega a ejecutarse, todo aparece igual a los 3 s *@
@@ -89,7 +92,7 @@
             <a href="@(raiz)#contacto">@T["Contacto"]</a>
             <div class="menu-publico-pie">
                 <a class="btn btn-primary btn-block" asp-area="" asp-controller="Agenda" asp-action="Index">@T["Reservar cita"] <icono nombre="flecha-salir" tamano="14" /></a>
-                <a class="menu-publico-telefono" href="@n.TelefonoEnlace">@n.Telefono</a>
+                <div class="menu-publico-telefonos">@foreach (var t in telefonos) { <a class="menu-publico-telefono" href="@t.Enlace">@t.Numero</a> }</div>
                 <p>@n.Direccion · @n.Ciudad</p>
             </div>
         </nav>
@@ -125,7 +128,7 @@
     <main class="fondo-identidad" id="contenido">@RenderBody()</main>
     <footer class="pie-publico">
         <div class="firma-pie"><img src="~/Img/Icono.jpg" alt="" width="76" height="76" /><div><strong>Lucía</strong><p>@T["Peluquería ecológica"] · @n.Ciudad</p></div></div>
-        <div><a href="@n.TelefonoEnlace">@n.Telefono</a><p>@n.Direccion · @n.CodigoPostal @n.Ciudad</p></div>
+        <div><div class="pie-telefonos">@foreach (var t in telefonos) { <a href="@t.Enlace">@t.Numero</a> }</div><p>@n.Direccion · @n.CodigoPostal @n.Ciudad</p></div>
         <div><a asp-area="" asp-controller="Agenda" asp-action="Index">@T["Reservar cita"] <icono nombre="flecha-salir" tamano="14" /></a><p><a href="@Idioma.SinIdioma(Context, "/admin")" hreflang="es">@T["Panel de administración"] <icono nombre="flecha-salir" tamano="14" /></a></p></div>
         <div class="pie-nota">
             <nav class="pie-legal" aria-label="@T["Información legal"]">

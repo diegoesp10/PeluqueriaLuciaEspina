@@ -16,19 +16,27 @@ public sealed class ComunicacionesController(IComunicacionesCitas comunicaciones
     private static readonly EstadoNotificacion[] PendientesDeRevisar = [EstadoNotificacion.Pendiente, EstadoNotificacion.Error, EstadoNotificacion.Incierto];
 
     [HttpGet("/admin/comunicaciones")]
-    public async Task<IActionResult> Index(string? filtro, CancellationToken ct)
+    public async Task<IActionResult> Index(string? filtro, string? q, CancellationToken ct)
     {
         var mensajes = await comunicaciones.ListarAsync(ct);
         var pendientes = mensajes.Count(m => PendientesDeRevisar.Contains(m.Estado));
         var elegido = filtro is "enviados" or "todos" ? filtro : "pendientes";
-        var visibles = elegido switch
+        IReadOnlyList<ComunicacionCita> visibles = elegido switch
         {
             "enviados" => mensajes.Where(m => m.Estado is EstadoNotificacion.AceptadoServidor or EstadoNotificacion.Manual).ToList(),
             "todos" => mensajes,
             _ => mensajes.Where(m => PendientesDeRevisar.Contains(m.Estado)).ToList(),
         };
-        return View(new ComunicacionesPagina(visibles, elegido, pendientes, comunicaciones.CorreoConfigurado, comunicaciones.EnlaceConfigurado, comunicaciones.EnvioAutomatico));
+        var texto = q?.Trim();
+        if (!string.IsNullOrEmpty(texto))
+            visibles = visibles.Where(m => Coincide(m.Destinatario, texto) || Coincide(m.Texto, texto)).ToList();
+        return View(new ComunicacionesPagina(visibles, elegido, pendientes, comunicaciones.CorreoConfigurado, comunicaciones.EnlaceConfigurado, comunicaciones.EnvioAutomatico, texto));
     }
+
+    /// <summary>Busca sin distinguir mayúsculas ni acentos («sofia» encuentra «Sofía»).</summary>
+    private static bool Coincide(string valor, string texto) =>
+        System.Globalization.CultureInfo.InvariantCulture.CompareInfo.IndexOf(valor, texto,
+            System.Globalization.CompareOptions.IgnoreCase | System.Globalization.CompareOptions.IgnoreNonSpace) >= 0;
 
     [HttpPost("/admin/comunicaciones/texto")]
     public async Task<IActionResult> Texto(Guid id, string texto, CancellationToken ct)

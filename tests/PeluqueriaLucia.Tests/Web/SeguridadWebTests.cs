@@ -69,7 +69,7 @@ internal sealed class FabricaWeb(string cadena, Dictionary<string, string?>? aju
             if (reloj is not null) { services.RemoveAll<TimeProvider>(); services.AddSingleton(reloj); }
             services.RemoveAll<DbContextOptions<PeluqueriaDbContext>>();
             services.RemoveAll<Microsoft.EntityFrameworkCore.Infrastructure.IDbContextOptionsConfiguration<PeluqueriaDbContext>>();
-            services.AddDbContext<PeluqueriaDbContext>(o => o.UseSqlServer(cadena));
+            services.AddDbContext<PeluqueriaDbContext>(o => o.UseSqlServer(cadena).ConfigureWarnings(w => w.Throw(Microsoft.EntityFrameworkCore.Diagnostics.CoreEventId.FirstWithoutOrderByAndFilterWarning)));
         });
     }
 
@@ -127,13 +127,27 @@ public sealed class SeguridadWebTests(SeguridadWebFixture fixture) : IClassFixtu
         var sufijo=Guid.NewGuid().ToString("N")[..8];
         await using var db=fixture.Bd.Contexto();
         var ficha=PeluqueriaLucia.Domain.Clientes.Cliente.Crear("Lola"+sufijo,"Agenda",null,null,PeluqueriaLucia.Domain.Comun.Sexo.Mujer,DateTime.UtcNow);db.Add(ficha);await db.SaveChangesAsync();
-        var dia=DateOnly.FromDateTime(DateTime.Today).AddDays(Random.Shared.Next(100,300)).ToString("yyyy-MM-dd");
+        // Las citas solo se dan en horas libres: se busca un día con horario y se toma su primera hora libre
+        var fecha=DateOnly.FromDateTime(DateTime.Today).AddDays(Random.Shared.Next(100,300)); string? hora=null;
+        for(var i=0;hora is null&&i<7;i++)
+        {
+            var huecos=System.Text.Json.JsonDocument.Parse(await cliente.GetStringAsync($"/admin/agenda/huecos?dia={fecha:yyyy-MM-dd}&minutos=45")).RootElement.GetProperty("horas");
+            if(huecos.GetArrayLength()>0) hora=huecos[0].GetString(); else fecha=fecha.AddDays(1);
+        }
+        Assert.NotNull(hora); var dia=fecha.ToString("yyyy-MM-dd");
         var busqueda=await cliente.GetStringAsync($"/admin/agenda/nueva?dia={dia}&q=Lola{sufijo}");
         Assert.Contains($"clienteId={ficha.Id}",busqueda);
+        // Con JavaScript la misma pantalla sugiere fichas mientras se escribe, con el buscador compartido
+        Assert.Contains("data-combo-input",busqueda);Assert.Contains("data-url-buscar=\"/admin/Clientes/Buscar\"",busqueda);Assert.Contains("/js/combo-clientes.js",busqueda);
         var token=await TokenAsync(cliente,$"/admin/agenda/nueva?dia={dia}&clienteId={ficha.Id}");
         Assert.Equal(HttpStatusCode.BadRequest,(await cliente.PostAsync("/admin/agenda/nueva",new FormUrlEncodedContent(new Dictionary<string,string>{["Dia"]=dia,["Hora"]="21:00"}))).StatusCode);
-        var guardada=await cliente.PostAsync("/admin/agenda/nueva",new FormUrlEncodedContent(new Dictionary<string,string>
+        var conFicha=await cliente.GetStringAsync($"/admin/agenda/nueva?dia={dia}&clienteId={ficha.Id}");
+        Assert.Contains("data-horas",conFicha); Assert.Contains($"name=\"Hora\" value=\"{hora}\"",conFicha); Assert.Contains("data-minutos=",conFicha);
+        var fuera=await cliente.PostAsync("/admin/agenda/nueva",new FormUrlEncodedContent(new Dictionary<string,string>
             {["__RequestVerificationToken"]=token,["Dia"]=dia,["Hora"]="21:00",["Minutos"]="45",["ClienteId"]=ficha.Id.ToString(),["Bloqueo"]="false"}));
+        Assert.Equal(HttpStatusCode.OK,fuera.StatusCode); Assert.Contains("Elige una de las horas libres de ese día.",WebUtility.HtmlDecode(await fuera.Content.ReadAsStringAsync()));
+        var guardada=await cliente.PostAsync("/admin/agenda/nueva",new FormUrlEncodedContent(new Dictionary<string,string>
+            {["__RequestVerificationToken"]=token,["Dia"]=dia,["Hora"]=hora!,["Minutos"]="45",["ClienteId"]=ficha.Id.ToString(),["Bloqueo"]="false"}));
         Assert.Equal(HttpStatusCode.Redirect,guardada.StatusCode);
         var agenda=await cliente.GetStringAsync("/admin/agenda?dia="+dia);
         Assert.Contains("Lola"+sufijo,agenda);Assert.Contains("Dada en el salón",agenda);Assert.Contains($"/admin/Visitas/Nueva?clienteId={ficha.Id}",agenda);
@@ -451,5 +465,21 @@ public sealed class SeguridadWebTests(SeguridadWebFixture fixture) : IClassFixtu
         await using var db = fixture.Bd.Contexto();
         Assert.All(await db.SesionesAdministrador.ToListAsync(), s => Assert.Equal(64, s.TokenHash.Length));
         Assert.DoesNotContain(SeguridadWebFixture.ClavePrueba, (await db.Administradores.SingleAsync(a => a.Usuario == "prueba")).HashContrasena);
+    }
+
+    [Fact]
+    public async Task Un_formulario_abierto_sigue_valiendo_tras_volver_a_entrar_con_la_misma_cuenta()
+    {
+        using var cliente = fixture.Fabrica.Cliente();
+        Assert.Equal(HttpStatusCode.Redirect, (await EntrarAsync(cliente)).StatusCode);
+        var dia = DateOnly.FromDateTime(DateTime.Today).AddDays(Random.Shared.Next(100, 300)).ToString("yyyy-MM-dd");
+        var token = await TokenAsync(cliente, $"/admin/agenda/nueva?dia={dia}&bloqueo=true");
+        // La sesión se cierra (caduca, se cierra desde otro sitio, se restablece el MFA…) y se vuelve a entrar con la misma cuenta:
+        // el formulario que seguía abierto se envía sin que el token antifalsificación acabe en un 400
+        await cliente.PostAsync("/admin/acceso/salir", new FormUrlEncodedContent(new Dictionary<string, string> { ["__RequestVerificationToken"] = token }));
+        Assert.Equal(HttpStatusCode.Redirect, (await EntrarAsync(cliente)).StatusCode);
+        var r = await cliente.PostAsync("/admin/agenda/nueva", new FormUrlEncodedContent(new Dictionary<string, string>
+            { ["__RequestVerificationToken"] = token, ["Bloqueo"] = "true", ["Dia"] = dia, ["Hora"] = "09:00", ["Minutos"] = "60", ["Nombre"] = "Prueba" }));
+        Assert.Equal(HttpStatusCode.Redirect, r.StatusCode);
     }
 }

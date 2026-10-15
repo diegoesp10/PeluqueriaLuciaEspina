@@ -8,6 +8,18 @@ public sealed record DatosTratamiento(int ServicioId, int CategoriaId, string? D
 public sealed class ContenidoService(IContenidoRepositorio repositorio, IServicioRepositorio servicios, IUnidadDeTrabajo unidad)
 {
     public Task<IReadOnlyList<CategoriaTratamiento>> CategoriasAsync(CancellationToken ct = default) => repositorio.CategoriasAsync(ct);
+
+    public const int MaximoTelefonos = 4;
+    public Task<IReadOnlyList<TelefonoContacto>> TelefonosAsync(CancellationToken ct = default) => repositorio.TelefonosAsync(ct);
+    /// <summary>Guarda los teléfonos de contacto en el orden recibido (los vacíos se ignoran). Sustituye a los anteriores.</summary>
+    public Task<Resultado> GuardarTelefonosAsync(IReadOnlyList<string?> numeros, CancellationToken ct = default) => Resultado.ProtegerAsync(async () => {
+        var limpios = numeros.Where(x => !string.IsNullOrWhiteSpace(x)).Select(TelefonoContacto.Normalizar).Distinct().ToList();
+        if (limpios.Count == 0) throw new ReglaDeNegocioException("Deja al menos un teléfono de contacto.", "Telefonos");
+        if (limpios.Count > MaximoTelefonos) throw new ReglaDeNegocioException($"Caben hasta {MaximoTelefonos} teléfonos.", "Telefonos");
+        foreach (var anterior in await repositorio.TelefonosAsync(ct)) repositorio.Eliminar(anterior);
+        for (var i = 0; i < limpios.Count; i++) repositorio.Agregar(TelefonoContacto.Crear(limpios[i], i + 1));
+        await unidad.GuardarCambiosAsync(ct);
+    });
     public async Task<IReadOnlyList<TratamientoWeb>> TratamientosAsync(bool publicados, CancellationToken ct = default) =>
         (await servicios.ListarAsync(null, true, ct)).Where(s => s.CategoriaPublicaId != null && (!publicados || s.Publicado && s.Activo))
         .OrderBy(s => s.OrdenPublico).ThenBy(s => s.Id).Select(TratamientoWeb.Desde).ToList();

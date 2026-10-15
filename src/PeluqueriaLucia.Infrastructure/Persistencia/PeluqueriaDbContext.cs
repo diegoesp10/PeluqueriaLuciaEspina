@@ -39,6 +39,7 @@ public sealed class PeluqueriaDbContext(DbContextOptions<PeluqueriaDbContext> op
     public DbSet<CategoriaTratamiento> CategoriasPublicas => Set<CategoriaTratamiento>();
     public DbSet<PermisoResena> PermisosResenas => Set<PermisoResena>();
     public DbSet<Resena> Resenas => Set<Resena>();
+    public DbSet<TelefonoContacto> TelefonosContacto => Set<TelefonoContacto>();
 
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 

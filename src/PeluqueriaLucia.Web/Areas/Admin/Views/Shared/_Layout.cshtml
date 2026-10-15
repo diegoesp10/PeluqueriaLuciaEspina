@@ -13,6 +13,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="robots" content="noindex, nofollow" />
     <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#5c2d91" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#191424" />
     @* Aplica el tema elegido antes de pintar nada, para que la página no parpadee al cargar *@
     <partial name="_TemaInicial" />
     <title>@ViewData["Title"] · Peluquería Lucía</title>
@@ -63,6 +65,7 @@
                 </a>
                 <a class="nav-item @Activo("Seguridad")" asp-controller="Seguridad" asp-action="Index"><span class="nav-tile"><icono nombre="check-circulo" tamano="17" /></span> Seguridad</a>
                 <a class="nav-item @Activo("Tratamientos")" asp-controller="Tratamientos" asp-action="Index"><span class="nav-tile"><icono nombre="hoja" tamano="17" /></span> Servicios de la web</a>
+                <a class="nav-item @Activo("Contacto")" asp-controller="Contacto" asp-action="Index" title="Teléfonos de contacto de la web y de los avisos"><span class="nav-tile"><icono nombre="telefono" tamano="17" /></span> Contacto de la web</a>
                 <a class="nav-item @Activo("Resenas")" asp-controller="Resenas" asp-action="Index"><span class="nav-tile"><icono nombre="check" tamano="17" /></span> Reseñas</a>
             </nav>
 
@@ -131,6 +134,7 @@
     <partial name="_ControlSesion" />
     <script src="~/js/cargando.js" asp-append-version="true"></script>
     <script src="~/js/app.js" asp-append-version="true"></script>
+    <script src="~/js/select-buscable.js" asp-append-version="true"></script>
     <script src="~/js/fechas.js" asp-append-version="true"></script>
     <script src="~/js/agenda-avisos.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)

@@ -1,8 +1,9 @@
 @model ContenidoPublico
-@{ ViewData["Title"] = T["Servicios y tratamientos"]; }
+@inject TelefonosPublicos TelefonosContacto
+@{ ViewData["Title"] = T["Servicios y tratamientos"]; var telefono = (await TelefonosContacto.ListarAsync()).FirstOrDefault(); }
 <section class="seccion-publica portada-servicios">
     <div><p class="etiqueta" data-anima="subir">@T["EL ARTE DE CUIDAR TU CABELLO"]</p><h1 data-dividir>@T["Pequeños cuidados."]<br /><em>@T["Grandes sensaciones."]</em></h1></div>
-    <div class="servicios-intro" data-anima-grupo><p class="intro">@T["Cortes, color y bienestar capilar. El equipo del salón te ayudará a encontrar el cuidado que necesitas."]</p><div class="botones"><a class="btn btn-primary" asp-controller="Agenda" asp-action="Index" data-magnetico>@T["Reservar mi cuidado"] <icono nombre="flecha-salir" tamano="14" /></a><a class="enlace-flecha" href="@Model.TelefonoEnlace">@T["Consultar con el equipo"] <icono nombre="flecha" tamano="14" /></a></div><p class="nota">@T["La carta de cuidados, actualizada por el equipo del salón. Confirma los detalles y la disponibilidad al reservar."]</p></div>
+    <div class="servicios-intro" data-anima-grupo><p class="intro">@T["Cortes, color y bienestar capilar. El equipo del salón te ayudará a encontrar el cuidado que necesitas."]</p><div class="botones"><a class="btn btn-primary" asp-controller="Agenda" asp-action="Index" data-magnetico>@T["Reservar mi cuidado"] <icono nombre="flecha-salir" tamano="14" /></a><a class="enlace-flecha" href="@(telefono?.Enlace ?? Model.TelefonoEnlace)">@T["Consultar en la peluquería"] <icono nombre="flecha" tamano="14" /></a></div><p class="nota">@T["La carta de cuidados, actualizada por el equipo del salón. Confirma los detalles y la disponibilidad al reservar."]</p></div>
 </section>
 <div class="catalogo-publico seccion-publica">
     <aside><nav aria-label="@T["Categorías de servicios"]" data-indice-categorias>@foreach(var categoria in Model.Categorias) { <a href="#@categoria.Id">@categoria.Nombre <icono nombre="flecha-salir" tamano="14" /></a> }</nav><a class="btn btn-primary" asp-controller="Agenda" asp-action="Index">@T["Reservar cita"] <icono nombre="flecha-salir" tamano="14" /></a></aside>

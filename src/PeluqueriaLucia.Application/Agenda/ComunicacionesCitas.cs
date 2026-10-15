@@ -11,7 +11,7 @@ using PeluqueriaLucia.Domain.Agenda;
 namespace PeluqueriaLucia.Application.Agenda;
 
 public sealed class ComunicacionesCitas(IRepositorioAgenda datos, IProtectorSecretos secretos, IEnviadorCorreo correo,
-    IWhatsAppManual whatsApp, IUrlPublica urlPublica, TimeProvider reloj, IAjustesComunicaciones ajustes) : IComunicacionesCitas
+    IWhatsAppManual whatsApp, IUrlPublica urlPublica, TimeProvider reloj, IAjustesComunicaciones ajustes, IDatosSalon? salon = null) : IComunicacionesCitas
 {
     public const int LongitudTexto = 2000;
     private DateTime Utc => reloj.GetUtcNow().UtcDateTime;
@@ -48,12 +48,18 @@ public sealed class ComunicacionesCitas(IRepositorioAgenda datos, IProtectorSecr
         return Resultado.Ok();
     }, ct);
 
+    /// <summary>Enlace de aceptación de una propuesta. Valido=false si la propuesta ya no vale o falta la URL pública.</summary>
+    private async Task<(bool Valido, string? Enlace)> EnlaceAsync(MensajeCita m, CancellationToken ct)
+    {
+        if (m.TokenProtegido is null) return (true, null);
+        var token = secretos.Leer(m.TokenProtegido, "confirmacion-cita");
+        if (token is null || await PropuestaAsync(token, ct) is null || urlPublica.Obtener() is not { } url) return (false, null);
+        return (true, new Uri(url, "citas/confirmar/" + token).AbsoluteUri);
+    }
     private async Task<string?> TextoAsync(MensajeCita m, CancellationToken ct)
     {
-        if (m.TokenProtegido is null) return m.Texto;
-        var token = secretos.Leer(m.TokenProtegido, "confirmacion-cita");
-        if (token is null || await PropuestaAsync(token, ct) is null || urlPublica.Obtener() is not { } url) return null;
-        return m.Texto + "\n\n" + new Uri(url, "citas/confirmar/" + token).AbsoluteUri;
+        var (valido, enlace) = await EnlaceAsync(m, ct);
+        return !valido ? null : enlace is null ? m.Texto : m.Texto + "\n\n" + enlace;
     }
     public async Task<IReadOnlyList<ComunicacionCita>> ListarAsync(CancellationToken ct)
     {
@@ -77,13 +83,13 @@ public sealed class ComunicacionesCitas(IRepositorioAgenda datos, IProtectorSecr
         return Resultado.Ok();
     }, ct);
 
-    /// <summary>Correo listo para salir: texto plano con el enlace al final y versión HTML con botón.</summary>
-    private static CorreoSaliente CorreoDe(MensajeCita m, string texto)
+    /// <summary>Correo listo para salir con la plantilla de la peluquería (PlantillaCorreoCita): texto plano y HTML con logo.</summary>
+    private async Task<CorreoSaliente?> CorreoDeAsync(MensajeCita m, CancellationToken ct)
     {
-        var boton = m.TokenProtegido is null ? "" : "<p><a href=\"" + WebUtility.HtmlEncode(texto[(texto.LastIndexOf("\n\n", StringComparison.Ordinal) + 2)..]) + "\" style=\"display:inline-block;padding:14px 24px;border-radius:12px;background:#183a35;color:#fff;text-decoration:none\">Revisar y aceptar cita</a></p>";
-        var parrafos = string.Concat(m.Texto.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(p => "<p>" + WebUtility.HtmlEncode(p.Trim()) + "</p>"));
-        return new CorreoSaliente(m.Destinatario, "Tu cita en el salón", texto,
-            "<html lang=\"es\"><body style=\"background:#f4f1e9;color:#183a35;font-family:'Source Serif 4',Georgia,serif;padding:24px\"><h1>Tu próxima cita</h1>" + parrafos + boton + "<p>El equipo del salón</p></body></html>");
+        var (valido, enlace) = await EnlaceAsync(m, ct);
+        if (!valido) return null;
+        var reserva = await datos.BuscarAsync<ReservaCita>(x => x.Id == m.ReservaId, ct);
+        return PlantillaCorreoCita.Componer(m.Destinatario, m.Texto, enlace, reserva, salon is null ? null : await salon.ObtenerAsync(ct));
     }
 
     public async Task<Resultado> EnviarCorreoAsync(Guid id, string? texto, CancellationToken ct)
@@ -99,14 +105,14 @@ public sealed class ComunicacionesCitas(IRepositorioAgenda datos, IProtectorSecr
                 if (limpio.Length is < 10 or > LongitudTexto) return new Error($"El texto del aviso debe tener entre 10 y {LongitudTexto} caracteres.", "Texto");
                 m.Texto = limpio;
             }
-            var completo = await TextoAsync(m, ct);
-            if (completo is null)
+            var mensaje = await CorreoDeAsync(m, ct);
+            if (mensaje is null)
             {
                 if (EnlaceConfigurado) m.Estado = EstadoNotificacion.Obsoleto;
                 return new Error(EnlaceConfigurado ? "La propuesta ha caducado o el cliente ya la ha aceptado: el aviso queda obsoleto." : "Falta configurar la URL pública para generar el enlace de aceptación.");
             }
             m.Estado = EstadoNotificacion.Enviando; m.ProcesadoUtc = Utc;
-            return Resultado.Ok(CorreoDe(m, completo));
+            return Resultado.Ok(mensaje);
         }, ct);
         if (!preparado.Exito) return preparado.Error!;
         var resultado = await EnviarYAnotarAsync(id, preparado.Valor!, ct);
@@ -166,14 +172,14 @@ public sealed class ComunicacionesCitas(IRepositorioAgenda datos, IProtectorSecr
             {
                 var m = await datos.BuscarAsync<MensajeCita>(x => x.Id == id, ct);
                 if (m is null || m.Estado != EstadoNotificacion.Pendiente) return null;
-                var texto = await TextoAsync(m, ct);
-                if (texto is null)
+                var preparado = await CorreoDeAsync(m, ct);
+                if (preparado is null)
                 {
                     if (EnlaceConfigurado) m.Estado = EstadoNotificacion.Obsoleto;
                     return null;
                 }
                 m.Estado = EstadoNotificacion.Enviando; m.ProcesadoUtc = Utc;
-                return CorreoDe(m, texto);
+                return preparado;
             }, ct);
             if (mensaje is null) continue;
             await EnviarYAnotarAsync(id, mensaje, ct);

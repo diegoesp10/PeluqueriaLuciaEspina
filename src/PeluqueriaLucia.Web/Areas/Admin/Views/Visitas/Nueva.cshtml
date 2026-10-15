@@ -63,13 +63,19 @@
 
         @* ── Servicios ── *@
         <section>
-            <div class="section-head">
+            <div class="section-head section-head-herramientas">
                 <h2>Servicios</h2>
-                <div class="segmented" role="radiogroup" aria-label="Mostrar servicios de">
-                    @foreach (var opcion in new[] { "Mujer", "Hombre", "Otro", "Todos" })
-                    {
-                        <label><input type="radio" name="filtro-servicios" value="@opcion" checked="@(opcion == filtroInicial)" data-filtro-servicios /> @opcion</label>
-                    }
+                <div class="section-herramientas">
+                    <label class="search">
+                        <icono nombre="buscar" tamano="17" />
+                        <input class="input" type="search" placeholder="Buscar servicio" aria-label="Buscar servicio por nombre" autocomplete="off" data-filtro-texto />
+                    </label>
+                    <div class="segmented" role="radiogroup" aria-label="Mostrar servicios de">
+                        @foreach (var opcion in new[] { "Mujer", "Hombre", "Otro", "Todos" })
+                        {
+                            <label><input type="radio" name="filtro-servicios" value="@opcion" checked="@(opcion == filtroInicial)" data-filtro-servicios /> @opcion</label>
+                        }
+                    </div>
                 </div>
             </div>
             @if (Model.Servicios.Count == 0)
@@ -97,7 +103,7 @@
                                    checked="@seleccionados.Contains(s.Id)" aria-label="@s.Nombre, @Formato.Euros(s.Precio)" />
                         </div>
                     }
-                    <p class="row muted small" data-sin-servicios hidden>No hay servicios para este filtro. Prueba con «Todos».</p>
+                    <p class="row muted small" data-sin-servicios hidden>No hay servicios para este filtro. Prueba con «Todos» o cambia el texto de búsqueda.</p>
                 </div>
             }
             @Html.ValidationMessage("Servicios")
@@ -132,5 +138,6 @@
 </form>
 
 @section Scripts {
+    <script src="~/js/combo-clientes.js" asp-append-version="true"></script>
     <script src="~/js/nueva-visita.js" asp-append-version="true"></script>
 }

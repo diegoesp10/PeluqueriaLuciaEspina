@@ -14,8 +14,12 @@ public sealed class ReservaFormulario
     [Required(ErrorMessage="Elige correo electrónico o WhatsApp."), EnumDataType(typeof(CanalConfirmacion), ErrorMessage="Elige correo electrónico o WhatsApp."), Display(Name="Canal de confirmación")] public CanalConfirmacion? Canal { get; set; }
     [Required(ErrorMessage="Escribe tu nombre o apodo."), StringLength(100, ErrorMessage="El nombre admite hasta 100 caracteres.")] public string? Nombre { get; set; }
     [Required(ErrorMessage="Escribe tus apellidos."), StringLength(100, ErrorMessage="Los apellidos admiten hasta 100 caracteres.")] public string Apellido { get; set; } = "";
-    [Required(ErrorMessage="Elige una opción."), EnumDataType(typeof(PeluqueriaLucia.Domain.Comun.Sexo), ErrorMessage="Elige una opción.")] public PeluqueriaLucia.Domain.Comun.Sexo? Sexo { get; set; }
+    [Required(ErrorMessage="Indica para quién es la cita: hombre, mujer u otro."), EnumDataType(typeof(PeluqueriaLucia.Domain.Comun.Sexo), ErrorMessage="Indica para quién es la cita: hombre, mujer u otro.")] public PeluqueriaLucia.Domain.Comun.Sexo? Sexo { get; set; }
     public int? ServicioId { get; set; }
+    /// <summary>Sin servicio del catálogo: lo que el cliente escribe (otro servicio o una consulta).</summary>
+    [StringLength(80, ErrorMessage="Escribe el servicio o la consulta en 80 caracteres como máximo.")] public string? ServicioOtro { get; set; }
+    /// <summary>Filtro de la lista de servicios: «Mujer», «Hombre» o vacío (todos). Solo de presentación.</summary>
+    public string? Para { get; set; }
     [Range(typeof(bool), "true", "true", ErrorMessage="Necesitamos tu permiso para contactar sobre esta cita.")]
     public bool Consentimiento { get; set; }
     public string? Web { get; set; }
@@ -62,7 +66,7 @@ public sealed record AgendaCalendario(DateOnly Dia, DateOnly Hoy, IReadOnlyList<
 }
 
 /// <summary>Avisos a clientes: pendientes de revisar y enviar, enviados o todos.</summary>
-public sealed record ComunicacionesPagina(IReadOnlyList<ComunicacionCita> Mensajes, string Filtro, int Pendientes, bool CorreoConfigurado, bool EnlaceConfigurado, bool EnvioAutomatico);
+public sealed record ComunicacionesPagina(IReadOnlyList<ComunicacionCita> Mensajes, string Filtro, int Pendientes, bool CorreoConfigurado, bool EnlaceConfigurado, bool EnvioAutomatico, string? Texto = null);
 public sealed record AceptacionPagina(string Token, PropuestaCita? Propuesta);
 /// <summary>Cita que da el salón desde el panel, o tiempo bloqueado.</summary>
 public sealed class CitaManualFormulario
@@ -79,4 +83,6 @@ public sealed class CitaManualFormulario
 }
 public sealed record CitaManualPagina(CitaManualFormulario Formulario, PeluqueriaLucia.Domain.Clientes.Cliente? Cliente, string? Busqueda,
     IReadOnlyList<PeluqueriaLucia.Domain.Clientes.Cliente> Encontrados, IReadOnlyList<ServicioAgenda> Servicios, DisponibilidadAgenda? Dia);
+/// <summary>Teléfonos de contacto que se están editando (los vacíos se ignoran al guardar).</summary>
+public sealed record ContactoPagina(IReadOnlyList<string> Telefonos, int Maximo);
 public sealed record HorariosPagina(IReadOnlyList<TramoAgenda> Horarios, IReadOnlyList<CierreAgenda> Cierres, DateOnly Hoy);

@@ -63,6 +63,22 @@ public sealed class ComunicacionesWebTests(SeguridadWebFixture fixture) : IClass
         Assert.Contains("<h1>Comunicaciones</h1>", comunicaciones);
         Assert.Contains("href=\"/admin/comunicaciones?filtro=enviados\"", comunicaciones);
         Assert.Equal(HttpStatusCode.OK, (await admin.GetAsync("/admin/comunicaciones?filtro=todos")).StatusCode);
+
+        // Buscador: por destinatario o texto, sin distinguir mayúsculas ni acentos, y los filtros conservan la búsqueda
+        await using (var db = fixture.Bd.Contexto())
+        {
+            db.Add(new MensajeCita { Id = Guid.NewGuid(), ReservaId = confirmada, Canal = CanalConfirmacion.Correo, Destinatario = "cal@example.test", Estado = EstadoNotificacion.Manual,
+                CreadoUtc = DateTime.UtcNow, ProcesadoUtc = DateTime.UtcNow, Texto = "Aviso de prueba del calendario con acentuación" });
+            await db.SaveChangesAsync();
+        }
+        var encontrado = WebUtility.HtmlDecode(await admin.GetStringAsync("/admin/comunicaciones?filtro=todos&q=ACENTUACION"));
+        Assert.Contains("Aviso de prueba del calendario", encontrado);
+        Assert.Contains("1 aviso encontrado", encontrado);
+        Assert.Contains("href=\"/admin/comunicaciones?filtro=enviados&q=ACENTUACION\"", encontrado);
+        Assert.Contains("data-buscar-al-escribir", encontrado);
+        var nada = WebUtility.HtmlDecode(await admin.GetStringAsync("/admin/comunicaciones?filtro=todos&q=zzzz-sin-coincidencia"));
+        Assert.Contains("No hay avisos que coincidan", nada);
+        Assert.DoesNotContain("Aviso de prueba del calendario", nada);
     }
 
     private async Task EntrarAsync(HttpClient cliente)

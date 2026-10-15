@@ -1,39 +1,44 @@
-/* Lucía: una identidad para la web, el acceso y la gestión. Ver docs/DISENO.md. */
+/* Lucía: una identidad morada (tono Visual Studio) para la web, el acceso y la gestión. Ver docs/DISENO.md.
+   Los nombres --forest (tono profundo de marca), --olive (acento secundario) y --cream (texto sobre el tono profundo)
+   vienen de la paleta verde original; se conservan para no tocar cada componente. */
 :root {
   color-scheme: light dark;
-  --bg: light-dark(#f8f6ef, #10231f);
-  --surface: light-dark(#fffdf8, #19302a);
-  --surface-2: light-dark(#eeeee4, #233d34);
-  --surface-hover: light-dark(#f2f2e8, #264438);
-  --sand: light-dark(#eeeadd, #24392f);
-  --label: light-dark(#183a35, #f4f1e7);
-  --label-2: light-dark(#5c695e, #bac6b6);
-  --label-3: light-dark(#65735f, #9daa97);
-  --separator: light-dark(#dcded0, #3a5145);
-  --fill: light-dark(rgb(89 102 68 / .09), rgb(187 201 162 / .12));
-  --fill-2: light-dark(rgb(89 102 68 / .16), rgb(187 201 162 / .20));
-  --accent: light-dark(#244c40, #c5d3ac);
-  --accent-ink: light-dark(#fffdf8, #19302a);
-  --olive: light-dark(#596644, #c2cfaa);
-  --forest: #183a35;
-  --cream: #f8f6ef;
-  --blue: light-dark(#526f72, #aac6c4);
-  --green: light-dark(#60764c, #b5ca9a);
-  --green-text: light-dark(#4c653d, #b5ca9a);
-  --red: light-dark(#ad3f39, #ffa69a);
-  --orange: light-dark(#95613d, #e4b792);
+  --bg: light-dark(#f7f5fb, #191424);
+  --surface: light-dark(#fdfcff, #221c31);
+  --surface-2: light-dark(#efecf6, #2c253f);
+  --surface-hover: light-dark(#f2eff8, #312a46);
+  --sand: light-dark(#ebe6f3, #292239);
+  --label: light-dark(#27193f, #f3eefb);
+  --label-2: light-dark(#655a7a, #bdb2d4);
+  --label-3: light-dark(#786d8e, #a094b9);
+  --separator: light-dark(#e0dbeb, #3d3355);
+  --fill: light-dark(rgb(92 45 145 / .08), rgb(201 182 239 / .12));
+  --fill-2: light-dark(rgb(92 45 145 / .15), rgb(201 182 239 / .20));
+  --accent: light-dark(#5c2d91, #c9b6ef);
+  --accent-ink: light-dark(#fdfcff, #221c31);
+  --olive: light-dark(#6d3fa6, #c2a9ec);
+  --forest: #3b1f63;
+  --cream: #f7f5fb;
+  /* Tarjeta del indicador de carga: fondo y hoja */
+  --cargando-fondo: var(--forest);
+  --cargando-hoja: #d6c6f6;
+  --blue: light-dark(#4b6ea9, #a4bdec);
+  --green: light-dark(#4f8a5e, #a6d7b0);
+  --green-text: light-dark(#3e7049, #a6d7b0);
+  --red: light-dark(#b8403f, #ff9f9a);
+  --orange: light-dark(#a9622c, #f0b985);
   --orange-text: var(--orange);
-  --purple: light-dark(#786a7e, #cabbcf);
-  --pink: light-dark(#916d76, #d5b3bd);
+  --purple: light-dark(#8a5cc4, #d6c6f6);
+  --pink: light-dark(#ad5a8c, #eeaad0);
   --teal: var(--blue);
   --indigo: var(--purple);
-  --gray: light-dark(#65735f, #aab6a2);
+  --gray: light-dark(#7a7190, #a99fbf);
   --tint: var(--olive);
-  --glass: light-dark(rgb(248 246 239 / .86), rgb(16 35 31 / .88));
-  --glass-edge: light-dark(rgb(255 253 248 / .9), rgb(197 211 172 / .12));
-  --glass-shadow: 0 14px 45px light-dark(rgb(24 58 53 / .10), rgb(0 0 0 / .30));
+  --glass: light-dark(rgb(247 245 251 / .86), rgb(25 20 36 / .88));
+  --glass-edge: light-dark(rgb(253 252 255 / .9), rgb(201 182 239 / .12));
+  --glass-shadow: 0 14px 45px light-dark(rgb(59 31 99 / .10), rgb(0 0 0 / .35));
   --card-edge: 0 0 0 1px var(--separator);
-  --card-shadow: var(--card-edge), 0 5px 20px light-dark(rgb(24 58 53 / .035), rgb(0 0 0 / .12));
+  --card-shadow: var(--card-edge), 0 5px 20px light-dark(rgb(59 31 99 / .04), rgb(0 0 0 / .14));
   --r-card: 24px;
   --radius-card: var(--r-card);
   --r-ctl: 14px;

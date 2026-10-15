@@ -1,0 +1,49 @@
+@model PeluqueriaLucia.Web.Models.ContactoPagina
+@{ ViewData["Title"] = "Contacto de la web"; }
+<div class="form-pagina">
+    <header class="page-head">
+        <div>
+            <p class="etiqueta">WEB PÚBLICA</p>
+            <h1>Contacto de la web</h1>
+            <p class="subtitle">Los teléfonos que ven tus clientes en la portada, el menú y el pie de la web, y los que aparecen en los avisos de las citas. Se muestran en este orden, uno junto a otro.</p>
+        </div>
+    </header>
+    <form class="form" method="post" asp-controller="Contacto" asp-action="Index" novalidate>
+        @* Intro en un campo guarda, nunca añade una fila: este es el primer botón del formulario *@
+        <button class="sr-only" type="submit" tabindex="-1" aria-hidden="true">Guardar teléfonos</button>
+        <div asp-validation-summary="ModelOnly"></div>
+        <div class="fields">
+            <fieldset class="field telefonos-editor">
+                <legend class="field-label">Teléfonos de contacto</legend>
+                <div class="telefonos-lista" data-telefonos data-maximo="@Model.Maximo">
+                    @for (var i = 0; i < Model.Telefonos.Count; i++)
+                    {
+                        <div class="telefono-fila" data-telefono>
+                            <span class="telefono-icono"><icono nombre="telefono" tamano="17" /></span>
+                            <input class="input" type="tel" name="telefonos" value="@Model.Telefonos[i]" maxlength="30" autocomplete="off" inputmode="tel" aria-label="Teléfono @(i + 1)" placeholder="659 306 659" />
+                            <button class="btn btn-gray btn-sm" type="button" data-quitar-telefono hidden>Quitar</button>
+                        </div>
+                    }
+                </div>
+                @Html.ValidationMessage("Telefonos")
+                <p class="field-hint">Hasta @Model.Maximo teléfonos, con espacios si quieres (659 306 659). Sin prefijo se entienden de España. Para quitar uno sin JavaScript, déjalo vacío.</p>
+                <button class="btn btn-gray telefonos-anadir" type="submit" name="anadir" value="1" data-anadir-telefono hidden="@(Model.Telefonos.Count >= Model.Maximo)"><icono nombre="mas" tamano="16" /> Añadir otro teléfono</button>
+            </fieldset>
+        </div>
+        <template id="plantilla-telefono">
+            <div class="telefono-fila" data-telefono>
+                <span class="telefono-icono"><icono nombre="telefono" tamano="17" /></span>
+                <input class="input" type="tel" name="telefonos" maxlength="30" autocomplete="off" inputmode="tel" aria-label="Teléfono nuevo" placeholder="985 757 692" />
+                <button class="btn btn-gray btn-sm" type="button" data-quitar-telefono>Quitar</button>
+            </div>
+        </template>
+        <div class="acciones acciones-form">
+            <button class="btn btn-primary" type="submit">Guardar teléfonos</button>
+            <a class="btn btn-gray" asp-controller="Panel" asp-action="Index">Cancelar</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script src="~/js/contacto.js" asp-append-version="true"></script>
+}

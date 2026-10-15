@@ -26,7 +26,7 @@ public sealed class ReservaCita
     public PeluqueriaLucia.Domain.Clientes.Cliente? Cliente { get; set; }
     public bool PendienteVinculacion { get; set; }
     public int? ServicioId { get; set; }
-    public string ServicioNombre { get; set; } = "Consulta con el equipo";
+    public string ServicioNombre { get; set; } = "Consulta en la peluquería";
     public EstadoCita Estado { get; set; }
     public DateTime CreadaUtc { get; set; }
     public DateTime ActualizadaUtc { get; set; }
