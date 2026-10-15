@@ -9,15 +9,25 @@ using PeluqueriaLucia.Domain.Catalogo;
 
 namespace PeluqueriaLucia.Application.Agenda;
 
-public sealed class AgendaService(IRepositorioAgenda datos, IProtectorSecretos secretos, TimeProvider reloj) : IAgendaService
+public sealed class AgendaService(IRepositorioAgenda datos, IProtectorSecretos secretos, TimeProvider reloj, IDatosSalon? salon = null) : IAgendaService
 {
+    private static readonly System.Globalization.CultureInfo Es = System.Globalization.CultureInfo.GetCultureInfo("es-ES");
+    /// <summary>Servicio de una solicitud sin servicio del catálogo ni texto del cliente.</summary>
+    public const string ConsultaGeneral = "Consulta en la peluquería";
+    // Los avisos hablan en nombre de la peluquería y dan su teléfono (también en WhatsApp, que no lleva plantilla)
+    private static string NombreSalon(DatosSalon? s) => s?.Nombre is { Length: > 0 } n ? n : "la peluquería";
+    private static string QuienPropone(DatosSalon? s) => s?.Nombre is { Length: > 0 } n ? n : "La peluquería";
+    private static string Llamar(DatosSalon? s, string inicio) => s is { Telefonos.Count: > 0 } ? $"{inicio} llámanos al {s.TelefonosEnTexto}." : $"{inicio} ponte en contacto con la peluquería.";
+    private static string Cuando(DateTime d) => $"el {d.ToString("dddd d 'de' MMMM", Es)} a las {d:HH:mm}";
     internal static readonly TimeZoneInfo Zona = TimeZoneInfo.FindSystemTimeZoneById("Europe/Madrid");
     private DateTime Utc => reloj.GetUtcNow().UtcDateTime;
     private DateTime Ahora => TimeZoneInfo.ConvertTime(reloj.GetUtcNow(), Zona).DateTime;
     public DateOnly Hoy => DateOnly.FromDateTime(Ahora);
+    /// <summary>Lo que el cliente puede escribir cuando su servicio no está en la lista (otro servicio o una consulta).</summary>
+    public const int LongitudServicioOtro = 80;
     public async Task<IReadOnlyList<ServicioAgenda>> ServiciosAsync(CancellationToken ct) =>
         (await datos.ListarAsync<Servicio>(x => x.Activo && x.Publicado, ct)).OrderBy(x => x.Nombre)
-            .Select(x => new ServicioAgenda(x.Id, x.Nombre, x.DuracionMinutos, x.NombreEn)).ToList();
+            .Select(x => new ServicioAgenda(x.Id, x.Nombre, x.DuracionMinutos, x.NombreEn, x.Sexo)).ToList();
     private async Task<int> DuracionAsync(int? id, CancellationToken ct) => id is null ? 30 :
         (await datos.BuscarAsync<Servicio>(x => x.Id == id && x.Activo && x.Publicado, ct))?.DuracionMinutos ?? 0;
     private Task<List<ReservaCita>> OcupadasAsync(DateTime inicio, DateTime fin, CancellationToken ct) =>
@@ -27,7 +37,19 @@ public sealed class AgendaService(IRepositorioAgenda datos, IProtectorSecretos s
     public async Task<DisponibilidadAgenda> DisponibilidadAsync(DateOnly dia, int? servicioId, CancellationToken ct)
     {
         var minutos = await DuracionAsync(servicioId, ct);
-        if (dia < Hoy || dia > Hoy.AddDays(90) || minutos is < 5 or > 600 || await datos.ExisteAsync<CierreAgenda>(x => x.Dia == dia, ct)) return new(dia, minutos, []);
+        if (dia < Hoy || dia > Hoy.AddDays(90) || minutos is < 5 or > 600) return new(dia, minutos, []);
+        // La web deja media hora de margen para que el salón pueda revisar la solicitud
+        return await HuecosAsync(dia, minutos, Ahora.AddMinutes(30), ct);
+    }
+
+    public async Task<DisponibilidadAgenda> HuecosPanelAsync(DateOnly dia, int minutos, CancellationToken ct) =>
+        dia < Hoy || dia > Hoy.AddDays(365) || minutos is < 5 or > 600 ? new(dia, minutos, []) : await HuecosAsync(dia, minutos, Ahora, ct);
+
+    /// <summary>Horas de inicio dentro del horario de apertura (cada tramo con su intervalo) en las que cabe la duración sin
+    /// solaparse con otra cita; Ocupadas son las que se pisan con alguna.</summary>
+    private async Task<DisponibilidadAgenda> HuecosAsync(DateOnly dia, int minutos, DateTime desde, CancellationToken ct)
+    {
+        if (await datos.ExisteAsync<CierreAgenda>(x => x.Dia == dia, ct)) return new(dia, minutos, []);
         var tramos = await datos.ListarAsync<TramoAgenda>(x => x.Dia == dia.DayOfWeek, ct);
         var inicio = dia.ToDateTime(TimeOnly.MinValue);
         var ocupadas = await OcupadasAsync(inicio, inicio.AddDays(1), ct);
@@ -36,7 +58,7 @@ public sealed class AgendaService(IRepositorioAgenda datos, IProtectorSecretos s
         foreach (var tramo in tramos)
             for (var t = dia.ToDateTime(tramo.Desde); t.AddMinutes(minutos) <= dia.ToDateTime(tramo.Hasta); t = t.AddMinutes(tramo.IntervaloMinutos))
             {
-                if (t < Ahora.AddMinutes(30) || Zona.IsInvalidTime(t) || Zona.IsAmbiguousTime(t) ||
+                if (t < desde || Zona.IsInvalidTime(t) || Zona.IsAmbiguousTime(t) ||
                     Zona.IsInvalidTime(t.AddMinutes(minutos)) || Zona.IsAmbiguousTime(t.AddMinutes(minutos))) continue;
                 var hora = TimeOnly.FromDateTime(t);
                 if (ocupadas.Any(x => x.Inicio < t.AddMinutes(minutos) && x.Fin > t)) bloqueadas.Add(hora);
@@ -79,14 +101,20 @@ public sealed class AgendaService(IRepositorioAgenda datos, IProtectorSecretos s
         var disponibles = await DisponibilidadAsync(d.Dia, d.ServicioId, ct);
         if (!disponibles.Horas.Contains(d.Hora)) return new Error("Ese horario acaba de ocuparse o no está disponible. Elige otro.", "Hora");
         var servicio = d.ServicioId is null ? null : await datos.BuscarAsync<Servicio>(x => x.Id == d.ServicioId, ct);
+        var otro = d.ServicioId is null ? TextoDeUnaLinea(d.ServicioOtro) : null;
+        if (otro?.Length > LongitudServicioOtro) return new Error($"Escribe el servicio o la consulta en {LongitudServicioOtro} caracteres como máximo.", "ServicioOtro");
         var cita = new ReservaCita { Id = Guid.NewGuid(), SolicitudId = d.SolicitudId, Inicio = d.Dia.ToDateTime(d.Hora),
             Fin = d.Dia.ToDateTime(d.Hora).AddMinutes(disponibles.Minutos), Telefono = telefono, Correo = correo, Canal = d.Canal,
-            Nombre = d.Nombre?.Trim() ?? "", Apellido = d.Apellido?.Trim() ?? "", Sexo = d.Sexo, ServicioId = d.ServicioId, ServicioNombre = servicio?.Nombre ?? "Consulta con el equipo",
+            Nombre = d.Nombre?.Trim() ?? "", Apellido = d.Apellido?.Trim() ?? "", Sexo = d.Sexo, ServicioId = d.ServicioId, ServicioNombre = servicio?.Nombre ?? (otro is { Length: > 0 } ? "Consulta: " + otro : ConsultaGeneral),
             Estado = EstadoCita.Pendiente, CreadaUtc = Utc, ActualizadaUtc = Utc, CaducaUtc = Utc.AddHours(24), IpHash = ip };
         datos.Agregar(cita); return Resultado.Ok(cita.Id);
     }, ct);
 
-    public Task<Resultado> GestionarAsync(GestionarCita d, CancellationToken ct) => datos.ExclusivoAsync<Resultado>(async () =>
+    public async Task<Resultado> GestionarAsync(GestionarCita d, CancellationToken ct)
+    {
+        // Quién firma los avisos (nombre y teléfonos): se lee una vez, fuera del bloqueo de la agenda
+        var s = salon is null ? null : await salon.ObtenerAsync(ct);
+        return await datos.ExclusivoAsync<Resultado>(async () =>
     {
         var r = await datos.BuscarAsync<ReservaCita>(x => x.Id == d.Id, ct);
         if (r is null) return new Error("La reserva no existe.");
@@ -137,7 +165,7 @@ public sealed class AgendaService(IRepositorioAgenda datos, IProtectorSecretos s
                 if (NormalizarCorreo(r.Correo) is not null || r.Canal == CanalConfirmacion.WhatsApp)
                     datos.Agregar(new MensajeCita { Id = Guid.NewGuid(), ReservaId = r.Id, Canal = r.Canal,
                         Destinatario = r.Canal == CanalConfirmacion.Correo ? r.Correo : r.Telefono, CreadoUtc = Utc, Estado = EstadoNotificacion.Pendiente,
-                        Texto = $"Tu cita del {r.Inicio:dd/MM/yyyy} a las {r.Inicio:HH:mm} para {r.ServicioNombre} queda confirmada, tal como la hemos hablado. Si necesitas cambiarla, contacta con el equipo." });
+                        Texto = $"Tu cita en {NombreSalon(s)} queda confirmada {Cuando(r.Inicio)}, para {r.ServicioNombre}. ¡Te esperamos! {Llamar(s, "Si necesitas cambiarla,")}" });
             }
             else if (d.Estado == EstadoCita.Confirmada)
             {
@@ -149,7 +177,7 @@ public sealed class AgendaService(IRepositorioAgenda datos, IProtectorSecretos s
                 r.CaducaUtc = inicioUtc < Utc.AddHours(24) ? inicioUtc : Utc.AddHours(24);
                 datos.Agregar(new MensajeCita { Id = Guid.NewGuid(), ReservaId = r.Id, Canal = r.Canal,
                     Destinatario = r.Canal == CanalConfirmacion.Correo ? r.Correo : r.Telefono, CreadoUtc = Utc,
-                    Texto = $"El equipo del salón te propone una cita el {r.Inicio:dd/MM/yyyy} a las {r.Inicio:HH:mm}, para {r.ServicioNombre}, con una duración de {(int)(r.Fin-r.Inicio).TotalMinutes} minutos. Acepta la cita en el enlace antes del {TimeZoneInfo.ConvertTimeFromUtc(r.CaducaUtc, Zona):dd/MM/yyyy HH:mm}. Si necesitas cambiarla, contacta con el equipo.",
+                    Texto = $"{QuienPropone(s)} te propone una cita {Cuando(r.Inicio)}, para {r.ServicioNombre}, con una duración de {(int)(r.Fin-r.Inicio).TotalMinutes} minutos. Para confirmarla, acéptala en el enlace antes del {TimeZoneInfo.ConvertTimeFromUtc(r.CaducaUtc, Zona):dd/MM/yyyy} a las {TimeZoneInfo.ConvertTimeFromUtc(r.CaducaUtc, Zona):HH:mm}. {Llamar(s, "Si prefieres otro momento,")}",
                     TokenProtegido = secretos.Proteger(token, "confirmacion-cita"), Estado = EstadoNotificacion.Pendiente });
             }
             else
@@ -158,15 +186,24 @@ public sealed class AgendaService(IRepositorioAgenda datos, IProtectorSecretos s
                 if (d.Estado is EstadoCita.Rechazada or EstadoCita.Cancelada && NormalizarCorreo(r.Correo) is not null)
                     datos.Agregar(new MensajeCita { Id = Guid.NewGuid(), ReservaId = r.Id, Canal = r.Canal,
                         Destinatario = r.Canal == CanalConfirmacion.Correo ? r.Correo : r.Telefono, CreadoUtc = Utc, Estado = EstadoNotificacion.Pendiente,
-                        Texto = $"El equipo del salón informa de que tu solicitud del {r.Inicio:dd/MM/yyyy HH:mm} no está confirmada o se ha cancelado. Contacta con el equipo para acordar otro momento." });
+                        Texto = $"Tu solicitud de cita {Cuando(r.Inicio)} en {NombreSalon(s)} no se ha podido confirmar o se ha cancelado. {Llamar(s, "Para buscar otro momento,")}" });
             }
         }
         return Resultado.Ok();
     }, ct);
+    }
 
     public async Task<IReadOnlyList<ServicioAgenda>> ServiciosPanelAsync(CancellationToken ct) =>
         (await datos.ListarAsync<Servicio>(x => x.Activo, ct)).OrderBy(x => x.Nombre)
-            .Select(x => new ServicioAgenda(x.Id, x.Nombre, x.DuracionMinutos, x.NombreEn)).ToList();
+            .Select(x => new ServicioAgenda(x.Id, x.Nombre, x.DuracionMinutos, x.NombreEn, x.Sexo)).ToList();
+
+    /// <summary>Texto libre del cliente en una sola línea: sin caracteres de control y con los espacios juntos.</summary>
+    private static string? TextoDeUnaLinea(string? texto)
+    {
+        if (string.IsNullOrWhiteSpace(texto)) return null;
+        var limpio = string.Join(' ', new string(texto.Select(c => char.IsControl(c) ? ' ' : c).ToArray()).Split(' ', StringSplitOptions.RemoveEmptyEntries));
+        return limpio.Length == 0 ? null : limpio;
+    }
 
     public Task<Resultado<Guid>> CrearCitaAsync(CitaManual d, CancellationToken ct) => datos.ExclusivoAsync<Resultado<Guid>>(async () =>
     {
@@ -182,6 +219,12 @@ public sealed class AgendaService(IRepositorioAgenda datos, IProtectorSecretos s
         if (await datos.ExisteAsync<CierreAgenda>(x => x.Dia == d.Dia, ct)) return new Error("Ese día está cerrado. Reábrelo en Horarios si vas a trabajar.", "Dia");
         var solape = (await OcupadasAsync(inicio, fin, ct)).OrderBy(x => x.Inicio).FirstOrDefault();
         if (solape is not null) return new Error($"Se solapa con «{(solape.Nombre + " " + solape.Apellido).Trim()}» de {solape.Inicio:HH:mm} a {solape.Fin:HH:mm}.", "Hora");
+        // Las citas se dan solo en las horas libres del horario de apertura; el tiempo bloqueado puede ir a cualquier hora del día
+        if (!d.Bloqueo)
+        {
+            if (d.Dia < Hoy) return new Error("Las citas se dan de hoy en adelante.", "Dia");
+            if (!(await HuecosAsync(d.Dia, minutos, Ahora, ct)).Horas.Contains(d.Hora)) return new Error("Elige una de las horas libres de ese día.", "Hora");
+        }
 
         var cita = new ReservaCita { Id = Guid.NewGuid(), SolicitudId = Guid.NewGuid(), Inicio = inicio, Fin = fin, Estado = EstadoCita.Confirmada,
             Origen = d.Bloqueo ? OrigenCita.Bloqueo : OrigenCita.Panel, TelefonoValidado = true, AdministradorId = d.AdministradorId,

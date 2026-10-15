@@ -12,10 +12,16 @@ namespace PeluqueriaLucia.Web.Controllers;
 public sealed class AgendaController(IAgendaService agenda, IComunicacionesCitas comunicaciones, VerificacionContactoService verificacion, Textos textos) : Controller
 {
     [HttpGet("/citas")]
-    public async Task<IActionResult> Index(DateOnly? dia, int? servicioId, CancellationToken ct)
+    public async Task<IActionResult> Index(DateOnly? dia, int? servicioId, string? otro, string? para, CancellationToken ct)
     {
         ViewData["ContactoVerificable"] = verificacion.Disponible;
-        return View(await PaginaAsync(new ReservaFormulario { Dia = Limitar(dia), ServicioId=servicioId }, ct));
+        // «otro» es el servicio o la consulta que el cliente escribe cuando no está en la lista; «para» (para quién es la cita)
+        // filtra la lista y es el sexo de la reserva
+        var texto = servicioId is null && !string.IsNullOrWhiteSpace(otro) ? otro.Trim() : null;
+        return View(await PaginaAsync(new ReservaFormulario { Dia = Limitar(dia), ServicioId = servicioId,
+            ServicioOtro = texto?.Length > AgendaService.LongitudServicioOtro ? texto[..AgendaService.LongitudServicioOtro] : texto,
+            Para = para is "Hombre" or "Mujer" or "Otro" ? para : null,
+            Sexo = para switch { "Hombre" => PeluqueriaLucia.Domain.Comun.Sexo.Hombre, "Mujer" => PeluqueriaLucia.Domain.Comun.Sexo.Mujer, "Otro" => PeluqueriaLucia.Domain.Comun.Sexo.Otro, _ => null } }, ct));
     }
     [HttpGet("/citas/disponibilidad")]
     public async Task<IActionResult> Disponibilidad(DateOnly dia, int? servicioId, CancellationToken ct) => Json(await agenda.DisponibilidadAsync(Limitar(dia), servicioId, ct));
@@ -26,7 +32,7 @@ public sealed class AgendaController(IAgendaService agenda, IComunicacionesCitas
         if (formulario.Dia < agenda.Hoy || formulario.Dia > agenda.Hoy.AddDays(90)) ModelState.AddModelError("Formulario.Dia", textos["Selecciona un día dentro de los próximos 90 días."]);
         if (ModelState.IsValid)
         {
-            var r = await agenda.SolicitarAsync(new(formulario.SolicitudId, formulario.Dia, formulario.Hora!.Value, formulario.Telefono, formulario.Nombre, formulario.ServicioId, IpCliente.De(HttpContext), formulario.Correo, formulario.Canal!.Value, formulario.Apellido, formulario.Sexo), ct);
+            var r = await agenda.SolicitarAsync(new(formulario.SolicitudId, formulario.Dia, formulario.Hora!.Value, formulario.Telefono, formulario.Nombre, formulario.ServicioId, IpCliente.De(HttpContext), formulario.Correo, formulario.Canal!.Value, formulario.Apellido, formulario.Sexo, formulario.ServicioId is null ? formulario.ServicioOtro : null), ct);
             if (r.Exito) { TempData["cita-solicitada"] = true; return RedirectToAction(nameof(Recibida)); }
             ModelState.AddModelError(r.Error!.Campo is null ? "" : "Formulario." + r.Error.Campo, textos[r.Error.Mensaje]);
         }
@@ -56,8 +62,8 @@ public sealed class AgendaController(IAgendaService agenda, IComunicacionesCitas
     [HttpGet("/citas/aceptada")]
     public IActionResult Aceptada() => TempData["cita-aceptada"] is true ? View() : RedirectToAction(nameof(Index));
     [HttpPost("/citas/contacto/solicitar"), EnableRateLimiting(LimitesDePeticiones.ContactoPublico), RequestSizeLimit(4096)]
-    public async Task<IActionResult> SolicitarContacto(string? telefono, CancellationToken ct) =>
-        Json(new { id = await verificacion.SolicitarAsync(telefono,IpCliente.De(HttpContext),ct) });
+    public async Task<IActionResult> SolicitarContacto(string? telefono, string? correo, CancellationToken ct) =>
+        Json(new { id = await verificacion.SolicitarAsync(telefono,IpCliente.De(HttpContext),ct,correo) });
     [HttpPost("/citas/contacto/verificar"), EnableRateLimiting(LimitesDePeticiones.VerificacionContacto), RequestSizeLimit(4096)]
     public async Task<IActionResult> VerificarContacto(Guid id, string? codigo, CancellationToken ct)
     {

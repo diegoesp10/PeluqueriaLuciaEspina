@@ -70,6 +70,10 @@ html { scroll-behavior:smooth; scroll-padding-top:120px; }
 .contacto-publico p:not(.etiqueta) { color:var(--label-2); margin-bottom:22px; }
 .contacto-tarjeta { background:var(--surface); padding:42px; border-radius:var(--r-card); box-shadow:var(--card-shadow); }
 .telefono-grande { font:clamp(1.8rem,3vw,2.6rem) var(--font-display); display:inline-block; margin-bottom:20px; }
+/* Varios teléfonos: en línea y, si no caben en la tarjeta, uno debajo de otro */
+.telefonos-grandes { display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 40px; margin-bottom:20px; }
+.telefonos-grandes .telefono-grande { margin-bottom:0; white-space:nowrap; }
+.pie-telefonos, .menu-publico-telefonos { display:flex; flex-wrap:wrap; gap:4px 18px; }
 .contacto-tarjeta .nota { margin-top:18px; }
 .comodidades { display:flex; flex-wrap:wrap; gap:8px; padding-top:15px; border-top:1px solid var(--separator); }
 .comodidades span { font-size:11px; border:1px solid var(--separator); padding:4px 10px; border-radius:var(--r-pill); }
@@ -250,7 +254,7 @@ html { scroll-behavior:smooth; scroll-padding-top:120px; }
   .menu-publico-telefono { font:400 24px var(--font-display); }
   .menu-publico-pie p { font-size:12px; color:var(--label-2); }
   .sitio-publico .menu-fondo {
-    display:block; position:fixed; inset:0; z-index:45; background:rgb(10 20 17 / .42);
+    display:block; position:fixed; inset:0; z-index:45; background:rgb(0 0 0 / .42);
     -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px); opacity:0; pointer-events:none; transition:opacity .3s;
   }
   .menu-publico:target ~ .menu-fondo, .menu-abierto .sitio-publico .menu-fondo { opacity:1; pointer-events:auto; }

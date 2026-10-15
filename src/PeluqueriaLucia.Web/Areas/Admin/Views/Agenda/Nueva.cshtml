@@ -6,7 +6,7 @@
     var hora = f.Hora?.ToString("HH:mm");
 }
 
-<div class="form-pagina">
+<div class="form-pagina" data-nueva-cita>
     <a class="back-link" href="/admin/agenda?dia=@dia"><icono nombre="anterior" tamano="20" /> Agenda</a>
     <header class="page-head">
         <div>
@@ -37,15 +37,31 @@
             }
             else
             {
-                <form method="get" action="/admin/agenda/nueva" class="cita-buscar" role="search">
-                    <input type="hidden" name="dia" value="@dia" />
-                    <input type="hidden" name="hora" value="@hora" />
-                    <input class="input" type="search" name="q" value="@Model.Busqueda" placeholder="Buscar ficha por nombre, teléfono o correo" aria-label="Buscar cliente" autofocus />
-                    <button class="btn btn-gray">Buscar</button>
-                </form>
+                @* Con JavaScript, la ficha elegida se muestra aquí sin recargar (nueva-cita.js) *@
+                <div class="cliente-elegido" data-cliente-elegido hidden>
+                    <span class="avatar" data-cliente-avatar></span>
+                    <span class="row-main">
+                        <span class="row-title" data-cliente-nombre></span>
+                        <span class="row-sub" data-cliente-detalle></span>
+                    </span>
+                    <button type="button" class="btn btn-gray btn-sm" data-cliente-cambiar>Cambiar</button>
+                </div>
+                @* Sin JavaScript, el formulario busca en el servidor con el botón; con él, sugiere mientras se escribe *@
+                <div class="combo" data-combo>
+                    <form method="get" action="/admin/agenda/nueva" class="cita-buscar search search-full" role="search">
+                        <input type="hidden" name="dia" value="@dia" />
+                        <input type="hidden" name="hora" value="@hora" />
+                        <icono nombre="buscar" tamano="17" />
+                        <input class="input" type="search" name="q" value="@Model.Busqueda" placeholder="Buscar ficha por nombre, teléfono o correo" aria-label="Buscar cliente" autocomplete="off"
+                               role="combobox" aria-expanded="false" aria-controls="combo-lista" aria-autocomplete="list"
+                               data-combo-input data-url-buscar="@Url.Action("Buscar", "Clientes", new { area = "Admin" })" autofocus />
+                        <button class="btn btn-gray" data-solo-sin-js>Buscar</button>
+                    </form>
+                    <ul class="combo-lista list" id="combo-lista" role="listbox" data-combo-lista hidden></ul>
+                </div>
                 @if (Model.Busqueda is not null)
                 {
-                    <ul class="list cita-encontrados">
+                    <ul class="list cita-encontrados" data-resultados-servidor>
                         @foreach (var e in Model.Encontrados)
                         {
                             <li>
@@ -66,65 +82,115 @@
         </section>
     }
 
+    @* El action literal evita que el tag helper genere la URL, pero también que añada el token: va explícito *@
     <form class="form" method="post" action="/admin/agenda/nueva" novalidate>
+        @Html.AntiForgeryToken()
         <div asp-validation-summary="ModelOnly"></div>
         <input type="hidden" name="Bloqueo" value="@(f.Bloqueo ? "true" : "false")" />
-        <input type="hidden" name="ClienteId" value="@(Model.Cliente?.Id)" />
+        <input type="hidden" name="ClienteId" value="@(Model.Cliente?.Id)" data-cliente-id />
 
         <div class="fields">
-            <div class="fields-2">
-                <div class="field">
-                    <label for="Dia">Día</label>
-                    <input class="input" id="Dia" name="Dia" type="date" value="@dia" required />
-                    @Html.ValidationMessage("Dia")
-                </div>
-                <div class="field">
-                    <label for="Hora">Hora</label>
-                    <input class="input" id="Hora" name="Hora" type="time" step="300" value="@hora" required />
-                    @Html.ValidationMessage("Hora")
-                </div>
-            </div>
-            @if (!f.Bloqueo)
-            {
-                <div class="field">
-                    <label for="ServicioId">Servicio</label>
-                    <select class="input" id="ServicioId" name="ServicioId">
-                        <option value="">Sin indicar</option>
-                        @foreach (var s in Model.Servicios)
-                        {
-                            <option value="@s.Id" selected="@(f.ServicioId == s.Id)">@s.Nombre@(s.Minutos > 0 ? $" · {s.Minutos} min" : "")</option>
-                        }
-                    </select>
-                    @Html.ValidationMessage("ServicioId")
-                </div>
-            }
-            <div class="field">
-                <label for="Minutos">Duración (minutos)</label>
-                <input class="input" id="Minutos" name="Minutos" type="number" min="5" max="600" step="5" value="@f.Minutos" placeholder="@(f.Bloqueo ? "60" : "La del servicio, o 30")" required="@f.Bloqueo" />
-                @Html.ValidationMessage("Minutos")
-            </div>
             @if (f.Bloqueo)
             {
+                <div class="fields-2">
+                    <div class="field">
+                        <label for="Dia">Día</label>
+                        <input class="input" id="Dia" name="Dia" type="date" value="@dia" required />
+                        @Html.ValidationMessage("Dia")
+                    </div>
+                    <div class="field">
+                        <label for="Hora">Hora</label>
+                        <input class="input" id="Hora" name="Hora" type="time" step="300" value="@hora" required />
+                        @Html.ValidationMessage("Hora")
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="Minutos">Duración (minutos)</label>
+                    <input class="input" id="Minutos" name="Minutos" type="number" min="5" max="600" step="5" value="@f.Minutos" placeholder="60" required />
+                    @Html.ValidationMessage("Minutos")
+                </div>
                 <div class="field">
                     <label for="Nombre">Motivo</label>
                     <input class="input" id="Nombre" name="Nombre" value="@f.Nombre" maxlength="100" placeholder="Descanso, médico, formación…" />
                     @Html.ValidationMessage("Nombre")
                 </div>
             }
-            else if (Model.Cliente is null)
+            else
             {
-                <div class="fields-2">
+                <div class="field">
+                    <label for="Dia">Día</label>
+                    <input class="input" id="Dia" name="Dia" type="date" value="@dia" required />
+                    @Html.ValidationMessage("Dia")
+                </div>
+                <div class="fields-2 cita-servicio">
                     <div class="field">
-                        <label for="Nombre">Nombre del cliente</label>
-                        <input class="input" id="Nombre" name="Nombre" value="@f.Nombre" maxlength="100" autocomplete="off" />
-                        @Html.ValidationMessage("Nombre")
+                        <label for="ServicioId">Servicio</label>
+                        <select class="input" id="ServicioId" name="ServicioId" data-buscable="Buscar servicio por nombre" data-buscable-vacio="No hay servicios con ese texto.">
+                            <option value="">Sin indicar</option>
+                            @foreach (var s in Model.Servicios)
+                            {
+                                <option value="@s.Id" data-minutos="@s.Minutos" selected="@(f.ServicioId == s.Id)">@s.Nombre@(s.Minutos > 0 ? $" · {s.Minutos} min" : "")</option>
+                            }
+                        </select>
+                        @Html.ValidationMessage("ServicioId")
                     </div>
                     <div class="field">
-                        <label for="Telefono">Teléfono (opcional)</label>
-                        <input class="input" id="Telefono" name="Telefono" type="tel" value="@f.Telefono" maxlength="30" autocomplete="off" />
-                        @Html.ValidationMessage("Telefono")
+                        <label for="Minutos">Duración (minutos)</label>
+                        <input class="input" id="Minutos" name="Minutos" type="number" min="5" max="600" step="5" value="@f.Minutos" placeholder="La del servicio, o 30" />
+                        <p class="field-hint">Se rellena al elegir el servicio; puedes ajustarla.</p>
+                        @Html.ValidationMessage("Minutos")
                     </div>
                 </div>
+                @* Solo se puede elegir una hora libre del horario de apertura; al cambiar día, servicio o duración, nueva-cita.js
+                   pide las horas de nuevo a /admin/agenda/huecos y repinta el selector con este mismo marcado *@
+                var huecos = Model.Dia;
+                <fieldset class="field horas-cita" data-horas data-url-huecos="/admin/agenda/huecos" aria-describedby="horas-resumen">
+                    <legend class="field-label">Hora</legend>
+                    <p class="field-hint" id="horas-resumen" data-horas-resumen>@(huecos is null ? "Elige un día para ver las horas libres." : $"Horas libres para {huecos.Minutos} min el {huecos.Dia:dddd d 'de' MMMM}.")</p>
+                    <div class="horas-grupos" data-horas-grupos>
+                        @if (huecos is not null)
+                        {
+                            var todas = huecos.Horas.Concat(huecos.Ocupadas ?? []).Distinct().Order().ToList();
+                            foreach (var (titulo, grupo) in new[] { ("Mañana", todas.Where(h => h.Hour < 14).ToList()), ("Tarde", todas.Where(h => h.Hour >= 14).ToList()) })
+                            {
+                                if (grupo.Count == 0) { continue; }
+                                <div class="horas-grupo">
+                                    <p class="horas-titulo">@titulo</p>
+                                    <div class="horas-lista">
+                                        @foreach (var h in grupo)
+                                        {
+                                            if (huecos.Horas.Contains(h))
+                                            {
+                                                <label class="hora-chip"><input type="radio" name="Hora" value="@h.ToString("HH:mm")" checked="@(f.Hora == h)" /><span>@h.ToString("HH:mm")</span></label>
+                                            }
+                                            else
+                                            {
+                                                <span class="hora-chip is-ocupada" title="Ocupada"><span>@h.ToString("HH:mm")</span><span class="sr-only">, ocupada</span></span>
+                                            }
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        }
+                    </div>
+                    <p class="horas-vacio" data-horas-vacio hidden="@(huecos is null || huecos.Horas.Count > 0)">No quedan horas libres ese día para esta duración. Prueba otro día o acorta la duración.</p>
+                    @Html.ValidationMessage("Hora")
+                </fieldset>
+                @if (Model.Cliente is null)
+                {
+                    <div class="fields-2" data-campos-sin-ficha>
+                        <div class="field">
+                            <label for="Nombre">Nombre del cliente</label>
+                            <input class="input" id="Nombre" name="Nombre" value="@f.Nombre" maxlength="100" autocomplete="off" />
+                            @Html.ValidationMessage("Nombre")
+                        </div>
+                        <div class="field">
+                            <label for="Telefono">Teléfono (opcional)</label>
+                            <input class="input" id="Telefono" name="Telefono" type="tel" value="@f.Telefono" maxlength="30" autocomplete="off" />
+                            @Html.ValidationMessage("Telefono")
+                        </div>
+                    </div>
+                }
             }
             <div class="field">
                 <label for="Nota">Nota interna (opcional)</label>
@@ -133,13 +199,13 @@
             </div>
         </div>
 
-        @if (Model.Dia is { } d)
+        @if (f.Bloqueo && Model.Dia is { } d)
         {
             <div class="cita-huecos">
-                <p class="field-label">Huecos libres de 30 min el @d.Dia.ToString("dddd d 'de' MMMM")</p>
+                <p class="field-label">Horas libres el @d.Dia.ToString("dddd d 'de' MMMM")</p>
                 @if (d.Horas.Count == 0)
                 {
-                    <p class="section-foot">No quedan huecos dentro del horario de apertura. Puedes anotar la cita igualmente fuera de ese horario si no se solapa.</p>
+                    <p class="section-foot">No quedan horas libres dentro del horario de apertura.</p>
                 }
                 else
                 {
@@ -154,3 +220,14 @@
         </div>
     </form>
 </div>
+
+@section Scripts {
+    @if (!f.Bloqueo)
+    {
+        @if (Model.Cliente is null)
+        {
+            <script src="~/js/combo-clientes.js" asp-append-version="true"></script>
+        }
+        <script src="~/js/nueva-cita.js" asp-append-version="true"></script>
+    }
+}

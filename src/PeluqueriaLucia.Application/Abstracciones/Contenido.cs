@@ -17,6 +17,10 @@ public interface IContenidoRepositorio
     /// <summary>Reseñas paginadas; <paramref name="texto"/> filtra por palabras (LIKE) en nombre, comentario y respuesta.</summary>
     Task<Pagina<Resena>> ResenasAsync(EstadoResena? estado, int pagina, string? texto, CancellationToken ct);
     Task<(int Total, double Media)> ValoracionAsync(CancellationToken ct);
+    /// <summary>Teléfonos de contacto en su orden. Vacío si aún no se han guardado (la web usa entonces el de contenido-publico.json).</summary>
+    Task<IReadOnlyList<TelefonoContacto>> TelefonosAsync(CancellationToken ct);
+    void Agregar(TelefonoContacto telefono);
+    void Eliminar(TelefonoContacto telefono);
 }
 
 public interface IFotosResenas

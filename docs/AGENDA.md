@@ -4,6 +4,8 @@
 
 En `/citas` son obligatorios el móvil español, el correo electrónico, el día, la hora, el consentimiento y la elección de correo o WhatsApp. Se valida el formato; el equipo del salón comprueba la legitimidad contactando con el teléfono. La disponibilidad se comprueba otra vez al guardar, bajo un bloqueo SQL compartido por todas las instancias.
 
+**Para quién y qué cuidado.** «¿Para quién es la cita?» (Hombre, Mujer, Otro) es el sexo de la reserva: el formulario de datos ya no lo pregunta y lo envía en un campo oculto (`Formulario.Sexo`). Es obligatorio; sin elegirlo, la solicitud no sale y se avisa junto a esa pregunta. También filtra la lista: con Hombre o Mujer se ven los servicios de ese público y siempre los unisex (público «Otro»: manicura, maquillaje…); con Otro, todos. Viaja como `?para=` y los enlaces del calendario lo conservan. Al verificar el teléfono con el código del correo, el autocompletado marca la opción de la ficha. La lista se busca escribiendo (`select-buscable.js`, sin mayúsculas ni acentos) y, si el cuidado no está, la última fila ofrece «Preguntar por «lo escrito»». Elegir un cuidado carga su disponibilidad sin pulsar «Ver disponibilidad» (`agenda-publica.js`). Lo escrito viaja como `?otro=` (hasta 80 caracteres, en una sola línea) y la reserva se guarda sin servicio del catálogo, con la duración de una consulta (30 minutos) y el nombre «Consulta: lo escrito», que es lo que ve el salón en la agenda y en los avisos. Sin JavaScript se usa el desplegable de siempre y un campo de texto para la consulta.
+
 La solicitud reserva provisionalmente la duración del servicio durante 24 horas. El administrador valida el teléfono y fija la duración en `/admin/agenda`. «Preparar propuesta» crea un enlace privado y deja la cita pendiente de aceptación; todavía no está confirmada. El enlace caduca a las 24 horas o al comenzar la cita, lo que suceda primero. Un cambio de duración genera una nueva propuesta e invalida el enlace anterior. Las solicitudes y propuestas caducadas dejan de bloquear el horario.
 
 Abrir el enlace no acepta la cita: evita confirmaciones accidentales por lectores automáticos de correo. El cliente revisa servicio, fecha, hora y duración y pulsa «Aceptar cita». El POST exige antifalsificación y comprueba vigencia y disponibilidad en una transacción. La aceptación se registra con fecha UTC, consume el token y cambia a Confirmada. Ni enviar el mensaje ni marcar WhatsApp como enviado equivale a aceptar la cita.
@@ -63,10 +65,11 @@ En `/admin/agenda/horarios` se gestionan tramos y cierres. Revisar el horario in
 
 | Ruta | Función |
 |---|---|
-| GET/POST `/citas` | Solicitud pública, consentimiento, antifalsificación y límites por IP/teléfono |
+| GET/POST `/citas` | Solicitud pública, consentimiento, antifalsificación y límites por IP/teléfono; `?para=Hombre\|Mujer\|Otro` es para quién es la cita y `?otro=` lleva la consulta escrita |
 | GET `/citas/disponibilidad` | Solo horas y duración |
 | GET/POST `/citas/confirmar/{token}` | Revisión y aceptación privada; GET no modifica |
 | GET `/admin/agenda`, `/admin/agenda/avisos` | Panel protegido por sesión con MFA |
+| GET `/admin/agenda/huecos?dia=&minutos=` | Horas libres (y ocupadas) de un día para una cita de esa duración; lo usa el selector de horas de Nueva cita |
 | POST `/admin/agenda/gestionar` | Validación y propuesta con control de versión |
 | ~~POST `/admin/agenda/whatsapp-enviado`~~ (ahora en Comunicaciones) | Registro manual del envío, sin aceptar la cita |
 | POST `/admin/comunicaciones/texto` | Guarda el texto retocado de un aviso aún no enviado |
@@ -101,20 +104,20 @@ Nuevo cliente comienza por teléfono y correo. Su coincidencia exacta reconoce u
 
 El formulario exige teléfono, correo, nombre o apodo, apellidos y sexo (Mujer, Hombre u Otro). Apellidos y sexo se conservan en la solicitud y se copian a una nueva ficha pendiente de revisar únicamente después de aceptar la cita. No sobrescriben fichas existentes.
 
-Conocer un teléfono no autoriza a consultar datos de clientes: al salir del campo se solicita un código enviado exclusivamente al correo ya guardado en una ficha inequívoca. La respuesta nunca confirma si ese teléfono existe ni indica el correo destinatario. Introducir el código correcto permite autocompletar nombre, apellidos, correo y sexo. Un teléfono ambiguo o sin correo requiere rellenar los datos manualmente.
+Conocer un teléfono o un correo no autoriza a consultar datos de clientes. Al salir del móvil o del correo, en cuanto los dos son válidos, se pide **un** código (`POST /citas/contacto/solicitar` con `telefono` y `correo`): el servidor busca una ficha inequívoca por el móvil y, si no la hay, por el correo (así se reconoce también a quien ha cambiado de móvil), y el código va exclusivamente al correo guardado en esa ficha, con la plantilla de la peluquería. La respuesta es siempre un identificador: nunca confirma si el contacto existe ni indica el correo destinatario. Al teclear la sexta cifra se verifica solo y se rellenan nombre, apellidos, correo y «¿Para quién es la cita?»; el móvil escrito se respeta. Cambiar después el móvil quita lo rellenado. Un contacto ambiguo o sin correo requiere rellenar los datos manualmente. Rellenar con solo escribir un teléfono o un correo, sin código, expondría datos personales de los clientes a cualquiera: no se hace.
 
 El autocompletado se habilita cuando el transporte SMTP esté configurado y activado. Mientras tanto el formulario funciona con entrada manual. La biblioteca independiente Comunicaciones.Correo sigue siendo el transporte; VerificacionContactoService contiene las reglas y el proceso existente de correo atiende también esta cola.
 
-Cada desafío caduca a los diez minutos, admite cinco intentos y es de un solo uso. Solicitar otro código invalida el anterior. Se limitan las solicitudes por IP y por teléfono; los códigos y la clave utilizada en su hash se cifran con Data Protection. Los endpoints son POST con antifalsificación y respuestas sin caché. Un cambio del contacto registrado invalida la verificación. Los resultados de envío inciertos no se reintentan automáticamente. No hay envíos de SMS ni consulta pública de fichas sin verificación.
+Cada desafío caduca a los diez minutos, admite cinco intentos y es de un solo uso. Solicitar otro código invalida el anterior. Se limitan las solicitudes por IP, por teléfono y por correo de destino (tres códigos por hora); los códigos y la clave utilizada en su hash se cifran con Data Protection. Los endpoints son POST con antifalsificación y respuestas sin caché. Un cambio del contacto registrado invalida la verificación. Los resultados de envío inciertos no se reintentan automáticamente. No hay envíos de SMS ni consulta pública de fichas sin verificación.
 
 La migración DatosClienteYVerificacionPublica amplía Nombre sin recortar datos y añade Apellido, Sexo y VerificacionesContacto. Las reservas históricas conservan su información anterior y las columnas nuevas vacías; se completan desde administración, sin inventar datos personales.
 
 
 ## Citas del salón, bloqueos y confirmación directa
 
-**Nueva cita** (`/admin/agenda/nueva`) anota las citas dadas por teléfono o en persona. Se busca la ficha por nombre, teléfono o correo; si no tiene ficha basta con un nombre y, opcionalmente, un teléfono (se admiten fijos). Nace confirmada, no envía avisos y se marca «Dada en el salón». La duración por defecto es la del servicio (o 30 minutos). Puede quedar fuera del horario público (horas extra), pero no puede solaparse con otra cita ni caer en un día cerrado.
+**Nueva cita** (`/admin/agenda/nueva`) anota las citas dadas por teléfono o en persona. Se busca la ficha por nombre, teléfono o correo; si no tiene ficha basta con un nombre y, opcionalmente, un teléfono (se admiten fijos). Nace confirmada, no envía avisos y se marca «Dada en el salón». Al elegir el servicio su duración se escribe sola en «Duración» (se puede ajustar; sin servicio vale 30 minutos). La hora **solo se elige entre las libres**: el selector muestra, por mañana y tarde, las horas de inicio del horario de apertura en las que cabe esa duración sin solaparse con otra cita, desde ahora en adelante; las que pisan otra cita salen tachadas y no se pueden elegir. Al cambiar el día, el servicio o la duración, `nueva-cita.js` pide las horas otra vez a `GET /admin/agenda/huecos?dia=AAAA-MM-DD&minutos=N` y avisa si la hora que estaba elegida ya no cabe. El servidor repite la comprobación al guardar («Elige una de las horas libres de ese día.»), así que no se puede anotar una hora fuera del horario ni en un día cerrado o pasado. Las horas extra fuera del horario, si alguna vez hacen falta, se abren ampliando el horario de ese día en **Horarios**.
 
-**Bloquear tiempo** reserva un rato sin cliente (descanso, médico, formación). La web deja de ofrecer esas horas; «Quitar bloqueo» las libera.
+**Bloquear tiempo** reserva un rato sin cliente (descanso, médico, formación). Su hora se escribe libremente, porque no es una cita, pero tampoco puede solaparse con otra. La web deja de ofrecer esas horas; «Quitar bloqueo» las libera.
 
 En una solicitud de la web, **Confirmar ya (acordada por teléfono)** confirma la cita sin esperar al enlace de aceptación, una vez validado el teléfono. Crea o vincula la ficha igual que la aceptación y deja en Comunicaciones un aviso informativo sin enlace. También sirve para reservas antiguas sin correo.
 
@@ -126,32 +129,45 @@ La migración `OrigenDeLasCitas` añade la columna `Origen` a `ReservasCitas` (0
 
 `/admin/agenda` es un calendario mensual: cada día muestra cuántas citas tiene (abiertas, completadas, canceladas y bloqueos) y los días de cierre. Al pulsar un día se ven sus citas a la derecha, con el filtro **Abiertas · Canceladas · Completadas · Todas** (`?dia=AAAA-MM-DD&estado=…`). Las solicitudes pendientes de otros días se listan debajo. Una cita cerrada (cancelada, rechazada, no presentada o caducada) se puede **eliminar de la agenda** con sus avisos; una cita con falta registrada se conserva como historial.
 
-`/admin/comunicaciones` reúne los avisos a clientes, fuera de la agenda: **Pendientes · Enviados · Todos**. Cada aviso pendiente se muestra con su texto en un cuadro editable:
+`/admin/comunicaciones` reúne los avisos a clientes, fuera de la agenda: **Pendientes · Enviados · Todos**. Arriba, un buscador filtra mientras se escribe por destinatario o texto del aviso (`?q=`), sin distinguir mayúsculas ni acentos; los tres filtros conservan la búsqueda. Cada aviso pendiente se muestra con su texto en un cuadro editable:
 
 - **Correo:** «Enviar correo» lo manda en ese momento con el texto que haya en el cuadro (el enlace de aceptación se añade solo, al final, y no se edita); «Guardar sin enviar» solo conserva el cambio. Los correos **no salen solos**: esperan a esta revisión. Si se prefiere el envío automático de antes, se activa con `PELUQUERIA_CORREO_AUTOMATICO=true` y la cola los manda cada 15 segundos.
 - **WhatsApp:** «Guardar texto» actualiza el mensaje y el botón «Abrir en WhatsApp» lo lleva al teléfono; después, «Ya lo he enviado en WhatsApp».
 - Un correo rechazado por el servidor queda editable para reenviarlo. Un envío incierto no se repite desde la app.
 
-## Correo con Gmail en producción
+## Plantilla de los avisos
 
-La cuenta de envío es `luciaespina.p.e@gmail.com`. Gmail no admite la contraseña normal desde aplicaciones: hay que crear una **contraseña de aplicación**, y para eso la cuenta necesita la verificación en dos pasos.
+Los avisos hablan en nombre de la peluquería, no «del equipo»: «Tu cita en Lucía Peluquería Ecológica queda confirmada el viernes 16 de octubre a las 15:00, para…», con los teléfonos de **Contacto de la web** para cambios («llámanos al 659 306 659 o al 985 757 692»), también en WhatsApp. Una solicitud sin servicio se guarda como «Consulta en la peluquería».
 
-1. Entra en https://myaccount.google.com/security con esa cuenta → **Verificación en dos pasos** → actívala (con el móvil del salón).
-2. En https://myaccount.google.com/apppasswords → nombre `Peluquería web` → **Crear**. Google enseña una contraseña de 16 letras una sola vez: cópiala sin espacios.
-3. Guarda la configuración como secreto en Key Vault, desde tu PC (sustituye la contraseña):
+El correo usa `PlantillaCorreoCita` (HTML de correo con tablas y estilos en línea, que respetan Gmail, Outlook y Apple Mail): cabecera morada con el logo incrustado (`cid:`, se ve aunque el lector bloquee imágenes externas), el texto revisado en Comunicaciones, una ficha con día, hora, servicio y dirección (con enlace al mapa), el botón que corresponda («Revisar y aceptar mi cita» en una propuesta, «Llamar al…» si se ha cancelado), los teléfonos para cambios y un pie con los datos del salón. El asunto cambia con el tipo de aviso: «Tu cita en Lucía Peluquería Ecológica está confirmada», «Tu propuesta de cita en…», «Sobre tu solicitud de cita en…». Va también en texto plano, con el enlace y el contacto al final. Nombre, dirección y mapa salen de `contenido-publico.json`; el logo, de `wwwroot/Img/Icono.jpg`.
+
+## Correo con Gmail en producción y en desarrollo
+
+La cuenta de envío es `luciaespina.p.e@gmail.com`. Gmail no admite la contraseña normal desde aplicaciones: hace falta una **contraseña de aplicación**, y para eso la cuenta necesita la verificación en dos pasos (https://myaccount.google.com/security, con el móvil del salón).
+
+Hay **dos contraseñas de aplicación**, creadas en https://myaccount.google.com/apppasswords: `Peluqueria Prod` para la Web App y `Peluqueria Dev` para el PC de desarrollo. Así se puede revocar una sin romper la otra, y la de producción nunca está en un PC. Google enseña cada una una sola vez, en bloques de cuatro letras; los espacios no forman parte de ella.
+
+**Producción.** Se hace desde tu PC, no en el servidor: en una terminal, en la carpeta del proyecto y con la sesión de Azure abierta (`az login`), ejecuta el script. No depende de publicar: la versión que esté en la Web App ya lee el secreto de Key Vault, así que el correo funciona en cuanto termina. El script pide la contraseña `Peluqueria Prod` oculta, la guarda en Key Vault (secreto `correo-smtp`), desactiva las versiones anteriores y reinicia la Web App, porque las referencias a Key Vault se guardan en caché:
 
 ```powershell
-az keyvault secret set --vault-name kv-lucia-peluqueria --name correo-smtp --value '{"Servidor":"smtp.gmail.com","Puerto":587,"Seguridad":"StartTls","Usuario":"luciaespina.p.e@gmail.com","Contrasena":"xxxxxxxxxxxxxxxx","Remitente":"luciaespina.p.e@gmail.com","NombreRemitente":"Lucía Peluquería Ecológica"}'
+powershell -ExecutionPolicy Bypass -File scripts/actualizar-correo-azure.ps1
 ```
 
-4. En la Web App → **Variables de entorno**, añade:
+La Web App lee el secreto con su identidad (rol *Key Vault Secrets User*) a través de estas variables de entorno, que ya están puestas:
 
 | Nombre | Valor |
 |---|---|
 | `PELUQUERIA_CORREO_SMTP` | `@Microsoft.KeyVault(SecretUri=https://kv-lucia-peluqueria.vault.azure.net/secrets/correo-smtp/)` |
 | `PELUQUERIA_CORREO_ACTIVO` | `true` |
 
-   La Web App ya tiene el rol *Key Vault Secrets User*, así que lee el secreto con su identidad; el panel pasa de «Correo pendiente de configurar» a «Correo configurado» sin reiniciar nada más.
-5. Prueba: gestiona una cita de prueba con tu propio correo, ve a **Comunicaciones** y pulsa «Enviar correo». El remitente que verá el cliente es la cuenta de Gmail.
+**Desarrollo.** Con la depuración parada (el comando compila en `bin\Debug`), guarda `Peluqueria Dev` en el almacén de credenciales de Windows, cifrada para tu usuario y fuera del repositorio:
 
-Límites de Gmail: unos 500 correos al día por cuenta, de sobra para el salón. Si Google revoca la contraseña de aplicación (cambio de contraseña de la cuenta, por ejemplo), crea otra y actualiza el secreto con el mismo comando; la Web App la recoge en unos minutos.
+```powershell
+dotnet run --project src/PeluqueriaLucia.Web -- configurar-correo
+```
+
+Respuestas: `smtp.gmail.com`, `587`, `StartTls`, `luciaespina.p.e@gmail.com`, la contraseña (oculta, con o sin espacios) y otra vez `luciaespina.p.e@gmail.com`. Los perfiles `http` y `https` de `launchSettings.json` ya activan el correo (`PELUQUERIA_CORREO_ACTIVO=true`) y dan una URL pública para los enlaces de aceptación (`PELUQUERIA_URL_PUBLICA=https://localhost:7178/`, que solo responde con el perfil `https`). Sin la credencial guardada no se envía nada. **Cuidado:** la base local tiene clientes reales y «Enviar correo» les escribe de verdad; prueba solo con avisos dirigidos a tu propio correo. Las pruebas automáticas sustituyen el envío por uno falso.
+
+**Comprobar.** Gestiona una cita de prueba con tu propio correo, ve a **Comunicaciones** y pulsa «Enviar correo». Si el panel dice «El servidor de correo ha rechazado el envío», Gmail no acepta la contraseña (revocada, mal copiada o sin verificación en dos pasos): crea otra y repite el paso del entorno afectado.
+
+Límites de Gmail: unos 500 correos al día por cuenta, de sobra para el salón. Cambiar la contraseña de la cuenta de Google revoca todas las contraseñas de aplicación: después hay que crear y guardar las dos de nuevo.

@@ -85,8 +85,25 @@ public sealed class AgendaController(IAgendaService agenda, ClientesAgendaServic
     {
         var cliente = f.ClienteId is { } id ? await clientes.ObtenerAsync(id, ct) : null;
         var encontrados = string.IsNullOrWhiteSpace(q) ? [] : await clientes.SugerirAsync(q, ct);
-        var dia = f.Dia is { } d ? await agenda.DisponibilidadAsync(d, null, ct) : null;
-        return new(f, cliente, q, encontrados, await agenda.ServiciosPanelAsync(ct), dia);
+        var servicios = await agenda.ServiciosPanelAsync(ct);
+        // Las horas libres dependen de la duración: la escrita, la del servicio elegido o media hora
+        var minutos = f.Minutos ?? servicios.FirstOrDefault(s => s.Id == f.ServicioId && s.Minutos > 0)?.Minutos ?? (f.Bloqueo ? 60 : 30);
+        var dia = f.Dia is { } d ? await agenda.HuecosPanelAsync(d, minutos, ct) : null;
+        return new(f, cliente, q, encontrados, servicios, dia);
+    }
+
+    /// <summary>Horas libres de un día para una cita de esa duración (selector de horas de «Nueva cita»).</summary>
+    [HttpGet("/admin/agenda/huecos")]
+    public async Task<IActionResult> Huecos(DateOnly dia, int minutos, CancellationToken ct)
+    {
+        var huecos = await agenda.HuecosPanelAsync(dia, minutos, ct);
+        return Json(new
+        {
+            dia = huecos.Dia.ToString("yyyy-MM-dd"),
+            minutos = huecos.Minutos,
+            horas = huecos.Horas.Select(h => h.ToString("HH:mm")),
+            ocupadas = (huecos.Ocupadas ?? []).Select(h => h.ToString("HH:mm")),
+        });
     }
     [HttpGet("/admin/agenda/horarios")]
     public async Task<IActionResult> Horarios(CancellationToken ct) => View(new HorariosPagina(await agenda.HorariosAsync(ct),await agenda.CierresAsync(ct),agenda.Hoy));

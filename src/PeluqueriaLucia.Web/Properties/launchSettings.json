@@ -17,7 +17,9 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "ASPNETCORE_HOSTINGSTARTUPEXCLUDEASSEMBLIES": "Microsoft.WebTools.BrowserLink.Net;Microsoft.VisualStudio.Web.BrowserLink;Microsoft.AspNetCore.Watch.BrowserRefresh",
-        "DOTNET_WATCH_SUPPRESS_BROWSER_REFRESH": "true"
+        "DOTNET_WATCH_SUPPRESS_BROWSER_REFRESH": "true",
+        "PELUQUERIA_CORREO_ACTIVO": "true",
+        "PELUQUERIA_URL_PUBLICA": "https://localhost:7178/"
       }
     },
     "https": {
@@ -28,7 +30,9 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "ASPNETCORE_HOSTINGSTARTUPEXCLUDEASSEMBLIES": "Microsoft.WebTools.BrowserLink.Net;Microsoft.VisualStudio.Web.BrowserLink;Microsoft.AspNetCore.Watch.BrowserRefresh",
-        "DOTNET_WATCH_SUPPRESS_BROWSER_REFRESH": "true"
+        "DOTNET_WATCH_SUPPRESS_BROWSER_REFRESH": "true",
+        "PELUQUERIA_CORREO_ACTIVO": "true",
+        "PELUQUERIA_URL_PUBLICA": "https://localhost:7178/"
       }
     },
     "IIS Express": {
@@ -37,7 +41,9 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "ASPNETCORE_HOSTINGSTARTUPEXCLUDEASSEMBLIES": "Microsoft.WebTools.BrowserLink.Net;Microsoft.VisualStudio.Web.BrowserLink;Microsoft.AspNetCore.Watch.BrowserRefresh",
-        "DOTNET_WATCH_SUPPRESS_BROWSER_REFRESH": "true"
+        "DOTNET_WATCH_SUPPRESS_BROWSER_REFRESH": "true",
+        "PELUQUERIA_CORREO_ACTIVO": "true",
+        "PELUQUERIA_URL_PUBLICA": "https://localhost:7178/"
       }
     }
   }

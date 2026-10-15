@@ -96,7 +96,7 @@ test('los enlaces de esta web lo activan; las anclas, las descargas, otros sitio
   assert.equal(p.Cargando.activas(), 0);
 });
 
-test('enviar un formulario lo activa y marca el botón pulsado; volver desde el historial lo retira todo', () => {
+test('enviar un formulario lo activa y el botón pulsado gira a la vez que la barra; volver desde el historial lo retira todo', () => {
   const p = pagina();
   const clases = new Set();
   const boton = { classList: { add: (c) => clases.add(c), remove: (c) => clases.delete(c) }, setAttribute() {}, removeAttribute() {} };
@@ -106,6 +106,8 @@ test('enviar un formulario lo activa y marca el botón pulsado; volver desde el 
   evento.submitter = boton;
   p.documento.dispatchEvent(evento);
   assert.equal(p.Cargando.activas(), 1);
+  assert.ok(!clases.has('is-cargando'), 'una respuesta rápida no hace parpadear el botón');
+  p.avanzar(150);
   assert.ok(clases.has('is-cargando'));
   p.ventana.dispatchEvent(new Event('pageshow'));
   assert.equal(p.Cargando.activas(), 0);

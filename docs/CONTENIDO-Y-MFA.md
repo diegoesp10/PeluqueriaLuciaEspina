@@ -28,6 +28,12 @@ Las categorías conservan su identificador de enlace al renombrarlas; no se pued
 
 Al seleccionar un servicio en **Nueva visita**, aparece el importe aplicable a esa visita. Puede ajustarse sin cambiar el precio del catálogo. Un servicio por definir puede tener precio de catálogo cero, pero requiere un importe positivo para registrar la visita. Cada línea guarda su nombre y precio históricos; editar, retirar o archivar el servicio no cambia tickets anteriores. Archivar un servicio lo oculta también de la web.
 
+## Teléfonos de contacto
+
+**Contacto de la web** (`/admin/contacto`, en el menú del panel) guarda de uno a cuatro teléfonos, en orden. La web los enseña todos (tarjeta de contacto de la portada, menú del móvil, pie, privacidad y datos para Google, que usan el primero) en línea y, si no caben, uno debajo de otro; también firman los avisos de las citas («llámanos al 659 306 659 o al 985 757 692») y el pie del correo. Se escriben con espacios si se quiere; se aceptan entre 9 y 15 cifras y, sin prefijo, se entienden de España (`tel:+34…`). Mientras no se guarde ninguno se usa el `Telefono` de `contenido-publico.json`, así que aplicar la migración no cambia nada visible.
+
+Están en la tabla `TelefonosContacto` (migración `TelefonosDeContacto`, solo crea la tabla). Si el código llega a producción antes que la migración, la web sigue con el teléfono de `contenido-publico.json` en lugar de fallar. La lista se guarda 10 minutos en memoria (la pide cada página) y se renueva al momento al guardar desde el panel.
+
 ## Opiniones con ticket
 
 Al abrir un ticket cobrado se genera un código aleatorio de 128 bits, válido durante seis meses desde la emisión del código. Las reimpresiones conservan el mismo código, incluso simultáneas. SQL conserva un hash para verificarlo y una copia cifrada para reimprimirlo. Un ticket admite una sola opinión y no vuelve a habilitarse si esta se rechaza. Los tickets pendientes no habilitan opiniones.
@@ -53,6 +59,7 @@ Las fotos admiten JPG, PNG y WebP, hasta 5 MB y 20 megapíxeles. Se decodifican 
 | POST `/admin/Tratamientos/Eliminar/{id}` | Retira la publicación conservando el servicio; sesión MFA y CSRF |
 | GET `/admin/Tratamientos/Categorias`, GET/POST `/Categoria/{id?}` | Gestión de categorías protegida |
 | POST `/admin/Tratamientos/EliminarCategoria/{id}` | Categoría vacía; sesión MFA y CSRF |
+| GET/POST `/admin/contacto` | Teléfonos de contacto de la web y de los avisos; sesión MFA y POST con CSRF |
 | GET/POST `/opiniones` | Listado/formulario; POST con CSRF, ticket y 6 intentos/hora/IP |
 | GET `/opiniones/foto/{guid}` | Solo foto de opinión publicada |
 | GET `/admin/Resenas`, GET `/admin/Resenas/Foto/{guid}` | Revisión y fotos privadas; sesión MFA |

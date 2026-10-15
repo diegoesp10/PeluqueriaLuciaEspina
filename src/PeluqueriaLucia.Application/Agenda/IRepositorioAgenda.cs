@@ -14,6 +14,8 @@ public interface IRepositorioAgenda
     void Quitar<T>(T entidad) where T : class;
     Task<T> ExclusivoAsync<T>(Func<Task<T>> accion, CancellationToken ct);
     Task<List<PeluqueriaLucia.Domain.Clientes.Cliente>> ClientesPorContactoAsync(string telefono, string correo, CancellationToken ct);
+    /// <summary>Fichas cuyo correo coincide exactamente (sin mayúsculas ni espacios), para reconocer al cliente por su correo.</summary>
+    Task<List<PeluqueriaLucia.Domain.Clientes.Cliente>> ClientesPorCorreoAsync(string correo, CancellationToken ct);
     Task<List<ReservaCita>> CitasConClientesAsync(Expression<Func<ReservaCita, bool>> filtro, CancellationToken ct);
     Task<DateTime?> UltimaSolicitudAsync(CancellationToken ct);
     Task<IReadOnlyList<MensajeCita>> UltimosMensajesAsync(CancellationToken ct);

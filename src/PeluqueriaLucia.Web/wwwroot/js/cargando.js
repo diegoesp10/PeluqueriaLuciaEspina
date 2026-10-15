@@ -14,11 +14,13 @@
   let plazoTarjeta = null;
   let plazoTope = null;
   let elemento = null;
+  // Botones pulsados que esperan: su giro aparece con la barra, no antes, para que un cambio rápido no parpadee
+  const botonesEsperando = new Set();
 
   const hoja =
     '<svg class="cargando-hoja" viewBox="0 0 200 320" aria-hidden="true" focusable="false">' +
     '<path d="M100 8C40 70 18 150 40 222c14 46 42 78 60 90 18-12 46-44 60-90C182 150 160 70 100 8Z" fill="currentColor"/>' +
-    '<path d="M100 30v280M100 110l-34-30M100 150l38-34M100 196l-44-36M100 236l46-38" fill="none" stroke="#183a35" stroke-width="10" stroke-linecap="round"/>' +
+    '<path d="M100 30v280M100 110l-34-30M100 150l38-34M100 196l-44-36M100 236l46-38" class="cargando-vena" fill="none" stroke-width="10" stroke-linecap="round"/>' +
     '</svg>';
 
   const texto = () => (document.documentElement.lang === 'en' ? 'Loading…' : 'Cargando…');
@@ -40,6 +42,7 @@
     const e = crear();
     e.hidden = false;
     if (!(nivel === 'barra' && e.dataset.nivel === 'tarjeta')) e.dataset.nivel = nivel;
+    botonesEsperando.forEach((boton) => boton.classList.add('is-cargando'));
   }
 
   function limpiar() {
@@ -66,10 +69,11 @@
       elemento.hidden = true;
       delete elemento.dataset.nivel;
     }
-    document.querySelectorAll('.btn.is-cargando').forEach((boton) => {
+    [...botonesEsperando, ...document.querySelectorAll('.btn.is-cargando')].forEach((boton) => {
       boton.classList.remove('is-cargando');
       boton.removeAttribute('aria-busy');
     });
+    botonesEsperando.clear();
   }
 
   // ── Llamadas al servidor: cualquier fetch, salvo las silenciosas ──
@@ -120,7 +124,7 @@
     if (evento.defaultPrevented || !form || (form.target && form.target !== '_self') || form.hasAttribute?.('data-sin-cargando')) return;
     const boton = evento.submitter;
     if (boton && boton.classList) {
-      boton.classList.add('is-cargando');
+      botonesEsperando.add(boton);
       boton.setAttribute('aria-busy', 'true');
     }
     iniciarNavegacion();

@@ -120,44 +120,6 @@
   gap: 14px;
 }
 
-.combo {
-  position: relative;
-}
-
-.search-full {
-  max-width: none;
-}
-
-.search-full > .input {
-  min-height: 44px;
-  font-size: 16px;
-}
-
-.combo-lista {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  left: 0;
-  z-index: 10;
-  max-height: 340px;
-  overflow-y: auto;
-  box-shadow: var(--glass-shadow), var(--card-edge);
-  animation: pop-in 0.2s var(--ease);
-}
-
-.combo-lista .row {
-  cursor: pointer;
-}
-
-.combo-lista .row[aria-selected='true'] {
-  background: color-mix(in oklab, var(--accent) 12%, transparent);
-}
-
-.combo-lista .row-vacia {
-  color: var(--label-2);
-  cursor: default;
-}
-
 .servicio-opcion {
   cursor: pointer;
 }
@@ -385,7 +347,7 @@
 .form-pagina .form { max-width: none; }
 .nueva-visita { width: min(100%, 960px); margin-inline: auto; }
 .nueva-visita .form-ancho { max-width: none; }
-@media (min-width:901px) { .barra-total { padding-inline:max(40px,calc((100vw - var(--sidebar-w) - 960px) / 2)); } }
+@media (min-width:901px) { .barra-total { padding-inline:max(40px,calc((100% - var(--sidebar-w) - 960px) / 2)); } }
 .main > .form { margin-inline: auto; }
 .resena-card form { display:grid; gap:16px; }
 
@@ -404,3 +366,29 @@
 .resenas-filtros { margin-bottom: 28px; }
 .resenas-filtros .segmented > a { padding-inline: 18px; }
 @media (max-width: 560px) { .orden-fila { flex-wrap: wrap; } .orden-flechas { margin-left: auto; } }
+
+/* ── Selector de horas de «Nueva cita» (nueva-cita.js): solo horas libres; las ocupadas se ven tachadas.
+   Ningún estado cambia el tamaño de un botón: elegir una hora no mueve nada. ── */
+.horas-cita { min-width: 0; margin: 0; padding: 0; border: 0; }
+.horas-cita > legend { padding: 0; }
+.horas-grupos { display: grid; gap: 16px; min-height: 52px; margin-top: 12px; transition: opacity .15s; }
+.horas-cita.is-cargando .horas-grupos { opacity: .45; pointer-events: none; }
+.horas-titulo { margin: 0 0 8px; color: var(--label-2); font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+.horas-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 8px; }
+.hora-chip { position: relative; display: grid; place-items: center; min-height: 44px; padding: 0 8px; border: 1px solid var(--separator); border-radius: 12px; background: var(--surface); color: var(--label); font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; cursor: pointer; transition: background .15s, border-color .15s, box-shadow .15s, color .15s; }
+.hora-chip input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+.hora-chip:hover { border-color: var(--olive); background: var(--fill); }
+.hora-chip:has(input:checked) { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); box-shadow: 0 6px 16px rgb(59 31 99 / .22); }
+.hora-chip:has(input:focus-visible) { outline: 3px solid var(--olive); outline-offset: 2px; }
+.hora-chip.is-ocupada { border-style: dashed; background: transparent; color: var(--label-3); font-weight: 500; cursor: not-allowed; }
+.hora-chip.is-ocupada > span:first-child { text-decoration: line-through; }
+.horas-vacio { margin: 12px 0 0; padding: 14px 16px; border-radius: 14px; background: var(--fill); color: var(--label-2); }
+
+/* ── «Contacto de la web»: una fila por teléfono (icono, número y «Quitar») ── */
+.telefonos-editor { min-width: 0; margin: 0; padding: 0; border: 0; }
+.telefonos-editor > legend { padding: 0; }
+.telefonos-lista { display: grid; gap: 10px; margin: 12px 0 8px; }
+.telefono-fila { display: flex; align-items: center; gap: 10px; }
+.telefono-icono { display: grid; flex: none; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--fill); color: var(--accent); }
+.telefono-fila .input { flex: 1 1 auto; min-width: 0; max-width: 360px; font-size: 16px; font-variant-numeric: tabular-nums; }
+.telefonos-anadir { justify-self: start; margin-top: 6px; }

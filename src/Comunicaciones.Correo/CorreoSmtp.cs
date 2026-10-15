@@ -9,7 +9,9 @@ namespace Comunicaciones.Correo;
 public enum SeguridadSmtp { StartTls, Tls }
 public sealed record ConfiguracionSmtp(string Servidor, int Puerto, SeguridadSmtp Seguridad, string Usuario,
     string Contrasena, string Remitente, string NombreRemitente);
-public sealed record CorreoSaliente(string Destinatario, string Asunto, string Texto, string? Html = null);
+/// <summary>Imagen que va dentro del correo y se cita en el HTML como «cid:Id» (el logo): se ve aunque el lector bloquee las imágenes externas.</summary>
+public sealed record ImagenIncrustada(string Id, string NombreFichero, byte[] Datos, string TipoMime);
+public sealed record CorreoSaliente(string Destinatario, string Asunto, string Texto, string? Html = null, IReadOnlyList<ImagenIncrustada>? Imagenes = null);
 public enum ResultadoEnvio { Aceptado, Rechazado, Incierto }
 public interface IConfiguracionSmtp { ConfiguracionSmtp? Obtener(); }
 public interface IEnviadorCorreo
@@ -21,6 +23,20 @@ public interface IEnviadorCorreo
 /// <summary>Transporte SMTP reutilizable. No conoce reservas, base de datos ni configuración del anfitrión.</summary>
 public sealed class EnviadorCorreoSmtp(IConfiguracionSmtp configuracion) : IEnviadorCorreo
 {
+    /// <summary>Mensaje MIME: texto plano y HTML alternativos; las imágenes incrustadas van con su Content-Id.</summary>
+    public static MimeMessage Construir(ConfiguracionSmtp c, CorreoSaliente correo, MailboxAddress destino)
+    {
+        var mensaje = new MimeMessage();
+        mensaje.From.Add(new MailboxAddress(c.NombreRemitente, c.Remitente)); mensaje.To.Add(destino);
+        mensaje.Subject = correo.Asunto;
+        var cuerpo = new BodyBuilder { TextBody = correo.Texto, HtmlBody = correo.Html };
+        if (correo.Html is not null)
+            foreach (var imagen in correo.Imagenes ?? [])
+                cuerpo.LinkedResources.Add(imagen.NombreFichero, imagen.Datos, ContentType.Parse(imagen.TipoMime)).ContentId = imagen.Id;
+        mensaje.Body = cuerpo.ToMessageBody();
+        return mensaje;
+    }
+
     public bool Configurado => configuracion.Obtener() is { } c && EsValida(c);
     public static bool EsValida(ConfiguracionSmtp c) => !string.IsNullOrWhiteSpace(c.Servidor) &&
         c.Servidor.Length <= 253 && !c.Servidor.Any(char.IsWhiteSpace) && c.Puerto is > 0 and <= 65535 &&
@@ -33,10 +49,7 @@ public sealed class EnviadorCorreoSmtp(IConfiguracionSmtp configuracion) : IEnvi
         if (c is null || !EsValida(c)) return ResultadoEnvio.Rechazado;
         if (!MailboxAddress.TryParse(correo.Destinatario, out var destino) || destino.Address != correo.Destinatario ||
             correo.Asunto.Any(ch => ch is '\r' or '\n')) return ResultadoEnvio.Rechazado;
-        var mensaje = new MimeMessage();
-        mensaje.From.Add(new MailboxAddress(c.NombreRemitente, c.Remitente)); mensaje.To.Add(destino);
-        mensaje.Subject = correo.Asunto;
-        mensaje.Body = new BodyBuilder { TextBody = correo.Texto, HtmlBody = correo.Html }.ToMessageBody();
+        var mensaje = Construir(c, correo, destino);
         using var cliente = new SmtpClient { Timeout = 20000 };
         var enviando = false;
         try

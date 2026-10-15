@@ -1,4 +1,5 @@
 @model ContenidoPublico
+@inject TelefonosPublicos TelefonosContacto
 @{
     ViewData["Title"] = "Política de privacidad";
     ViewData["Descripcion"] = "Cómo trata Lucía Peluquería Ecológica tus datos al pedir cita, dejar una opinión o visitar la web.";
@@ -19,7 +20,8 @@
             <ul>
                 <li><strong>Titular:</strong> @Model.TitularVisible@(string.IsNullOrWhiteSpace(Model.Nif) ? "" : $" · NIF {Model.Nif}")</li>
                 <li><strong>Dirección:</strong> @Model.Direccion, @Model.CodigoPostal @Model.Ciudad (España)</li>
-                <li><strong>Teléfono:</strong> <a href="@Model.TelefonoEnlace">@Model.Telefono</a></li>
+                @{ var telefonos = await TelefonosContacto.ListarAsync(); }
+                <li><strong>@(telefonos.Count > 1 ? "Teléfonos" : "Teléfono"):</strong> @for (var i = 0; i < telefonos.Count; i++) { if (i > 0) { <text> · </text> } <a href="@telefonos[i].Enlace">@telefonos[i].Numero</a> }</li>
                 @if (!string.IsNullOrWhiteSpace(Model.Correo)) { <li><strong>Correo:</strong> <a href="mailto:@Model.Correo">@Model.Correo</a></li> }
             </ul>
             <p>Tratamos los datos conforme al Reglamento (UE) 2016/679 (RGPD) y a la Ley Orgánica 3/2018 de Protección de Datos Personales y garantía de los derechos digitales (LOPDGDD).</p>

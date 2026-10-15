@@ -13,7 +13,7 @@ public sealed class AgendaWebTests
     {
         await using var bd=await BaseDeDatosPrueba.CrearAsync();await using var fabrica=new FabricaWeb(bd.Cadena);using var navegador=fabrica.Cliente();
         await using var db=bd.Contexto();var cliente=PeluqueriaLucia.Domain.Clientes.Cliente.Crear("Ana privada","Apellidos privados","privado@example.test","+34612345678",PeluqueriaLucia.Domain.Comun.Sexo.Mujer,DateTime.UtcNow);db.Add(cliente);await db.SaveChangesAsync();
-        var html=await navegador.GetStringAsync("/citas");Assert.Contains("Apellidos",html);Assert.Contains("sexo-agenda-Mujer",html);Assert.Contains("sexo-agenda-Hombre",html);Assert.Contains("sexo-agenda-Otro",html);
+        var html=await navegador.GetStringAsync("/citas");Assert.Contains("Apellidos",html);Assert.Contains("name=\"para\" value=\"Mujer\"",html);Assert.Contains("name=\"para\" value=\"Hombre\"",html);Assert.Contains("name=\"para\" value=\"Otro\"",html);Assert.Contains("data-sexo-cita",html);
         Assert.DoesNotContain("Ana privada",html);Assert.DoesNotContain("privado@example.test",html);
         var token=WebUtility.HtmlDecode(Regex.Match(html,"name=\"__RequestVerificationToken\"[^>]*value=\"([^\"]+)\"").Groups[1].Value);
         Assert.Equal(HttpStatusCode.BadRequest,(await navegador.PostAsync("/citas/contacto/solicitar",new FormUrlEncodedContent(new Dictionary<string,string>{["telefono"]="612345678"}))).StatusCode);
@@ -28,6 +28,9 @@ public sealed class AgendaWebTests
         var datos=new Dictionary<string,string>{["id"]=id.ToString(),["codigo"]=codigo,["__RequestVerificationToken"]=token};
         respuesta=await navegador.PostAsync("/citas/contacto/verificar",new FormUrlEncodedContent(datos));Assert.Equal(HttpStatusCode.OK,respuesta.StatusCode);Assert.Contains("privado@example.test",await respuesta.Content.ReadAsStringAsync());Assert.Contains("no-store",respuesta.Headers.CacheControl!.ToString());
         Assert.Equal(HttpStatusCode.BadRequest,(await navegador.PostAsync("/citas/contacto/verificar",new FormUrlEncodedContent(datos))).StatusCode);
+        // Con un móvil nuevo y el correo de la ficha la respuesta es la misma: solo un identificador, ningún dato
+        var porCorreo=await navegador.PostAsync("/citas/contacto/solicitar",new FormUrlEncodedContent(new Dictionary<string,string>{["telefono"]="699999999",["correo"]="privado@example.test",["__RequestVerificationToken"]=token}));
+        Assert.Equal(HttpStatusCode.OK,porCorreo.StatusCode);var cuerpo=await porCorreo.Content.ReadAsStringAsync();Assert.DoesNotContain("Ana privada",cuerpo);Assert.DoesNotContain("Apellidos privados",cuerpo);Assert.Matches(@"^\{""id"":""[0-9a-f-]{36}""\}$",cuerpo);
     }
     [Fact]
     public async Task Enlace_publico_exige_post_antifalsificacion_y_no_expone_contacto()
@@ -94,5 +97,30 @@ public sealed class AgendaWebTests
         foreach(var ruta in new[]{"/admin/agenda/falta","/admin/agenda/corregir-falta","/admin/agenda/vincular-cliente","/admin/Clientes/Reconocer"})
             Assert.Equal(HttpStatusCode.Redirect,(await cliente.PostAsync(ruta,new FormUrlEncodedContent(new Dictionary<string,string>()))).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest,(await cliente.PostAsync("/citas",new FormUrlEncodedContent(new Dictionary<string,string>()))).StatusCode);
+    }
+
+    [Fact]
+    public async Task Publico_filtra_los_cuidados_por_publico_y_puede_preguntar_por_uno_que_no_esta()
+    {
+        await using var bd=await BaseDeDatosPrueba.CrearAsync(); await using var fabrica=new FabricaWeb(bd.Cadena); using var cliente=fabrica.Cliente();
+        var ahora=TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow,TimeZoneInfo.FindSystemTimeZoneById("Europe/Madrid"));
+        var dia=DateOnly.FromDateTime(ahora.DateTime).AddDays(2); while(dia.DayOfWeek==DayOfWeek.Sunday) dia=dia.AddDays(1);
+        var html=WebUtility.HtmlDecode(await cliente.GetStringAsync($"/citas?dia={dia:yyyy-MM-dd}&otro=Alisado%20de%20keratina&para=Hombre"));
+        Assert.Contains("data-buscable-libre=\"otro\"",html); Assert.Contains("/js/select-buscable.js",html); Assert.Contains("/js/agenda-publica.js",html);
+        Assert.Matches("<option value=\"\\d+\" data-sexo=\"Hombre\"",html); Assert.Matches("<option value=\"\\d+\" data-sexo=\"Mujer\"",html); Assert.Matches("<option value=\"\\d+\" data-sexo=\"Otro\"",html);
+        Assert.Contains("name=\"para\" value=\"Hombre\" checked=\"checked\"",html);
+        // «¿Para quién es la cita?» es el sexo de la reserva: el formulario ya no lo pregunta otra vez
+        Assert.Contains("name=\"Formulario.Sexo\" value=\"Hombre\" data-sexo-cita",html); Assert.DoesNotMatch("type=\"radio\"[^>]*name=\"Formulario.Sexo\"",html);
+        Assert.Contains("name=\"para\" value=\"Otro\"",html); Assert.DoesNotContain("name=\"para\" value=\"\"",html);
+        Assert.Matches("name=\"Formulario.ServicioOtro\" value=\"Alisado de keratina\"",html);
+        Assert.Contains("&otro=Alisado%20de%20keratina&para=Hombre",html);
+        var token=Regex.Match(html,"name=\"__RequestVerificationToken\"[^>]*value=\"([^\"]+)\"").Groups[1].Value;
+        var id=Regex.Match(html,"name=\"Formulario.SolicitudId\"[^>]*value=\"([^\"]+)\"").Groups[1].Value;
+        var hora=Regex.Match(html,"name=\"Formulario.Hora\" value=\"([^\"]+)\"").Groups[1].Value;
+        var r=await cliente.PostAsync("/citas",new FormUrlEncodedContent(new Dictionary<string,string>{["__RequestVerificationToken"]=token,["Formulario.SolicitudId"]=id,
+            ["Formulario.Dia"]=dia.ToString("yyyy-MM-dd"),["Formulario.Hora"]=hora,["Formulario.ServicioOtro"]="Alisado de keratina",["Formulario.Nombre"]="Pablo",["Formulario.Apellido"]="Prueba",
+            ["Formulario.Sexo"]="Hombre",["Formulario.Correo"]="pablo@example.test",["Formulario.Canal"]="Correo",["Formulario.Telefono"]="612345670",["Formulario.Consentimiento"]="true"}));
+        Assert.Equal(HttpStatusCode.Redirect,r.StatusCode);
+        Assert.Equal("Consulta: Alisado de keratina",await bd.EscalarAsync<string>("SELECT ServicioNombre FROM ReservasCitas"));
     }
 }

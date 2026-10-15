@@ -20,6 +20,15 @@
         EstadoNotificacion.Obsoleto => "tint-gray",
         _ => "tint-orange",
     };
+    var buscando = !string.IsNullOrWhiteSpace(Model.Texto);
+    // Los enlaces de filtro conservan lo que se está buscando
+    string Enlace(string? filtro)
+    {
+        var partes = new List<string>();
+        if (filtro is not null) partes.Add("filtro=" + filtro);
+        if (buscando) partes.Add("q=" + Uri.EscapeDataString(Model.Texto!.Trim()));
+        return "/admin/comunicaciones" + (partes.Count > 0 ? "?" + string.Join("&", partes) : "");
+    }
 }
 <header class="page-head">
     <div><p class="etiqueta">ESPACIO PROFESIONAL</p><h1>Comunicaciones</h1><p class="subtitle">Los avisos que la agenda prepara para tus clientes. Revisa el texto, cámbialo si quieres y envíalo.</p></div>
@@ -43,16 +52,29 @@
     @if (!Model.EnlaceConfigurado) { <p class="nota">Falta configurar la URL pública HTTPS para generar los enlaces de aceptación.</p> }
 </section>
 
+<form class="toolbar comunicaciones-buscar" method="get" action="/admin/comunicaciones" role="search">
+    <input type="hidden" name="filtro" value="@Model.Filtro" />
+    <label class="search">
+        <icono nombre="buscar" tamano="17" />
+        <input class="input" type="search" name="q" value="@Model.Texto" placeholder="Buscar por destinatario o texto del aviso"
+               aria-label="Buscar avisos" autocomplete="off" data-buscar-al-escribir />
+    </label>
+    @if (buscando)
+    {
+        <span class="muted small">@Model.Mensajes.Count @(Model.Mensajes.Count == 1 ? "aviso encontrado" : "avisos encontrados")</span>
+    }
+</form>
+
 <nav class="segmentos" aria-label="Filtrar avisos">
-    <a class="segmento @(Model.Filtro == "pendientes" ? "activo" : "")" href="/admin/comunicaciones" aria-current="@(Model.Filtro == "pendientes" ? "page" : null)">Pendientes</a>
-    <a class="segmento @(Model.Filtro == "enviados" ? "activo" : "")" href="/admin/comunicaciones?filtro=enviados" aria-current="@(Model.Filtro == "enviados" ? "page" : null)">Enviados</a>
-    <a class="segmento @(Model.Filtro == "todos" ? "activo" : "")" href="/admin/comunicaciones?filtro=todos" aria-current="@(Model.Filtro == "todos" ? "page" : null)">Todos</a>
+    <a class="segmento @(Model.Filtro == "pendientes" ? "activo" : "")" href="@Enlace(null)" aria-current="@(Model.Filtro == "pendientes" ? "page" : null)">Pendientes</a>
+    <a class="segmento @(Model.Filtro == "enviados" ? "activo" : "")" href="@Enlace("enviados")" aria-current="@(Model.Filtro == "enviados" ? "page" : null)">Enviados</a>
+    <a class="segmento @(Model.Filtro == "todos" ? "activo" : "")" href="@Enlace("todos")" aria-current="@(Model.Filtro == "todos" ? "page" : null)">Todos</a>
 </nav>
 
 <section class="agenda-comunicaciones">
 @if (Model.Mensajes.Count == 0)
 {
-    <div class="card agenda-sin-huecos">@(Model.Filtro == "pendientes" ? "No hay avisos pendientes. Cuando gestiones una cita desde la agenda, su aviso aparecerá aquí." : "No hay avisos en este apartado.")</div>
+    <div class="card agenda-sin-huecos">@(buscando ? "No hay avisos que coincidan con la búsqueda." : Model.Filtro == "pendientes" ? "No hay avisos pendientes. Cuando gestiones una cita desde la agenda, su aviso aparecerá aquí." : "No hay avisos en este apartado.")</div>
 }
 @foreach (var m in Model.Mensajes)
 {

@@ -17,6 +17,11 @@ internal sealed class RepositorioAgenda(PeluqueriaDbContext db) : IRepositorioAg
     {
         return ConsultaContactos.Candidatos(db.Clientes,telefono,correo).ToListAsync(ct);
     }
+    public Task<List<PeluqueriaLucia.Domain.Clientes.Cliente>> ClientesPorCorreoAsync(string correo, CancellationToken ct)
+    {
+        var email = correo.Trim().ToLowerInvariant();
+        return db.Clientes.Where(x => x.Email != null && x.Email.Trim().ToLower() == email).ToListAsync(ct);
+    }
     public Task<List<ReservaCita>> CitasConClientesAsync(System.Linq.Expressions.Expression<Func<ReservaCita, bool>> filtro, CancellationToken ct) =>
         db.ReservasCitas.Where(filtro).Include(x => x.Cliente).ThenInclude(x => x!.Faltas).AsSplitQuery().ToListAsync(ct);
     public Task<DateTime?> UltimaSolicitudAsync(CancellationToken ct) => db.ReservasCitas.Select(x => (DateTime?)x.CreadaUtc).MaxAsync(ct);

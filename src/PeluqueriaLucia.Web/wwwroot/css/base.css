@@ -9,6 +9,9 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  /* Hueco fijo para la barra de desplazamiento (Windows): sin él, al pasar de una página corta a una larga, o al
+     filtrar una lista, todo lo centrado o alineado a la derecha se movía 15 px de lado */
+  scrollbar-gutter: stable;
 }
 
 body {
