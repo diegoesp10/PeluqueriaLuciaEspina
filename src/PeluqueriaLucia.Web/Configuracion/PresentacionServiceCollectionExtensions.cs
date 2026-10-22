@@ -73,6 +73,9 @@ public static class PresentacionServiceCollectionExtensions
         // Azure, el ajuste FotosProductos__Carpeta=/home/data/productos). Sin ella, AlmacenProductos en la raíz de la web.
         services.PostConfigure<OpcionesFotosProductos>(o => o.Carpeta = string.IsNullOrWhiteSpace(o.Carpeta)
             ? Path.Combine(environment.ContentRootPath, "AlmacenProductos") : Path.GetFullPath(o.Carpeta, environment.ContentRootPath));
+
+        // /salud: conexión con la base de datos y migraciones al día (lo comprueba el despliegue)
+        services.AddSalud();
         return services;
     }
 

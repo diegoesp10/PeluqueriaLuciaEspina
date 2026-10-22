@@ -94,6 +94,7 @@ public static class CanalDePeticionesExtensions
             .WithStaticAssets();
         app.MapControllerRoute(name: "publico", pattern: "{controller=Inicio}/{action=Index}/{id?}")
             .WithStaticAssets();
+        app.MapSalud();
 
         // Direcciones de antes de mover la gestión a /admin (favoritos, accesos directos): llevan a su sitio nuevo,
         // que pide sesión. Lo demás que no existe acaba en la página 404.

@@ -89,9 +89,11 @@ Cierra la terminal al acabar (o `Remove-Item Env:ConnectionStrings__Peluqueria`)
 ## 4. Publicar
 
 - `main` está protegida: solo cambia por pull request (normalmente desde `develop`), con la comprobación «Compilar y probar» en verde y la aprobación del propietario del repositorio (`CODEOWNERS`); el propietario puede fusionar las suyas sin aprobación. `develop` no lanza ningún workflow.
-- Cada pull request a `main` compila y pasa las pruebas en Linux con un SQL Server temporal.
-- Al fusionar en **`main`**, el workflow repite las pruebas, espera la aprobación del entorno `produccion` en Actions («Review deployments»), publica en Azure y comprueba que la web responde. Tarda unos 5 minutos. La comprobación se hace contra el origen (`azurewebsites.net`) abriendo paso a la IP del runner en las restricciones de acceso solo durante el job, porque Cloudflare desafía a las IP de centros de datos con un 403; la consulta por el dominio público es solo informativa.
-- También se puede lanzar a mano: **Actions → Pruebas y despliegue en Azure → Run workflow** (sobre `main`).
+- Cada pull request a `main` compila y pasa las pruebas en Linux con un SQL Server temporal. Es la única vez que se prueban: a `main` no llega nada que no haya pasado por ahí.
+- Al fusionar en **`main`** no se repiten las pruebas (era el mismo código y costaba unos 3 minutos). El workflow espera la aprobación del entorno `produccion` en Actions («Review deployments»), publica `main` en Azure y comprueba **`/salud`** en la Web App de producción. `/salud` responde 200 solo si la aplicación llega a Azure SQL con su identidad y la base tiene todas las migraciones del código. Si falta alguna, responde 503 diciendo cuántas y el despliegue falla en el acto con el aviso de aplicarlas. Mientras App Service arranca, reintenta cada 5 s hasta 6 minutos. Tras la aprobación, tarda unos 3 minutos.
+- La comprobación se hace contra el origen (`azurewebsites.net`), abriendo paso a la IP del runner en las restricciones de acceso solo durante el job, porque Cloudflare desafía a las IP de centros de datos con un 403. La consulta por el dominio público es solo informativa.
+- Los paquetes NuGet quedan en la caché de Actions y solo se descargan de nuevo cuando cambia algún proyecto.
+- También se puede lanzar a mano: **Actions → Pruebas y despliegue en Azure → Run workflow** (sobre `main`). Lanzado así, primero pasa las pruebas y después publica.
 
 ## 5. Cloudflare (dominio)
 
