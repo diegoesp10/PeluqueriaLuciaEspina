@@ -69,7 +69,7 @@ La migración `CategoriasDeProductos` convierte la categoría de texto libre en 
 
 La vuelta atrás (`Down`) recupera el texto de cada producto. Se ha probado con datos en una base desechable: repetidas con distinta mayúscula, vacías y nulas.
 
-Estado: `ControlDeProductos` y `DualidadDeServicios` (ver [AGENDA.md](AGENDA.md)) aplicadas en la base **local** el 22-oct-2026, y `CategoriasDeProductos` también, con copia previa `PeluqueriaLuciaDb_antes_CategoriasDeProductos_20261022.bak` en la carpeta de copias de SQL Server. **Pendientes en producción.**
+Estado: `ControlDeProductos` y `DualidadDeServicios` (ver [AGENDA.md](AGENDA.md)) aplicadas en la base **local** el 22-oct-2026, y `CategoriasDeProductos` también, con copia previa `PeluqueriaLuciaDb_antes_CategoriasDeProductos_20261022.bak` en la carpeta de copias de SQL Server. **En producción**, las cuatro (`ControlDeProductos`, `DualidadDeServicios`, `PreferenciaDeAviso` y `CategoriasDeProductos`) se aplicaron el 22-oct-2026, y `FotosProductos__Carpeta` ya está en la Web App.
 
 ## Puesta en producción
 
