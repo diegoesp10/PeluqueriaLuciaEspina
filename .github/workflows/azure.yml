@@ -1,6 +1,11 @@
 # Pruebas en cada pull request a main y publicación en Azure App Service (WebAppLuciaPeluqueria) al fusionar en main.
+# A main solo llega código por pull request con «Compilar y probar» en verde (ruleset «Proteger main», sin excepciones),
+# así que al fusionar no se repiten las pruebas: se publica main tal cual y se comprueba la Web App de producción en
+# /salud, que responde 200 solo si llega a Azure SQL y la base tiene todas las migraciones del código.
+# Lanzado a mano (Run workflow) sobre main, primero prueba y después publica.
 # La publicación entra en Azure con una identidad federada (OIDC): GitHub no guarda ninguna contraseña.
-# Las migraciones de la base NO se aplican aquí: se aplican a mano antes de publicar (ver docs/AZURE.md).
+# Las migraciones de la base NO se aplican aquí: se aplican a mano antes de publicar (ver docs/AZURE.md). Si faltan,
+# /salud lo dice y el despliegue falla.
 name: Pruebas y despliegue en Azure
 
 on:
@@ -24,6 +29,8 @@ env:
 jobs:
   pruebas:
     name: Compilar y probar
+    # En un push a main no se repiten: ese mismo código ya las pasó en su pull request
+    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     services:
@@ -52,6 +59,13 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
+      # Los paquetes NuGet solo se descargan de nuevo cuando cambia algún proyecto
+      - name: Paquetes NuGet en caché
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Build.props', 'global.json') }}
+          restore-keys: nuget-${{ runner.os }}-
       - name: Restaurar
         run: dotnet restore PeluqueriaLucia.sln
       - name: Compilar
@@ -70,7 +84,10 @@ jobs:
   desplegar:
     name: Publicar en Azure
     needs: pruebas
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    # Tras un push a main, «pruebas» se salta y se publica directamente; lanzado a mano, solo si las pruebas pasan
+    if: >-
+      !cancelled() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+      && (needs.pruebas.result == 'success' || needs.pruebas.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     # Entorno de GitHub «produccion»: la identidad federada de Azure solo confía en este entorno
@@ -80,11 +97,19 @@ jobs:
     permissions:
       contents: read
       id-token: write
+    env:
+      ORIGEN: https://webappluciapeluqueria-a9dycjgph4f0etaz.spaincentral-01.azurewebsites.net
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
+      - name: Paquetes NuGet en caché
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Build.props', 'global.json') }}
+          restore-keys: nuget-${{ runner.os }}-
       - name: Publicar para Linux
         run: dotnet publish src/PeluqueriaLucia.Web -c Release -r linux-x64 --self-contained false -o publicacion
       - name: Entrar en Azure (OIDC, sin contraseñas)
@@ -107,15 +132,24 @@ jobs:
           echo "ip=$ip" >> "$GITHUB_OUTPUT"
           az webapp config access-restriction add -g rg-lucia-prod -n WebAppLuciaPeluqueria \
             --rule-name "github-${{ github.run_id }}" --action Allow --priority 50 --ip-address "$ip/32" -o none
-      - name: Comprobar que responde
+      # Mientras arranca, App Service retiene la petición o responde 502/503 con su propia página: se reintenta cada
+      # 5 s hasta 6 minutos. Si es la aplicación la que dice que faltan migraciones, se para enseguida.
+      - name: Comprobar producción (base de datos y migraciones)
         run: |
-          for intento in $(seq 1 20); do
-            codigo=$(curl -s -o /dev/null -w "%{http_code}" https://webappluciapeluqueria-a9dycjgph4f0etaz.spaincentral-01.azurewebsites.net/)
-            echo "Intento $intento: HTTP $codigo"
+          fin=$((SECONDS + 360))
+          while [ "$SECONDS" -lt "$fin" ]; do
+            respuesta=$(curl -s --max-time 90 -w $'\n%{http_code}' "$ORIGEN/salud" || true)
+            codigo=${respuesta##*$'\n'}
+            cuerpo=${respuesta%$'\n'*}
+            echo "HTTP $codigo ${cuerpo:0:120}"
             [ "$codigo" = "200" ] && exit 0
-            sleep 15
+            case "$cuerpo" in
+              *"migraci"*) echo "::error::$cuerpo. Aplica las migraciones pendientes (docs/AZURE.md) y vuelve a lanzar el despliegue."; exit 1 ;;
+            esac
+            sleep 5
           done
-          echo "La web no responde 200 tras el despliegue" && exit 1
+          echo "::error::Producción no responde bien en $ORIGEN/salud tras el despliegue: ${cuerpo:0:200}"
+          exit 1
       - name: Cerrar el paso al runner
         if: always() && steps.paso.outcome == 'success'
         run: az webapp config access-restriction remove -g rg-lucia-prod -n WebAppLuciaPeluqueria --rule-name "github-${{ github.run_id }}" -o none
