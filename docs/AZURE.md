@@ -37,7 +37,7 @@ Ninguna pieza usa contraseñas: la Web App entra en SQL y en Key Vault con su **
 | `ProteccionDatos__ClaveKeyVault` | `https://kv-lucia-peluqueria.vault.azure.net/keys/proteccion-datos` | Sin versión: Key Vault usa siempre la vigente |
 | `Imagenes__Carpeta` | `/home/data/imagenes` | Fotos del catálogo |
 | `FotosResenas__Carpeta` | `/home/data/resenas` | Fotos de las opiniones |
-| `FotosProductos__Carpeta` | `/home/data/productos` | Fotos de los productos de la tienda (ver docs/PRODUCTOS.md) |
+| `FotosProductos__Carpeta` | `/home/data/productos` | Fotos de los productos de la tienda. Solo en Azure: en desarrollo la carpeta sale de `appsettings.Development.json` (ver docs/PRODUCTOS.md) |
 | `AllowedHosts` | `luciapeluqueriaecologica.com;www.luciapeluqueriaecologica.com;webappluciapeluqueria-a9dycjgph4f0etaz.spaincentral-01.azurewebsites.net` | Dominios que acepta la app |
 | `Seguridad__CabeceraIpCliente` | `CF-Connecting-IP` | **Solo cuando Cloudflare esté delante y la Web App restringida a sus IPs** (paso 5) |
 | `PELUQUERIA_URL_PUBLICA` | `https://luciapeluqueriaecologica.com/` | Cuando el dominio funcione |

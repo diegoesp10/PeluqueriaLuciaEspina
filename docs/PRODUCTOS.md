@@ -36,7 +36,15 @@ La tienda del salón (champús, mascarillas, aceites…) se gestiona en **Produc
 
 - Se aceptan JPG, PNG y WebP de hasta 10 MB (seis por producto). Se comprueba el contenido real (no la extensión), se enderezan según la cámara, se reducen a 1600 px y se guardan como JPEG nuevo **sin metadatos** (ni GPS ni modelo del móvil), más una miniatura de 480 px para listados y visitas. El procesado es el mismo que el de las fotos de opiniones (`NormalizadorFotos`).
 - Se guardan en una **carpeta privada** como `{id}.jpg` y `{id}-mini.jpg`, y solo se sirven con sesión en el panel (`/admin/productos/foto/{id}`).
-- Carpeta: `FotosProductos:Carpeta`; si no se configura, la carpeta `productos` junto a la de las fotos de opiniones (`FotosResenas:Carpeta`), y si tampoco, `AlmacenProductos` en la raíz de la web (ignorada por Git).
+- La carpeta la declara cada entorno en `FotosProductos:Carpeta`:
+
+  | Entorno | Dónde se define | Carpeta |
+  |---|---|---|
+  | Desarrollo (tu PC, Visual Studio) | `appsettings.Development.json` | `src/PeluqueriaLucia.Web/AlmacenProductos` (ignorada por Git) |
+  | Producción en Azure | Web App → Variables de entorno: `FotosProductos__Carpeta` | `/home/data/productos`, que sobrevive a las publicaciones (`/home/site/wwwroot` se reemplaza en cada una) |
+  | Producción en un IIS | `appsettings.Production.json` del servidor (ver `appsettings.Production.example.json`) | Una carpeta del servidor fuera del sitio publicado |
+
+  Si falta, se usa `AlmacenProductos` en la raíz de la web y, fuera de desarrollo, el arranque deja un aviso en el log, porque esa carpeta puede borrarse al publicar.
 
 ## Base de datos
 
@@ -54,5 +62,5 @@ Estado: aplicada en la base **local** (`PeluqueriaLuciaDb`, 22-oct-2026, con cop
 ## Puesta en producción
 
 1. **Antes de publicar el código**, aplicar las migraciones `ControlDeProductos`, `DualidadDeServicios` y `PreferenciaDeAviso` contra Azure SQL como indica [AZURE.md](AZURE.md) («Migraciones y administrador»). Son aditivas: la versión publicada sigue funcionando mientras tanto. Si el código llegara antes que las tablas, las pantallas de visitas y de la agenda fallarían.
-2. En la Web App, añadir `FotosProductos__Carpeta` = `/home/data/productos` (si falta, se usa igualmente `/home/data/productos` por estar junto a `/home/data/resenas`, pero mejor dejarlo explícito). Esa carpeta sobrevive a los despliegues; `/home/site/wwwroot` no.
+2. En la Web App (Configuración → Variables de entorno), añadir `FotosProductos__Carpeta` = `/home/data/productos`, junto a `Imagenes__Carpeta` y `FotosResenas__Carpeta`. Solo es para Azure: en desarrollo la carpeta sale de `appsettings.Development.json`.
 3. Publicar y dar de alta los productos con su stock inicial.

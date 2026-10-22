@@ -20,6 +20,11 @@ public static class ArranqueAplicacion
         if (HerramientaAdministrador.EsComando(args))
             return await HerramientaAdministrador.EjecutarAsync(app.Services, recuperarMfa: args[0] == "recuperar-mfa", soloCrear: args[0] == "administrador-nuevo");
 
+        // Fuera de desarrollo, las fotos de productos tienen que ir a una carpeta que sobreviva a las publicaciones
+        if (!app.Environment.IsDevelopment() && string.IsNullOrWhiteSpace(app.Configuration["FotosProductos:Carpeta"]))
+            app.Logger.LogWarning("FotosProductos:Carpeta no está configurada en {Entorno}: las fotos de productos se guardan en {Carpeta}, que una publicación puede borrar. En Azure, añade el ajuste FotosProductos__Carpeta=/home/data/productos.",
+                app.Environment.EnvironmentName, Path.Combine(app.Environment.ContentRootPath, "AlmacenProductos"));
+
         startup.Configure(app);
         await app.RunAsync();
         return 0;
