@@ -32,7 +32,7 @@
         </div>
     </header>
 
-    <form class="form" method="post" enctype="multipart/form-data" asp-action="@(nuevo ? "Nuevo" : "Editar")" asp-route-id="@Model.Id" novalidate data-producto-formulario>
+    <form class="form campos-marcados" method="post" enctype="multipart/form-data" asp-action="@(nuevo ? "Nuevo" : "Editar")" asp-route-id="@Model.Id" novalidate data-producto-formulario>
         <div asp-validation-summary="ModelOnly"></div>
 
         <section>
@@ -71,17 +71,32 @@
                 </div>
                 <div class="fields-2">
                     <div class="field">
+                        <label for="CategoriaId">Categoría</label>
+                        @* Con JavaScript es un buscador: se elige una o se escribe una nueva («Crear la categoría…») y se crea al guardar *@
+                        <select class="input" id="CategoriaId" name="CategoriaId" required
+                                data-buscable="Busca o escribe una nueva" data-buscable-vacio="Ninguna categoría con ese texto."
+                                data-buscable-libre="CategoriaNueva" data-buscable-libre-texto="Crear la categoría «{0}»">
+                            <option value="">Sin elegir</option>
+                            @foreach (var c in Model.Categorias)
+                            {
+                                <option value="@c.Id" selected="@(c.Id == f.CategoriaId && string.IsNullOrWhiteSpace(f.CategoriaNueva))">@c.Nombre@(c.Activa ? "" : " · eliminada")</option>
+                            }
+                        </select>
+                        <div class="field" data-buscable-libre-campo>
+                            <label for="CategoriaNueva">O escribe una nueva</label>
+                            <input class="input" id="CategoriaNueva" name="CategoriaNueva" value="@f.CategoriaNueva" maxlength="@CategoriaProducto.LongitudNombre" autocomplete="off"
+                                   placeholder="Champús, Mascarillas, Aceites…" />
+                        </div>
+                        <p class="field-hint">@(Model.Categorias.Count == 0 ? "Escribe la primera, por ejemplo «Champús», y elige «Crear la categoría»." : "Si no está, escríbela y elige «Crear la categoría».")
+                            <a asp-action="Categorias">Gestionar categorías</a></p>
+                        @Html.ValidationMessage("CategoriaId")
+                        @Html.ValidationMessage("CategoriaNueva")
+                    </div>
+                    <div class="field">
                         <label for="Marca">Marca <span class="muted">(opcional)</span></label>
                         <input class="input" id="Marca" name="Marca" value="@f.Marca" maxlength="@Producto.LongitudMarca" autocomplete="off" list="marcas-producto" />
                         <datalist id="marcas-producto">@foreach (var m in Model.Marcas) { <option value="@m"></option> }</datalist>
                         @Html.ValidationMessage("Marca")
-                    </div>
-                    <div class="field">
-                        <label for="Categoria">Categoría <span class="muted">(opcional)</span></label>
-                        <input class="input" id="Categoria" name="Categoria" value="@f.Categoria" maxlength="@Producto.LongitudCategoria" autocomplete="off" list="categorias-producto"
-                               placeholder="Champús, Mascarillas, Aceites…" />
-                        <datalist id="categorias-producto">@foreach (var c in Model.Categorias) { <option value="@c"></option> }</datalist>
-                        @Html.ValidationMessage("Categoria")
                     </div>
                 </div>
                 <div class="field">

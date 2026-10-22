@@ -23,8 +23,24 @@ public interface IProductoRepositorio
 
     Task<ResumenInventario> ResumirAsync(CancellationToken ct = default);
 
-    /// <summary>Categorías y marcas ya escritas, para sugerirlas al rellenar la ficha.</summary>
-    Task<(IReadOnlyList<string> Categorias, IReadOnlyList<string> Marcas)> SugerenciasAsync(CancellationToken ct = default);
+    /// <summary>Marcas ya escritas, para sugerirlas al rellenar la ficha.</summary>
+    Task<IReadOnlyList<string>> MarcasAsync(CancellationToken ct = default);
+
+    /// <summary>Categorías por nombre; las eliminadas, solo si se piden.</summary>
+    Task<IReadOnlyList<CategoriaProducto>> CategoriasAsync(bool incluirEliminadas, CancellationToken ct = default);
+
+    /// <summary>Todas las categorías (también las eliminadas) con sus productos y unidades.</summary>
+    Task<IReadOnlyList<ResumenCategoria>> ResumenCategoriasAsync(CancellationToken ct = default);
+
+    Task<CategoriaProducto?> CategoriaAsync(int id, CancellationToken ct = default);
+
+    /// <summary>La categoría activa con ese nombre (sin distinguir mayúsculas), salvo <paramref name="excluirId"/>.</summary>
+    Task<CategoriaProducto?> CategoriaActivaPorNombreAsync(string nombre, int? excluirId, CancellationToken ct = default);
+
+    /// <summary>Productos de una categoría (activos y archivados), para archivarlos o recuperarlos con ella.</summary>
+    Task<IReadOnlyList<Producto>> ProductosDeCategoriaAsync(int categoriaId, CancellationToken ct = default);
+
+    void AgregarCategoria(CategoriaProducto categoria);
 
     Task<bool> ExisteReferenciaAsync(string referencia, int? excluirId, CancellationToken ct = default);
 

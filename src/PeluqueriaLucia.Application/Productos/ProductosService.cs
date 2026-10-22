@@ -36,8 +36,70 @@ public sealed class ProductosService(
 
     public Task<IReadOnlyList<Producto>> PorReponerAsync(int maximo, CancellationToken ct = default) => productos.PorReponerAsync(maximo, ct);
 
-    public Task<(IReadOnlyList<string> Categorias, IReadOnlyList<string> Marcas)> SugerenciasAsync(CancellationToken ct = default) =>
-        productos.SugerenciasAsync(ct);
+    public Task<IReadOnlyList<string>> MarcasAsync(CancellationToken ct = default) => productos.MarcasAsync(ct);
+
+    /// <summary>Categorías que se pueden elegir (las activas).</summary>
+    public Task<IReadOnlyList<CategoriaProducto>> CategoriasActivasAsync(CancellationToken ct = default) => productos.CategoriasAsync(false, ct);
+
+    public Task<IReadOnlyList<ResumenCategoria>> CategoriasAsync(CancellationToken ct = default) => productos.ResumenCategoriasAsync(ct);
+
+    public Task<Resultado<int>> CrearCategoriaAsync(string? nombre, CancellationToken ct = default) =>
+        Resultado.ProtegerAsync<int>(async () =>
+        {
+            var categoria = CategoriaProducto.Crear(nombre, Ahora);
+            if (await productos.CategoriaActivaPorNombreAsync(categoria.Nombre, null, ct) is not null)
+                return new Error($"Ya hay una categoría «{categoria.Nombre}».", "Nombre");
+            productos.AgregarCategoria(categoria);
+            await unidadDeTrabajo.GuardarCambiosAsync(ct);
+            return Resultado.Ok(categoria.Id);
+        });
+
+    public async Task<Resultado> RenombrarCategoriaAsync(int id, string? nombre, CancellationToken ct = default)
+    {
+        var categoria = await productos.CategoriaAsync(id, ct);
+        if (categoria is null)
+            return Error.NoEncontrado("La categoría");
+
+        return await Resultado.ProtegerAsync(async () =>
+        {
+            categoria.Renombrar(nombre);
+            if (categoria.Activa && await productos.CategoriaActivaPorNombreAsync(categoria.Nombre, id, ct) is not null)
+                throw new ReglaDeNegocioException($"Ya hay otra categoría «{categoria.Nombre}».", "Nombre");
+            await unidadDeTrabajo.GuardarCambiosAsync(ct);
+        });
+    }
+
+    /// <summary>Borrado lógico de la categoría: sus productos a la venta quedan archivados con su stock. Devuelve cuántos.</summary>
+    public async Task<Resultado<CambioCategoria>> EliminarCategoriaAsync(int id, CancellationToken ct = default)
+    {
+        var categoria = await productos.CategoriaAsync(id, ct);
+        if (categoria is null)
+            return Error.NoEncontrado("La categoría");
+
+        return await Resultado.ProtegerAsync<CambioCategoria>(async () =>
+        {
+            var archivados = categoria.Eliminar(await productos.ProductosDeCategoriaAsync(id, ct), Ahora);
+            await unidadDeTrabajo.GuardarCambiosAsync(ct);
+            return Resultado.Ok(new CambioCategoria(categoria.Nombre, archivados));
+        });
+    }
+
+    /// <summary>Recupera la categoría y vuelve a poner a la venta los productos archivados con ella. Devuelve cuántos.</summary>
+    public async Task<Resultado<CambioCategoria>> RecuperarCategoriaAsync(int id, CancellationToken ct = default)
+    {
+        var categoria = await productos.CategoriaAsync(id, ct);
+        if (categoria is null)
+            return Error.NoEncontrado("La categoría");
+
+        return await Resultado.ProtegerAsync<CambioCategoria>(async () =>
+        {
+            if (await productos.CategoriaActivaPorNombreAsync(categoria.Nombre, id, ct) is not null)
+                return new Error($"Ya hay otra categoría «{categoria.Nombre}» activa. Renombra una de las dos antes de recuperar esta.", "Nombre");
+            var recuperados = categoria.Recuperar(await productos.ProductosDeCategoriaAsync(id, ct), Ahora);
+            await unidadDeTrabajo.GuardarCambiosAsync(ct);
+            return Resultado.Ok(new CambioCategoria(categoria.Nombre, recuperados));
+        });
+    }
 
     public string? RutaFoto(Guid id, bool miniatura) => fotos.RutaFisica(id, miniatura);
 
@@ -47,9 +109,12 @@ public sealed class ProductosService(
             if (ValidarFotos(nuevasFotos, 0) is { } errorFotos)
                 return errorFotos;
 
-            var producto = Producto.Crear(datos.Ficha, Ahora);
-            if (await DuplicadoAsync(producto, null, ct) is { } duplicado)
+            if (await DuplicadoAsync(Producto.Comprobar(datos.Ficha), null, ct) is { } duplicado)
                 return duplicado;
+            var categoria = await CategoriaAsync(datos.Categoria, null, ct);
+            if (!categoria.Exito)
+                return categoria.Error!;
+            var producto = Producto.Crear(datos.Ficha, categoria.Valor!, Ahora);
             var alta = producto.Alta(datos.StockInicial, Ahora, administradorId);
 
             var subidas = new List<Guid>();
@@ -74,7 +139,7 @@ public sealed class ProductosService(
             return Resultado.Ok(producto.Id);
         });
 
-    public Task<Resultado<int>> EditarAsync(int id, FichaProducto ficha, CambiosFotos cambios, CancellationToken ct = default) =>
+    public Task<Resultado<int>> EditarAsync(int id, FichaProducto ficha, CategoriaElegida categoriaElegida, CambiosFotos cambios, CancellationToken ct = default) =>
         Resultado.ProtegerAsync<int>(async () =>
         {
             var producto = await productos.ObtenerAsync(id, ct);
@@ -85,10 +150,12 @@ public sealed class ProductosService(
             if (ValidarFotos(cambios.Nuevas, producto.Fotos.Count - quitar.Count) is { } errorFotos)
                 return errorFotos;
 
-            // Todo se comprueba (ficha, duplicados y fotos) antes de tocar el producto: un error deja la pantalla como estaba
-            var propuesta = Producto.Crear(ficha, Ahora);
-            if (await DuplicadoAsync(propuesta, id, ct) is { } duplicado)
+            // Todo se comprueba (ficha, duplicados, categoría y fotos) antes de tocar el producto: un error deja la pantalla como estaba
+            if (await DuplicadoAsync(Producto.Comprobar(ficha), id, ct) is { } duplicado)
                 return duplicado;
+            var categoria = await CategoriaAsync(categoriaElegida, producto, ct);
+            if (!categoria.Exito)
+                return categoria.Error!;
 
             var subidas = new List<Guid>();
             try
@@ -96,7 +163,7 @@ public sealed class ProductosService(
                 if (await SubirAsync(cambios.Nuevas, subidas, ct) is { } errorSubida)
                     return errorSubida;
 
-                producto.Editar(ficha, Ahora);
+                producto.Editar(ficha, categoria.Valor!, Ahora);
                 foreach (var foto in quitar)
                     producto.QuitarFoto(foto, Ahora);
                 subidas.ForEach(foto => producto.AgregarFoto(foto, Ahora));
@@ -122,12 +189,15 @@ public sealed class ProductosService(
         if (producto is null)
             return Error.NoEncontrado("El producto");
 
-        if (archivar)
-            producto.Archivar(Ahora);
-        else
-            producto.Reactivar(Ahora);
-        await unidadDeTrabajo.GuardarCambiosAsync(ct);
-        return Resultado.Ok();
+        // Reactivar falla si su categoría está eliminada: primero hay que recuperarla o elegir otra
+        return await Resultado.ProtegerAsync(async () =>
+        {
+            if (archivar)
+                producto.Archivar(Ahora);
+            else
+                producto.Reactivar(Ahora);
+            await unidadDeTrabajo.GuardarCambiosAsync(ct);
+        });
     }
 
     /// <summary>Un producto que aparece en visitas se archiva para no perder tickets ni historial; si no, se borra del todo.</summary>
@@ -174,13 +244,40 @@ public sealed class ProductosService(
         });
     }
 
-    private async Task<Error?> DuplicadoAsync(Producto producto, int? excluirId, CancellationToken ct)
+    private async Task<Error?> DuplicadoAsync((string Referencia, string? CodigoBarras) ficha, int? excluirId, CancellationToken ct)
     {
-        if (await productos.ExisteReferenciaAsync(producto.Referencia, excluirId, ct))
-            return new Error($"Ya hay otro producto con la referencia {producto.Referencia}.", "Referencia");
-        if (producto.CodigoBarras is { } codigo && await productos.ExisteCodigoBarrasAsync(codigo, excluirId, ct))
+        if (await productos.ExisteReferenciaAsync(ficha.Referencia, excluirId, ct))
+            return new Error($"Ya hay otro producto con la referencia {ficha.Referencia}.", "Referencia");
+        if (ficha.CodigoBarras is { } codigo && await productos.ExisteCodigoBarrasAsync(codigo, excluirId, ct))
             return new Error($"Ya hay otro producto con el código de barras {codigo}.", "CodigoBarras");
         return null;
+    }
+
+    /// <summary>
+    /// La categoría elegida: una existente (puede seguir siendo la eliminada que ya tenía el producto) o, si se escribió un
+    /// nombre nuevo, la activa con ese nombre o una que se crea al guardar.
+    /// </summary>
+    private async Task<Resultado<CategoriaProducto>> CategoriaAsync(CategoriaElegida elegida, Producto? actual, CancellationToken ct)
+    {
+        if (elegida.Nueva?.Trim() is { Length: > 0 } nombre)
+        {
+            if (nombre.Length > CategoriaProducto.LongitudNombre)
+                return new Error($"El nombre de la categoría no puede superar los {CategoriaProducto.LongitudNombre} caracteres.", "CategoriaId");
+            if (await productos.CategoriaActivaPorNombreAsync(nombre, null, ct) is { } existente)
+                return Resultado.Ok(existente);
+            var nueva = CategoriaProducto.Crear(nombre, Ahora);
+            productos.AgregarCategoria(nueva);
+            return Resultado.Ok(nueva);
+        }
+
+        if (elegida.Id is not { } id)
+            return new Error("Elige la categoría del producto o escribe una nueva.", "CategoriaId");
+        var categoria = await productos.CategoriaAsync(id, ct);
+        if (categoria is null)
+            return new Error("Esa categoría ya no existe. Elige otra.", "CategoriaId");
+        if (!categoria.Activa && categoria.Id != actual?.CategoriaId)
+            return new Error($"La categoría «{categoria.Nombre}» está eliminada. Elige otra o recupérala en Categorías.", "CategoriaId");
+        return Resultado.Ok(categoria);
     }
 
     private static Error? ValidarFotos(IReadOnlyList<ArchivoImagen> nuevas, int existentes)

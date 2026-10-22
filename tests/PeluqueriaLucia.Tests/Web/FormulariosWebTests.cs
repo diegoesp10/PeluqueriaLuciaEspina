@@ -23,13 +23,14 @@ public sealed class FormulariosWebTests(SeguridadWebFixture fixture) : IClassFix
         using var cliente = fabrica.Cliente();
         Comprobar("/admin/acceso", await cliente.GetStringAsync("/admin/acceso"));
         await EntrarAsync(cliente);
-        int clienteId, productoId;
+        int clienteId, productoId, categoriaId;
         await using (var db = fixture.Bd.Contexto())
         {
             var ficha = Cliente.Crear("Formularios", "Prueba", null, "600000000", Sexo.Mujer, DateTime.UtcNow);
+            var categoria = PeluqueriaLucia.Domain.Productos.CategoriaProducto.Crear("Formularios " + Guid.NewGuid().ToString("N")[..8], DateTime.Now);
             var producto = PeluqueriaLucia.Domain.Productos.Producto.Crear(new("FORM-" + Guid.NewGuid().ToString("N")[..8], null, "Producto de formularios",
-                null, null, null, 9.90m, null, 1), DateTime.Now);
-            db.AddRange(ficha, producto); await db.SaveChangesAsync(); clienteId = ficha.Id; productoId = producto.Id;
+                null, null, 9.90m, null, 1), categoria, DateTime.Now);
+            db.AddRange(ficha, producto); await db.SaveChangesAsync(); clienteId = ficha.Id; productoId = producto.Id; categoriaId = categoria.Id;
         }
         var dia = DateOnly.FromDateTime(DateTime.Today).AddDays(200).ToString("yyyy-MM-dd");
         foreach (var ruta in new[]
@@ -41,6 +42,7 @@ public sealed class FormulariosWebTests(SeguridadWebFixture fixture) : IClassFix
             "/admin/Tratamientos", "/admin/Tratamientos/Nuevo", "/admin/Tratamientos/Categorias", "/admin/Tratamientos/Categoria",
             "/admin/Resenas", "/admin/Seguridad", "/admin/Seguridad/Contrasena", "/admin/Seguridad/Authenticator",
             "/admin/Productos", "/admin/Productos/Nuevo", $"/admin/Productos/Ficha/{productoId}", $"/admin/Productos/Editar/{productoId}",
+            "/admin/Productos/Categorias", $"/admin/Productos/Categorias?editar={categoriaId}",
         })
         {
             var respuesta = await cliente.GetAsync(ruta);
@@ -75,10 +77,13 @@ public sealed class FormulariosWebTests(SeguridadWebFixture fixture) : IClassFix
         await using (var db = fixture.Bd.Contexto())
         {
             db.Add(PeluqueriaLucia.Domain.Productos.Producto.Crear(new("BUSC-" + Guid.NewGuid().ToString("N")[..8], null, "Producto buscable",
-                null, null, null, 5m, null, 0), DateTime.Now));
+                null, null, 5m, null, 0), PeluqueriaLucia.Domain.Productos.CategoriaProducto.Crear("Buscables " + Guid.NewGuid().ToString("N")[..8], DateTime.Now), DateTime.Now));
             await db.SaveChangesAsync();
         }
         Assert.Matches("<select[^>]*id=\"producto-elegir\"[^>]*data-buscable=", await cliente.GetStringAsync("/admin/Visitas/Nueva"));
+        // La categoría del producto se busca (o se escribe una nueva) y el inventario se filtra con otro buscador de categorías
+        Assert.Matches("<select[^>]*id=\"CategoriaId\"[^>]*data-buscable=[^>]*data-buscable-libre=\"CategoriaNueva\"", await cliente.GetStringAsync("/admin/Productos/Nuevo"));
+        Assert.Matches("<select[^>]*id=\"categoria-productos\"[^>]*data-buscable=", await cliente.GetStringAsync("/admin/Productos"));
         foreach (var ruta in new[] { "/admin/Clientes", "/admin/Catalogo", "/admin/Tratamientos", "/admin/Resenas", "/admin/comunicaciones", "/admin/Productos" })
             Assert.Contains("data-buscar-al-escribir", await cliente.GetStringAsync(ruta));
     }

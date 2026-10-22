@@ -2,13 +2,15 @@ using PeluqueriaLucia.Domain.Comun;
 
 namespace PeluqueriaLucia.Domain.Productos;
 
-/// <summary>Datos de la ficha de un producto que escribe el salón; el stock no está aquí porque solo cambia con movimientos.</summary>
+/// <summary>
+/// Datos de la ficha de un producto que escribe el salón. Ni el stock (solo cambia con movimientos) ni la categoría
+/// (es una entidad, <see cref="CategoriaProducto"/>) están aquí.
+/// </summary>
 public sealed record FichaProducto(
     string? Referencia,
     string? CodigoBarras,
     string? Nombre,
     string? Marca,
-    string? Categoria,
     string? Descripcion,
     decimal PrecioVenta,
     decimal? PrecioCoste,
@@ -25,7 +27,6 @@ public sealed class Producto
     public const int LongitudCodigoBarras = 14;
     public const int LongitudNombre = 120;
     public const int LongitudMarca = 60;
-    public const int LongitudCategoria = 60;
     public const int LongitudDescripcion = 1000;
     public const decimal PrecioMaximo = 9999.99m;
     public const int StockMaximo = 99999;
@@ -49,7 +50,10 @@ public sealed class Producto
 
     public string? Marca { get; private set; }
 
-    public string? Categoria { get; private set; }
+    /// <summary>Categoría obligatoria. Si se elimina, el producto se archiva con ella (ver <see cref="ArchivadoConCategoria"/>).</summary>
+    public int CategoriaId { get; private set; }
+
+    public CategoriaProducto? Categoria { get; private set; }
 
     public string? Descripcion { get; private set; }
 
@@ -66,6 +70,9 @@ public sealed class Producto
 
     /// <summary>Los productos archivados no se ofrecen en visitas nuevas, pero siguen en el historial y en los tickets.</summary>
     public bool Activo { get; private set; } = true;
+
+    /// <summary>Se archivó al eliminar su categoría (con su stock): al recuperar la categoría vuelve a estar a la venta.</summary>
+    public bool ArchivadoConCategoria { get; private set; }
 
     public DateTime CreadoEn { get; private set; }
 
@@ -89,25 +96,63 @@ public sealed class Producto
 
     public decimal? Margen => PrecioCoste is { } coste ? PrecioVenta - coste : null;
 
-    public static Producto Crear(FichaProducto ficha, DateTime ahora)
+    public static Producto Crear(FichaProducto ficha, CategoriaProducto categoria, DateTime ahora)
     {
         var producto = new Producto { CreadoEn = ahora, Activo = true };
         producto.Aplicar(ficha, ahora);
+        producto.Clasificar(categoria);
         return producto;
     }
 
-    public void Editar(FichaProducto ficha, DateTime ahora) => Aplicar(ficha, ahora);
+    /// <summary>Comprueba una ficha sin crear el producto. Devuelve la referencia y el código de barras normalizados (para buscar duplicados).</summary>
+    public static (string Referencia, string? CodigoBarras) Comprobar(FichaProducto ficha)
+    {
+        var prueba = new Producto();
+        prueba.Aplicar(ficha, default);
+        return (prueba.Referencia, prueba.CodigoBarras);
+    }
+
+    /// <summary>Cambia la ficha y la categoría. Se puede mantener una categoría eliminada (producto archivado con ella), pero no pasar a una.</summary>
+    public void Editar(FichaProducto ficha, CategoriaProducto categoria, DateTime ahora)
+    {
+        Aplicar(ficha, ahora);
+        if (categoria.Id != CategoriaId || CategoriaId == 0)
+            Clasificar(categoria);
+    }
 
     public void Archivar(DateTime ahora)
     {
         Activo = false;
+        ArchivadoConCategoria = false;
+        ActualizadoEn = ahora;
+    }
+
+    /// <summary>Lo archiva la eliminación de su categoría; recuperarla lo devuelve a la venta.</summary>
+    internal void ArchivarPorCategoria(DateTime ahora)
+    {
+        Activo = false;
+        ArchivadoConCategoria = true;
         ActualizadoEn = ahora;
     }
 
     public void Reactivar(DateTime ahora)
     {
+        if (Categoria is { Activa: false } eliminada)
+            throw new ReglaDeNegocioException($"Su categoría «{eliminada.Nombre}» está eliminada. Recupérala o elige otra en la ficha del producto.", nameof(CategoriaId));
         Activo = true;
+        ArchivadoConCategoria = false;
         ActualizadoEn = ahora;
+    }
+
+    private void Clasificar(CategoriaProducto categoria)
+    {
+        ArgumentNullException.ThrowIfNull(categoria);
+        if (!categoria.Activa)
+            throw new ReglaDeNegocioException($"La categoría «{categoria.Nombre}» está eliminada. Elige otra o recupérala.", nameof(CategoriaId));
+        // Si sale de la categoría con la que se archivó, recuperar aquella ya no lo devuelve a la venta
+        ArchivadoConCategoria = false;
+        Categoria = categoria;
+        CategoriaId = categoria.Id;
     }
 
     /// <summary>Unidades que hay al dar de alta el producto. Sin unidades no deja movimiento.</summary>
@@ -223,7 +268,6 @@ public sealed class Producto
 
         var nombre = Texto.Obligatorio(ficha.Nombre, LongitudNombre, "El nombre", "Nombre");
         var marca = Opcional(ficha.Marca, LongitudMarca, "La marca", "Marca");
-        var categoria = Opcional(ficha.Categoria, LongitudCategoria, "La categoría", "Categoria");
         var descripcion = Opcional(ficha.Descripcion, LongitudDescripcion, "La descripción", "Descripcion");
 
         var precio = decimal.Round(ficha.PrecioVenta, 2, MidpointRounding.AwayFromZero);
@@ -239,7 +283,6 @@ public sealed class Producto
         CodigoBarras = codigo;
         Nombre = nombre;
         Marca = marca;
-        Categoria = categoria;
         Descripcion = descripcion;
         PrecioVenta = precio;
         PrecioCoste = coste;

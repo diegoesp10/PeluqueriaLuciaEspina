@@ -9,12 +9,20 @@ public sealed class ProductoTests
 
     internal static FichaProducto Ficha(string referencia = "CH-ARG-250", string nombre = "Champú de argán", decimal precio = 14.90m,
         string? codigo = null, int minimo = 2, decimal? coste = 7.50m) =>
-        new(referencia, codigo, nombre, "Eco Natura", "Champús", "Para cabello seco.", precio, coste, minimo);
+        new(referencia, codigo, nombre, "Eco Natura", "Para cabello seco.", precio, coste, minimo);
+
+    /// <summary>Categoría con identificador, como si viniera de la base de datos.</summary>
+    internal static CategoriaProducto Categoria(int id = 1, string nombre = "Champús")
+    {
+        var categoria = CategoriaProducto.Crear(nombre, Ahora);
+        typeof(CategoriaProducto).GetProperty(nameof(CategoriaProducto.Id))!.SetValue(categoria, id);
+        return categoria;
+    }
 
     /// <summary>Producto con identificador, como si viniera de la base de datos.</summary>
     internal static Producto Guardado(int id, int stock = 10, string nombre = "Champú de argán", decimal precio = 14.90m)
     {
-        var producto = Producto.Crear(Ficha($"REF-{id}", nombre, precio), Ahora);
+        var producto = Producto.Crear(Ficha($"REF-{id}", nombre, precio), Categoria(), Ahora);
         typeof(Producto).GetProperty(nameof(Producto.Id))!.SetValue(producto, id);
         producto.Alta(stock, Ahora, null);
         return producto;
@@ -23,7 +31,7 @@ public sealed class ProductoTests
     [Fact]
     public void Crear_normaliza_referencia_y_codigo_de_barras()
     {
-        var producto = Producto.Crear(Ficha(" ch-arg-250 ", codigo: "8412 3456 78901"), Ahora);
+        var producto = Producto.Crear(Ficha(" ch-arg-250 ", codigo: "8412 3456 78901"), Categoria(), Ahora);
 
         Assert.Equal("CH-ARG-250", producto.Referencia);
         Assert.Equal("8412345678901", producto.CodigoBarras);
@@ -42,15 +50,15 @@ public sealed class ProductoTests
     [InlineData("REF-1", "Champú", 10, "84123456789AB", "CodigoBarras")]
     public void Crear_con_datos_no_validos_falla_en_su_campo(string referencia, string nombre, decimal precio, string? codigo, string campo)
     {
-        var ex = Assert.Throws<ReglaDeNegocioException>(() => Producto.Crear(Ficha(referencia, nombre, precio, codigo), Ahora));
+        var ex = Assert.Throws<ReglaDeNegocioException>(() => Producto.Crear(Ficha(referencia, nombre, precio, codigo), Categoria(), Ahora));
         Assert.Equal(campo, ex.Campo);
     }
 
     [Fact]
     public void El_alta_deja_un_movimiento_con_el_stock_inicial_y_sin_unidades_no_deja_ninguno()
     {
-        var producto = Producto.Crear(Ficha(), Ahora);
-        var vacio = Producto.Crear(Ficha("OTRO"), Ahora);
+        var producto = Producto.Crear(Ficha(), Categoria(), Ahora);
+        var vacio = Producto.Crear(Ficha("OTRO"), Categoria(), Ahora);
 
         var alta = producto.Alta(12, Ahora, 3);
 
@@ -129,7 +137,7 @@ public sealed class ProductoTests
     [InlineData(0, 0, true, false)]
     public void Agotado_y_bajo_stock_segun_el_minimo(int stock, int minimo, bool agotado, bool bajo)
     {
-        var producto = Producto.Crear(Ficha(minimo: minimo), Ahora);
+        var producto = Producto.Crear(Ficha(minimo: minimo), Categoria(), Ahora);
         producto.Alta(stock, Ahora, null);
 
         Assert.Equal(agotado, producto.Agotado);
@@ -159,7 +167,7 @@ public sealed class ProductoTests
     {
         var producto = Guardado(1, stock: 7);
 
-        producto.Editar(Ficha("REF-1", "Champú de argán 500 ml", 24m), Ahora.AddDays(1));
+        producto.Editar(Ficha("REF-1", "Champú de argán 500 ml", 24m), Categoria(), Ahora.AddDays(1));
         producto.Archivar(Ahora.AddDays(2));
 
         Assert.Equal(("Champú de argán 500 ml", 24m, 7, false), (producto.Nombre, producto.PrecioVenta, producto.Stock, producto.Activo));

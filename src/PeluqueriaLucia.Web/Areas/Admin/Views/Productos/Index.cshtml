@@ -16,7 +16,8 @@
             <h1>Productos</h1>
             <p class="subtitle">La tienda del salón: referencias, fotos y stock. Cada venta, entrada o recuento queda en el historial del producto.</p>
         </div>
-        <div class="acciones">
+        <div class="acciones acciones-ajustadas">
+            <a class="btn btn-gray" asp-action="Categorias"><icono nombre="etiqueta" tamano="18" /> Categorías</a>
             <a class="btn btn-primary" asp-action="Nuevo"><icono nombre="mas" tamano="18" /> Nuevo producto</a>
         </div>
     </header>
@@ -44,28 +45,41 @@
         </div>
     </section>
 
-    <form class="toolbar" method="get" asp-action="Index" role="search">
-        <label class="search">
-            <icono nombre="buscar" tamano="17" />
-            <input class="input" type="search" name="q" value="@f.Texto" placeholder="Nombre, referencia o código"
-                   aria-label="Buscar productos" autocomplete="off" data-buscar-al-escribir />
-        </label>
-        <div class="segmented" role="radiogroup" aria-label="Estado del stock">
-            @foreach (var (estado, texto) in estados)
+    @* Buscador en su propio panel, separado de las cifras: texto, categoría (con buscador) y estado del stock *@
+    <form class="filtros-productos campos-marcados" method="get" asp-action="Index" role="search">
+        <div class="filtros-productos-campos">
+            <div class="filtro">
+                <label class="filtro-etiqueta" for="buscar-productos">Buscar</label>
+                <label class="search">
+                    <icono nombre="buscar" tamano="17" />
+                    <input class="input" id="buscar-productos" type="search" name="q" value="@f.Texto" placeholder="Nombre, referencia o código"
+                           autocomplete="off" data-buscar-al-escribir />
+                </label>
+            </div>
+            <div class="filtro">
+                <label class="filtro-etiqueta" for="categoria-productos">Categoría</label>
+                <select class="input" id="categoria-productos" name="categoria" data-enviar-al-cambiar
+                        data-buscable="Buscar categoría" data-buscable-vacio="Ninguna categoría con ese texto.">
+                    <option value="">Todas las categorías</option>
+                    @foreach (var c in Model.Categorias)
+                    {
+                        <option value="@c.Categoria.Id" selected="@(c.Categoria.Id == f.CategoriaId)">@c.Categoria.Nombre · @(c.Categoria.Activa ? FormatoProductos.Cifras(c) : "eliminada")</option>
+                    }
+                </select>
+            </div>
+        </div>
+        <div class="filtros-productos-pie">
+            <div class="segmented" role="radiogroup" aria-label="Estado del stock">
+                @foreach (var (estado, texto) in estados)
+                {
+                    <label><input type="radio" name="estado" value="@estado" checked="@(f.Estado == estado)" data-enviar-al-cambiar /> @texto</label>
+                }
+            </div>
+            @if (Model.Filtrando)
             {
-                <label><input type="radio" name="estado" value="@estado" checked="@(f.Estado == estado)" data-enviar-al-cambiar /> @texto</label>
+                <a class="btn btn-gray btn-sm" asp-action="Index"><icono nombre="cerrar" tamano="15" /> Quitar filtros</a>
             }
         </div>
-        @if (Model.Categorias.Count > 0)
-        {
-            <select class="input input-auto" name="categoria" aria-label="Categoría" data-enviar-al-cambiar>
-                <option value="">Todas las categorías</option>
-                @foreach (var c in Model.Categorias)
-                {
-                    <option value="@c" selected="@(string.Equals(c, f.Categoria, StringComparison.OrdinalIgnoreCase))">@c</option>
-                }
-            </select>
-        }
     </form>
 
     @if (Model.Pagina.TotalElementos == 0)
@@ -73,7 +87,15 @@
         <div class="estado-vacio">
             <span class="estado-icono tint-purple"><icono nombre="producto" tamano="30" /></span>
             <h2>@Model.TextoVacio</h2>
-            @if (Model.Filtro.Estado == EstadoInventario.PorReponer && string.IsNullOrWhiteSpace(Model.Filtro.Texto))
+            @if (Model.CategoriaFiltrada is { Activa: false } eliminada && Model.Filtro.Estado == EstadoInventario.Activos && string.IsNullOrWhiteSpace(Model.Filtro.Texto))
+            {
+                <p>Sus productos se archivaron con su stock al eliminarla. Recupérala para volver a venderlos, o mira sus productos archivados.</p>
+                <div class="acciones">
+                    <a class="btn btn-gray" asp-action="Index" asp-route-categoria="@eliminada.Id" asp-route-estado="@EstadoInventario.Archivados">Ver sus productos archivados</a>
+                    <a class="btn btn-primary" asp-action="Categorias">Ir a categorías</a>
+                </div>
+            }
+            else if (Model.Filtro.Estado == EstadoInventario.PorReponer && string.IsNullOrWhiteSpace(Model.Filtro.Texto))
             {
                 <p>Todos los productos a la venta tienen más unidades que su mínimo.</p>
                 <div class="acciones"><a class="btn btn-gray" asp-action="Index">Ver los productos en venta</a></div>
@@ -109,7 +131,7 @@
                         </span>
                         <span class="row-main">
                             <span class="row-title">@p.Nombre</span>
-                            <span class="row-sub"><span class="producto-ref">@p.Referencia</span>@(p.Marca is null ? "" : $" · {p.Marca}")@(p.Categoria is null ? "" : $" · {p.Categoria}")</span>
+                            <span class="row-sub"><span class="producto-ref">@p.Referencia</span>@(FormatoProductos.Detalle(p) is { Length: > 0 } detalle ? $" · {detalle}" : "")</span>
                         </span>
                         <span class="row-end">
                             @if (!p.Activo)
@@ -125,6 +147,6 @@
             </div>
         </section>
 
-        <partial name="_Paginacion" model="@(new PaginacionModelo(Model.Pagina.Numero, Model.Pagina.TotalPaginas, Model.Pagina.TotalElementos, n => Url.Action("Index", new { q = f.Texto, estado = f.Estado, categoria = f.Categoria, pagina = n })!))" />
+        <partial name="_Paginacion" model="@(new PaginacionModelo(Model.Pagina.Numero, Model.Pagina.TotalPaginas, Model.Pagina.TotalElementos, n => Url.Action("Index", new { q = f.Texto, estado = f.Estado, categoria = f.CategoriaId, pagina = n })!))" />
     }
 </div>

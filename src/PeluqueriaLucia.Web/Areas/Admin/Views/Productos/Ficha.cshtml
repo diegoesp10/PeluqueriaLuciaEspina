@@ -6,7 +6,8 @@
     var m = Model.Movimiento;
     ViewData["Title"] = p.Nombre;
     var fotos = p.FotosEnOrden;
-    var detalle = string.Join(" · ", new[] { p.Marca, p.Categoria }.Where(x => x is not null));
+    var detalle = FormatoProductos.Detalle(p);
+    var categoriaEliminada = p.Categoria is { Activa: false };
     var tipos = new (MovimientoManual Tipo, string Texto, string Icono, string Ayuda)[]
     {
         (MovimientoManual.Entrada, "Entrada", "mas", "Unidades que llegan (pedido, reposición). Se suman al stock."),
@@ -32,7 +33,7 @@
                     <button class="btn btn-gray"><icono nombre="archivar" tamano="17" /> Archivar</button>
                 </form>
             }
-            else
+            else if (!categoriaEliminada)
             {
                 <form method="post" asp-action="Reactivar" asp-route-id="@p.Id">
                     <button class="btn btn-gray"><icono nombre="recuperar" tamano="17" /> Volver a vender</button>
@@ -40,6 +41,15 @@
             }
         </div>
     </header>
+
+    @if (categoriaEliminada)
+    {
+        <p class="aviso-fijo producto-aviso-categoria">
+            <icono nombre="etiqueta" tamano="18" />
+            <span>@(p.ArchivadoConCategoria ? "Se archivó con su stock al eliminar su categoría" : "Su categoría está eliminada"), «@p.Categoria!.Nombre».
+                Para volver a venderlo, <a asp-action="Categorias">recupera la categoría</a> o <a asp-action="Editar" asp-route-id="@p.Id">elige otra</a>.</span>
+        </p>
+    }
 
     <div class="detalle-grid producto-ficha">
         <section>

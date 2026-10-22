@@ -6,8 +6,9 @@ La tienda del salón (champús, mascarillas, aceites…) se gestiona en **Produc
 
 ## Cómo se usa
 
-- **Nuevo producto**: referencia (única, en mayúsculas: `CH-ARG-250`), código de barras opcional (EAN/UPC de 8 a 14 cifras), nombre, marca, categoría, descripción, precio de venta (con impuestos, como en el ticket), precio de coste opcional, aviso de stock mínimo, unidades que hay ahora y hasta seis fotos. Las marcas y categorías ya escritas se sugieren al teclear.
-- **Inventario**: buscador al escribir (nombre, referencia, marca, categoría o código de barras), filtros *En venta*, *Por reponer* (agotados o con el mínimo o menos), *Archivados* y *Todos*, filtro por categoría y cuatro cifras: productos en venta, unidades en el almacén, por reponer y valor del stock (a precio de venta y de coste).
+- **Nuevo producto**: referencia (única, en mayúsculas: `CH-ARG-250`), código de barras opcional (EAN/UPC de 8 a 14 cifras), nombre, **categoría (obligatoria)**, marca, descripción, precio de venta (con impuestos, como en el ticket), precio de coste opcional, aviso de stock mínimo, unidades que hay ahora y hasta seis fotos. La categoría se elige con un buscador; si no existe, se escribe y se elige *Crear la categoría «…»*, y se crea al guardar (si ya hay una con ese nombre, aunque cambien las mayúsculas, se usa esa). Las marcas ya escritas se sugieren al teclear.
+- **Inventario**: un panel de búsqueda con el texto (nombre, referencia, marca, categoría o código de barras, al escribir), un **buscador de categorías** (cada una con sus productos y unidades; las eliminadas también, para ver sus archivados) y los filtros *En venta*, *Por reponer* (agotados o con el mínimo o menos), *Archivados* y *Todos*. Encima, cuatro cifras: productos en venta, unidades en el almacén, por reponer y valor del stock (a precio de venta y de coste).
+- **Categorías** (botón en la cabecera de Productos, `/admin/Productos/Categorias`): crear, renombrar y eliminar. **Eliminar es un borrado lógico**: antes se avisa de cuántos productos y unidades afecta; la categoría pasa a *Eliminadas* y sus productos a la venta se **archivan con su stock** (dejan de ofrecerse en visitas y de contar en el inventario; las unidades se conservan). **Recuperar** la categoría los devuelve a la venta tal cual. Los productos que ya estaban archivados a mano siguen archivados. Mientras la categoría esté eliminada, sus productos no se pueden volver a vender sueltos: hay que recuperarla o cambiarles la categoría en *Editar*.
 - **Ficha**: galería de fotos, stock con su estado, precio, coste, margen y código de barras, y el **historial de stock**: cada alta, entrada, venta (con enlace a la visita), uso en el salón y recuento, con quién, cuándo, la nota y el stock con que quedó.
 - **Movimientos a mano** desde la ficha:
   - *Entrada*: llega mercancía; suma unidades.
@@ -31,6 +32,7 @@ La tienda del salón (champús, mascarillas, aceites…) se gestiona en **Produc
 - **Concurrencia**: `Productos.Version` es `rowversion`. Si dos cobros mueven a la vez el mismo producto, el segundo falla al guardar sin cobrar nada y la pantalla pide repetirlo con el stock actualizado: ninguna unidad se pierde ni se cuenta dos veces.
 - Cada línea vendida guarda referencia, nombre y precio del momento: cambiar o archivar el producto no altera tickets, totales ni exportaciones anteriores.
 - Un producto con ventas no se puede borrar (también lo impide la clave ajena `ProductosVisitas → Productos`).
+- Todo producto tiene categoría (`Productos.CategoriaId`, obligatoria, clave ajena sin borrado en cascada). Las categorías nunca se borran de la base: eliminarlas las marca (`Activa = 0`, `EliminadaEn`) y archiva sus productos con `ArchivadoConCategoria = 1`, que es lo que permite devolver a la venta exactamente esos al recuperarla. No puede haber dos categorías **activas** con el mismo nombre (índice único filtrado; la intercalación no distingue mayúsculas), pero sí una eliminada y otra nueva que se llamen igual.
 
 ## Fotos
 
@@ -57,10 +59,20 @@ La migración `ControlDeProductos` solo **añade** cuatro tablas; no toca ningun
 | `MovimientosStock` | Historial: tipo, cantidad con signo, stock resultante (puede ser negativo), nota, visita (en ventas y productos utilizados) y administrador. |
 | `ProductosVisitas` | Productos vendidos en cada visita (`ServiciosClientes`): unidades, precio unitario e importe. |
 
-Estado: aplicada en la base **local** (`PeluqueriaLuciaDb`, 22-oct-2026, con copia previa `PeluqueriaLuciaDb_antes_StockNegativoYDualidad_20261022.bak` en la carpeta de copias de SQL Server), junto con `DualidadDeServicios` (ver [AGENDA.md](AGENDA.md)). **Pendientes en producción.**
+La migración `CategoriasDeProductos` convierte la categoría de texto libre en una tabla, **sin perder datos**:
+
+| Cambio | Detalle |
+|---|---|
+| Tabla `CategoriasProductos` | `Nombre`, `Activa`, `CreadaEn`, `EliminadaEn`. Índice único en `Nombre` solo para las activas. |
+| `Productos.CategoriaId` | Obligatoria. Antes de exigirla, cada texto distinto de la antigua columna `Categoria` (sin espacios sobrantes; mayúsculas indiferentes) se convierte en una categoría y los productos sin categoría van a **«Sin categoría»**. Después se quita la columna de texto. |
+| `Productos.ArchivadoConCategoria` | Por defecto 0. |
+
+La vuelta atrás (`Down`) recupera el texto de cada producto. Se ha probado con datos en una base desechable: repetidas con distinta mayúscula, vacías y nulas.
+
+Estado: `ControlDeProductos` y `DualidadDeServicios` (ver [AGENDA.md](AGENDA.md)) aplicadas en la base **local** el 22-oct-2026, y `CategoriasDeProductos` también, con copia previa `PeluqueriaLuciaDb_antes_CategoriasDeProductos_20261022.bak` en la carpeta de copias de SQL Server. **Pendientes en producción.**
 
 ## Puesta en producción
 
-1. **Antes de publicar el código**, aplicar las migraciones `ControlDeProductos`, `DualidadDeServicios` y `PreferenciaDeAviso` contra Azure SQL como indica [AZURE.md](AZURE.md) («Migraciones y administrador»). Son aditivas: la versión publicada sigue funcionando mientras tanto. Si el código llegara antes que las tablas, las pantallas de visitas y de la agenda fallarían.
+1. **Antes de publicar el código**, aplicar las migraciones `ControlDeProductos`, `DualidadDeServicios`, `PreferenciaDeAviso` y `CategoriasDeProductos`, en ese orden, contra Azure SQL como indica [AZURE.md](AZURE.md) («Migraciones y administrador»). La versión publicada ahora no usa ninguna de estas tablas ni columnas, así que sigue funcionando mientras tanto. Si el código llegara antes que las tablas, las pantallas de visitas, productos y agenda fallarían.
 2. En la Web App (Configuración → Variables de entorno), añadir `FotosProductos__Carpeta` = `/home/data/productos`, junto a `Imagenes__Carpeta` y `FotosResenas__Carpeta`. Solo es para Azure: en desarrollo la carpeta sale de `appsettings.Development.json`.
-3. Publicar y dar de alta los productos con su stock inicial.
+3. Publicar, crear las categorías (o escribirlas al dar de alta cada producto) y dar de alta los productos con su stock inicial.

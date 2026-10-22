@@ -85,7 +85,7 @@ Cierra la terminal al acabar (o `Remove-Item Env:ConnectionStrings__Peluqueria`)
 
 **Última migración aplicada en producción:** `TelefonosDeContacto` (15-oct-2026), que crea la tabla de los teléfonos de **Contacto de la web**. Hasta que se guarden teléfonos desde el panel publicado, la web sigue mostrando el de `contenido-publico.json`.
 
-**Pendientes de aplicar antes de publicar los productos, la dualidad y la preferencia de aviso:** `ControlDeProductos` (crea `Productos`, `FotosProductos`, `MovimientosStock` y `ProductosVisitas`), `DualidadDeServicios` (añade la columna `Dualidad`, por defecto 0, a `ServiciosGenericos` y `ReservasCitas`) y `PreferenciaDeAviso` (añade `CanalPreferido`, que admite nulos, a `Clientes`). Ninguna borra ni cambia datos. Detalles en [PRODUCTOS.md](PRODUCTOS.md) y [AGENDA.md](AGENDA.md).
+**Pendientes de aplicar antes de publicar los productos, la dualidad y la preferencia de aviso**, en este orden: `ControlDeProductos` (crea `Productos`, `FotosProductos`, `MovimientosStock` y `ProductosVisitas`), `DualidadDeServicios` (añade la columna `Dualidad`, por defecto 0, a `ServiciosGenericos` y `ReservasCitas`), `PreferenciaDeAviso` (añade `CanalPreferido`, que admite nulos, a `Clientes`) y `CategoriasDeProductos` (crea `CategoriasProductos` y cambia la categoría de texto de `Productos`, que se creó en `ControlDeProductos` y en producción está vacía, por `CategoriaId`; si hubiera productos, cada texto pasa a ser una categoría). Ninguna borra ni cambia datos que ya existan hoy en producción. Detalles en [PRODUCTOS.md](PRODUCTOS.md) y [AGENDA.md](AGENDA.md).
 
 ## 4. Publicar
 

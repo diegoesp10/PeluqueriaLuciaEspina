@@ -21,14 +21,14 @@ public sealed class ProductosController(ProductosService productos) : AdminContr
     private const string AvisoConcurrencia = "El producto acaba de cambiar (por ejemplo, con un cobro) y no se ha guardado nada. Revisa los datos actuales y vuelve a intentarlo.";
 
     [HttpGet]
-    public async Task<IActionResult> Index(string? q, EstadoInventario estado = EstadoInventario.Activos, string? categoria = null, int pagina = 1, CancellationToken ct = default)
+    public async Task<IActionResult> Index(string? q, EstadoInventario estado = EstadoInventario.Activos, int? categoria = null, int pagina = 1, CancellationToken ct = default)
     {
-        var filtro = new FiltroProductos(q?.Trim(), Enum.IsDefined(estado) ? estado : EstadoInventario.Activos, categoria?.Trim());
+        var filtro = new FiltroProductos(q?.Trim(), Enum.IsDefined(estado) ? estado : EstadoInventario.Activos, categoria);
 
         // Secuencial a propósito: el contexto de base de datos no admite consultas simultáneas
         var listado = await productos.BuscarAsync(filtro, pagina, ct);
         var resumen = await productos.ResumirAsync(ct);
-        var (categorias, _) = await productos.SugerenciasAsync(ct);
+        var categorias = await productos.CategoriasAsync(ct);
         return View(new ProductosIndiceModelo(filtro, listado, resumen, categorias));
     }
 
@@ -40,7 +40,7 @@ public sealed class ProductosController(ProductosService productos) : AdminContr
     {
         if (ModelState.IsValid)
         {
-            var resultado = await productos.CrearAsync(new DatosProducto(formulario.AFicha(), formulario.StockInicial), formulario.AArchivos(), AdministradorId, ct);
+            var resultado = await productos.CrearAsync(new DatosProducto(formulario.AFicha(), formulario.ACategoria(), formulario.StockInicial), formulario.AArchivos(), AdministradorId, ct);
             if (resultado.Exito)
             {
                 this.AvisarExito($"«{formulario.Nombre.Trim()}» añadido al inventario.");
@@ -67,7 +67,7 @@ public sealed class ProductosController(ProductosService productos) : AdminContr
         {
             try
             {
-                var resultado = await productos.EditarAsync(id, formulario.AFicha(), formulario.ACambios(), ct);
+                var resultado = await productos.EditarAsync(id, formulario.AFicha(), formulario.ACategoria(), formulario.ACambios(), ct);
                 if (resultado.Exito)
                 {
                     this.AvisarExito("Cambios guardados. Las visitas anteriores conservan el nombre y el precio que tenían.");
@@ -162,6 +162,91 @@ public sealed class ProductosController(ProductosService productos) : AdminContr
         return RedirectToAction(nameof(Index));
     }
 
+    /// <summary>Categorías de la tienda: crear, renombrar, eliminar (borrado lógico que archiva sus productos) y recuperar.</summary>
+    [HttpGet]
+    public async Task<IActionResult> Categorias(int? editar, CancellationToken ct) =>
+        View(new CategoriasModelo(await productos.CategoriasAsync(ct), new CategoriaProductoFormulario(), editar));
+
+    [HttpPost]
+    public async Task<IActionResult> CrearCategoria([Bind(Prefix = "Nueva")] CategoriaProductoFormulario nueva, CancellationToken ct)
+    {
+        if (ModelState.IsValid)
+        {
+            var resultado = await productos.CrearCategoriaAsync(nueva.Nombre, ct);
+            if (resultado.Exito)
+            {
+                this.AvisarExito($"Categoría «{nueva.Nombre.Trim()}» creada. Ya puedes elegirla en los productos.");
+                return RedirectToAction(nameof(Categorias));
+            }
+
+            ModelState.AgregarError(resultado.Error!, "Nueva.");
+        }
+
+        return View(nameof(Categorias), new CategoriasModelo(await productos.CategoriasAsync(ct), nueva));
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> RenombrarCategoria(int id, string? nombre, CancellationToken ct)
+    {
+        var resultado = await productos.RenombrarCategoriaAsync(id, nombre, ct);
+        if (!resultado.Exito)
+        {
+            this.AvisarError(resultado.Error!.Mensaje);
+            return RedirectToAction(nameof(Categorias), new { editar = id });
+        }
+
+        this.AvisarExito("Categoría renombrada. Sus productos ya aparecen con el nombre nuevo.");
+        return RedirectToAction(nameof(Categorias));
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> EliminarCategoria(int id, CancellationToken ct)
+    {
+        try
+        {
+            var resultado = await productos.EliminarCategoriaAsync(id, ct);
+            if (!resultado.Exito)
+                this.AvisarError(resultado.Error!.Mensaje);
+            else
+            {
+                var (nombre, archivados) = resultado.Valor!;
+                this.AvisarExito(archivados == 0
+                    ? $"Categoría «{nombre}» eliminada."
+                    : $"Categoría «{nombre}» eliminada. {(archivados == 1 ? "Su producto queda archivado" : $"Sus {archivados} productos quedan archivados")} con su stock; recupérala para volver a venderlos.");
+            }
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            this.AvisarError("Algún producto de la categoría acaba de cambiar (por ejemplo, con un cobro) y no se ha eliminado nada. Vuelve a intentarlo.");
+        }
+
+        return RedirectToAction(nameof(Categorias));
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> RecuperarCategoria(int id, CancellationToken ct)
+    {
+        try
+        {
+            var resultado = await productos.RecuperarCategoriaAsync(id, ct);
+            if (!resultado.Exito)
+                this.AvisarError(resultado.Error!.Mensaje);
+            else
+            {
+                var (nombre, recuperados) = resultado.Valor!;
+                this.AvisarExito(recuperados == 0
+                    ? $"Categoría «{nombre}» recuperada."
+                    : $"Categoría «{nombre}» recuperada. {(recuperados == 1 ? "Su producto vuelve" : $"Sus {recuperados} productos vuelven")} a estar a la venta.");
+            }
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            this.AvisarError("Algún producto de la categoría acaba de cambiar y no se ha recuperado nada. Vuelve a intentarlo.");
+        }
+
+        return RedirectToAction(nameof(Categorias));
+    }
+
     /// <summary>Las fotos están en una carpeta privada: solo se ven con sesión en el panel.</summary>
     [HttpGet("/admin/productos/foto/{id:guid}")]
     public IActionResult Foto(Guid id, bool mini = false) =>
@@ -187,8 +272,11 @@ public sealed class ProductosController(ProductosService productos) : AdminContr
 
     private async Task<ProductoEdicionModelo> ModeloEdicionAsync(int? id, ProductoFormulario formulario, Producto? producto, CancellationToken ct)
     {
-        var (categorias, marcas) = await productos.SugerenciasAsync(ct);
-        return new ProductoEdicionModelo(id, formulario, producto, categorias, marcas);
+        // Un producto archivado con su categoría puede guardarse sin cambiarla: la eliminada también se ofrece, solo a él
+        var categorias = await productos.CategoriasActivasAsync(ct);
+        if (producto?.Categoria is { Activa: false } eliminada)
+            categorias = [.. categorias, eliminada];
+        return new ProductoEdicionModelo(id, formulario, producto, categorias, await productos.MarcasAsync(ct));
     }
 
     private static string TextoMovimiento(MovimientoManual tipo) => tipo switch

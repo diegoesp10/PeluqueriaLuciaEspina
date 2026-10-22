@@ -9,10 +9,10 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia;
 internal sealed class ProductoRepositorio(PeluqueriaDbContext db) : IProductoRepositorio
 {
     public Task<Producto?> ObtenerAsync(int id, CancellationToken ct) =>
-        db.Productos.Include(p => p.Fotos).SingleOrDefaultAsync(p => p.Id == id, ct);
+        db.Productos.Include(p => p.Categoria).Include(p => p.Fotos).SingleOrDefaultAsync(p => p.Id == id, ct);
 
     public async Task<IReadOnlyList<Producto>> ObtenerVariosAsync(IReadOnlyCollection<int> ids, CancellationToken ct) =>
-        await db.Productos.Include(p => p.Fotos).Where(p => ids.Contains(p.Id)).ToListAsync(ct);
+        await db.Productos.Include(p => p.Categoria).Include(p => p.Fotos).Where(p => ids.Contains(p.Id)).ToListAsync(ct);
 
     public async Task<Pagina<Producto>> BuscarAsync(FiltroProductos filtro, int pagina, int tamano, CancellationToken ct)
     {
@@ -20,6 +20,7 @@ internal sealed class ProductoRepositorio(PeluqueriaDbContext db) : IProductoRep
         var total = await consulta.CountAsync(ct);
         var elementos = await consulta
             .AsNoTracking()
+            .Include(p => p.Categoria)
             .Include(p => p.Fotos)
             .OrderBy(p => p.Nombre).ThenBy(p => p.Id)
             .Skip((pagina - 1) * tamano)
@@ -30,7 +31,7 @@ internal sealed class ProductoRepositorio(PeluqueriaDbContext db) : IProductoRep
     }
 
     public async Task<IReadOnlyList<Producto>> ListarActivosAsync(CancellationToken ct) =>
-        await db.Productos.AsNoTracking().Include(p => p.Fotos)
+        await db.Productos.AsNoTracking().Include(p => p.Categoria).Include(p => p.Fotos)
             .Where(p => p.Activo)
             .OrderBy(p => p.Nombre).ThenBy(p => p.Id)
             .AsSplitQuery()
@@ -60,12 +61,37 @@ internal sealed class ProductoRepositorio(PeluqueriaDbContext db) : IProductoRep
         return cifras ?? ResumenInventario.Vacio;
     }
 
-    public async Task<(IReadOnlyList<string> Categorias, IReadOnlyList<string> Marcas)> SugerenciasAsync(CancellationToken ct)
-    {
-        var categorias = await db.Productos.Where(p => p.Categoria != null).Select(p => p.Categoria!).Distinct().OrderBy(c => c).ToListAsync(ct);
-        var marcas = await db.Productos.Where(p => p.Marca != null).Select(p => p.Marca!).Distinct().OrderBy(m => m).ToListAsync(ct);
-        return (categorias, marcas);
-    }
+    public async Task<IReadOnlyList<string>> MarcasAsync(CancellationToken ct) =>
+        await db.Productos.Where(p => p.Marca != null).Select(p => p.Marca!).Distinct().OrderBy(m => m).ToListAsync(ct);
+
+    public async Task<IReadOnlyList<CategoriaProducto>> CategoriasAsync(bool incluirEliminadas, CancellationToken ct) =>
+        await db.CategoriasProductos.AsNoTracking()
+            .Where(c => incluirEliminadas || c.Activa)
+            .OrderByDescending(c => c.Activa).ThenBy(c => c.Nombre).ThenBy(c => c.Id)
+            .ToListAsync(ct);
+
+    public async Task<IReadOnlyList<ResumenCategoria>> ResumenCategoriasAsync(CancellationToken ct) =>
+        await db.CategoriasProductos.AsNoTracking()
+            .OrderByDescending(c => c.Activa).ThenBy(c => c.Nombre).ThenBy(c => c.Id)
+            .Select(c => new ResumenCategoria(
+                c,
+                db.Productos.Count(p => p.CategoriaId == c.Id && p.Activo),
+                db.Productos.Where(p => p.CategoriaId == c.Id && p.Activo && p.Stock > 0).Sum(p => (int?)p.Stock) ?? 0,
+                db.Productos.Count(p => p.CategoriaId == c.Id && p.ArchivadoConCategoria),
+                db.Productos.Where(p => p.CategoriaId == c.Id && p.ArchivadoConCategoria && p.Stock > 0).Sum(p => (int?)p.Stock) ?? 0))
+            .ToListAsync(ct);
+
+    public Task<CategoriaProducto?> CategoriaAsync(int id, CancellationToken ct) =>
+        db.CategoriasProductos.SingleOrDefaultAsync(c => c.Id == id, ct);
+
+    // El índice único filtrado garantiza como mucho una activa por nombre; la intercalación de la base no distingue mayúsculas
+    public Task<CategoriaProducto?> CategoriaActivaPorNombreAsync(string nombre, int? excluirId, CancellationToken ct) =>
+        db.CategoriasProductos.SingleOrDefaultAsync(c => c.Activa && c.Nombre == nombre && (excluirId == null || c.Id != excluirId), ct);
+
+    public async Task<IReadOnlyList<Producto>> ProductosDeCategoriaAsync(int categoriaId, CancellationToken ct) =>
+        await db.Productos.Where(p => p.CategoriaId == categoriaId).ToListAsync(ct);
+
+    public void AgregarCategoria(CategoriaProducto categoria) => db.CategoriasProductos.Add(categoria);
 
     public Task<bool> ExisteReferenciaAsync(string referencia, int? excluirId, CancellationToken ct) =>
         db.Productos.AnyAsync(p => p.Referencia == referencia && (excluirId == null || p.Id != excluirId), ct);
@@ -108,11 +134,8 @@ internal sealed class ProductoRepositorio(PeluqueriaDbContext db) : IProductoRep
             EstadoInventario.Archivados => db.Productos.Where(p => !p.Activo),
             _ => db.Productos.AsQueryable(),
         };
-        if (!string.IsNullOrWhiteSpace(filtro.Categoria))
-        {
-            var categoria = filtro.Categoria.Trim();
-            consulta = consulta.Where(p => p.Categoria == categoria);
-        }
+        if (filtro.CategoriaId is { } categoriaId)
+            consulta = consulta.Where(p => p.CategoriaId == categoriaId);
 
         // Cada palabra en algún campo: «champú arg» encuentra «Champú de argán», y el código del lector, su producto
         foreach (var palabra in BusquedaTexto.Palabras(filtro.Texto))
@@ -123,7 +146,7 @@ internal sealed class ProductoRepositorio(PeluqueriaDbContext db) : IProductoRep
                 || EF.Functions.Like(p.Nombre, patron, "\\")
                 || (p.CodigoBarras != null && EF.Functions.Like(p.CodigoBarras, patron, "\\"))
                 || (p.Marca != null && EF.Functions.Like(p.Marca, patron, "\\"))
-                || (p.Categoria != null && EF.Functions.Like(p.Categoria, patron, "\\")));
+                || EF.Functions.Like(p.Categoria!.Nombre, patron, "\\"));
         }
 
         return consulta;

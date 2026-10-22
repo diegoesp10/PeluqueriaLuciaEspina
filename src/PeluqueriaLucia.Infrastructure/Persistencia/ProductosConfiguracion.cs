@@ -19,7 +19,6 @@ internal sealed class ProductoConfiguracion : IEntityTypeConfiguration<Producto>
         builder.Property(p => p.CodigoBarras).HasMaxLength(Producto.LongitudCodigoBarras).IsUnicode(false);
         builder.Property(p => p.Nombre).IsRequired().HasMaxLength(Producto.LongitudNombre);
         builder.Property(p => p.Marca).HasMaxLength(Producto.LongitudMarca);
-        builder.Property(p => p.Categoria).HasMaxLength(Producto.LongitudCategoria);
         builder.Property(p => p.Descripcion).HasMaxLength(Producto.LongitudDescripcion);
         builder.Property(p => p.PrecioVenta).HasColumnType("decimal(18,2)");
         builder.Property(p => p.PrecioCoste).HasColumnType("decimal(18,2)");
@@ -35,11 +34,29 @@ internal sealed class ProductoConfiguracion : IEntityTypeConfiguration<Producto>
         builder.HasIndex(p => p.CodigoBarras).IsUnique().HasFilter("[CodigoBarras] IS NOT NULL");
         builder.HasIndex(p => new { p.Activo, p.Nombre });
 
+        // Una categoría con productos no se borra de verdad: se elimina con borrado lógico (archiva sus productos)
+        builder.HasOne(p => p.Categoria)
+            .WithMany()
+            .HasForeignKey(p => p.CategoriaId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasMany(p => p.Fotos)
             .WithOne()
             .HasForeignKey(f => f.ProductoId)
             .OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(p => p.Fotos).HasField("_fotos").UsePropertyAccessMode(PropertyAccessMode.Field);
+    }
+}
+
+internal sealed class CategoriaProductoConfiguracion : IEntityTypeConfiguration<CategoriaProducto>
+{
+    public void Configure(EntityTypeBuilder<CategoriaProducto> builder)
+    {
+        builder.ToTable("CategoriasProductos");
+        builder.Property(c => c.Nombre).IsRequired().HasMaxLength(CategoriaProducto.LongitudNombre);
+
+        // Dos categorías activas no pueden llamarse igual; una eliminada no estorba para crear otra con su nombre
+        builder.HasIndex(c => c.Nombre).IsUnique().HasFilter("[Activa] = 1");
     }
 }
 

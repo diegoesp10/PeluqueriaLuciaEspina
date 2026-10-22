@@ -37,7 +37,7 @@ public sealed class ProductosTests : IAsyncLifetime
     [Fact]
     public async Task Crear_con_stock_inicial_y_fotos_guarda_la_ficha_el_alta_y_los_dos_tamanos()
     {
-        var resultado = await Servicios().Productos.CrearAsync(new DatosProducto(ProductoTests.Ficha(codigo: "8412345678901"), 12),
+        var resultado = await Servicios().Productos.CrearAsync(Datos(ProductoTests.Ficha(codigo: "8412345678901"), 12),
             [Foto(2400, 1200, "frente.png"), Foto(800, 800, "lateral.jpg")], administradorId: null);
 
         Assert.True(resultado.Exito, resultado.Error?.Mensaje);
@@ -60,12 +60,12 @@ public sealed class ProductosTests : IAsyncLifetime
     [Fact]
     public async Task Referencia_y_codigo_de_barras_no_se_repiten_aunque_cambien_mayusculas()
     {
-        await Servicios().Productos.CrearAsync(new DatosProducto(ProductoTests.Ficha("CH-1", codigo: "12345678")), [], null);
+        await Servicios().Productos.CrearAsync(Datos(ProductoTests.Ficha("CH-1", codigo: "12345678")), [], null);
 
-        var referencia = await Servicios().Productos.CrearAsync(new DatosProducto(ProductoTests.Ficha("ch-1")), [], null);
-        var codigo = await Servicios().Productos.CrearAsync(new DatosProducto(ProductoTests.Ficha("CH-2", codigo: "12345678")), [], null);
-        var sinCodigo = await Servicios().Productos.CrearAsync(new DatosProducto(ProductoTests.Ficha("CH-3")), [], null);
-        var otroSinCodigo = await Servicios().Productos.CrearAsync(new DatosProducto(ProductoTests.Ficha("CH-4")), [], null);
+        var referencia = await Servicios().Productos.CrearAsync(Datos(ProductoTests.Ficha("ch-1")), [], null);
+        var codigo = await Servicios().Productos.CrearAsync(Datos(ProductoTests.Ficha("CH-2", codigo: "12345678")), [], null);
+        var sinCodigo = await Servicios().Productos.CrearAsync(Datos(ProductoTests.Ficha("CH-3")), [], null);
+        var otroSinCodigo = await Servicios().Productos.CrearAsync(Datos(ProductoTests.Ficha("CH-4")), [], null);
 
         Assert.Equal("Referencia", referencia.Error?.Campo);
         Assert.Equal("CodigoBarras", codigo.Error?.Campo);
@@ -77,7 +77,7 @@ public sealed class ProductosTests : IAsyncLifetime
     {
         using var falsa = new MemoryStream("<svg onload='alert(1)'/>"u8.ToArray());
 
-        var resultado = await Servicios().Productos.CrearAsync(new DatosProducto(ProductoTests.Ficha(), 3),
+        var resultado = await Servicios().Productos.CrearAsync(Datos(ProductoTests.Ficha(), 3),
             [Foto(600, 600, "buena.png"), new ArchivoImagen(falsa, "mala.jpg", falsa.Length)], null);
 
         Assert.False(resultado.Exito);
@@ -90,11 +90,11 @@ public sealed class ProductosTests : IAsyncLifetime
     [Fact]
     public async Task Editar_quita_fotos_cambia_la_principal_y_borra_los_ficheros_quitados()
     {
-        var id = (await Servicios().Productos.CrearAsync(new DatosProducto(ProductoTests.Ficha()), [Foto(400, 400, "a.png"), Foto(400, 400, "b.png")], null)).Valor;
+        var id = (await Servicios().Productos.CrearAsync(Datos(ProductoTests.Ficha()), [Foto(400, 400, "a.png"), Foto(400, 400, "b.png")], null)).Valor;
         var (productos, _, _) = Servicios();
         var fotos = (await productos.ObtenerAsync(id))!.FotosEnOrden.Select(f => f.Id).ToList();
 
-        var resultado = await Servicios().Productos.EditarAsync(id, ProductoTests.Ficha(nombre: "Champú de argán 500 ml"),
+        var resultado = await Servicios().Productos.EditarAsync(id, ProductoTests.Ficha(nombre: "Champú de argán 500 ml"), new CategoriaElegida(null, "Champús"),
             new CambiosFotos([Foto(400, 400, "c.png")], [fotos[0]], fotos[1]));
 
         Assert.True(resultado.Exito, resultado.Error?.Mensaje);
@@ -111,10 +111,10 @@ public sealed class ProductosTests : IAsyncLifetime
     public async Task Buscar_filtra_por_palabras_estado_y_categoria_y_el_resumen_valora_el_inventario()
     {
         var productos = Servicios().Productos;
-        await productos.CrearAsync(new DatosProducto(ProductoTests.Ficha("CH-1", "Champú de argán", 10m, "84100001", minimo: 2, coste: 5m), 6), [], null);
-        await productos.CrearAsync(new DatosProducto(ProductoTests.Ficha("MA-1", "Mascarilla reparadora", 20m, minimo: 3, coste: 8m), 2), [], null);
-        await productos.CrearAsync(new DatosProducto(ProductoTests.Ficha("LA-1", "Laca fuerte", 8m, minimo: 1, coste: null), 0), [], null);
-        var archivado = (await productos.CrearAsync(new DatosProducto(ProductoTests.Ficha("VI-1", "Vieja colonia", 5m), 4), [], null)).Valor;
+        await productos.CrearAsync(Datos(ProductoTests.Ficha("CH-1", "Champú de argán", 10m, "84100001", minimo: 2, coste: 5m), 6), [], null);
+        await productos.CrearAsync(Datos(ProductoTests.Ficha("MA-1", "Mascarilla reparadora", 20m, minimo: 3, coste: 8m), 2, "Tratamientos"), [], null);
+        await productos.CrearAsync(Datos(ProductoTests.Ficha("LA-1", "Laca fuerte", 8m, minimo: 1, coste: null), 0, "Fijadores"), [], null);
+        var archivado = (await productos.CrearAsync(Datos(ProductoTests.Ficha("VI-1", "Vieja colonia", 5m), 4), [], null)).Valor;
         await Servicios().Productos.ArchivarAsync(archivado, archivar: true);
 
         async Task<string[]> Nombres(FiltroProductos filtro) => [.. (await Servicios().Productos.BuscarAsync(filtro, 1)).Elementos.Select(p => p.Referencia)];
@@ -126,7 +126,11 @@ public sealed class ProductosTests : IAsyncLifetime
         Assert.Equal(["LA-1", "MA-1"], await Nombres(new(Estado: EstadoInventario.PorReponer)));
         Assert.Equal(["VI-1"], await Nombres(new(Estado: EstadoInventario.Archivados)));
         Assert.Equal(4, (await Nombres(new(Estado: EstadoInventario.Todos))).Length);
-        Assert.Equal(["CH-1", "LA-1", "MA-1"], await Nombres(new(Categoria: "Champús")));
+        // Por categoría (solo las suyas, en el estado pedido) y por su nombre en el buscador de texto
+        var champus = await _bd.EscalarAsync<int>("SELECT Id FROM CategoriasProductos WHERE Nombre = N'Champús'");
+        Assert.Equal(["CH-1"], await Nombres(new(CategoriaId: champus)));
+        Assert.Equal(["CH-1", "VI-1"], await Nombres(new(Estado: EstadoInventario.Todos, CategoriaId: champus)));
+        Assert.Equal(["LA-1"], await Nombres(new("fijador")));
 
         var resumen = await Servicios().Productos.ResumirAsync();
         Assert.Equal(new ResumenInventario(Productos: 3, Unidades: 8, BajoStock: 1, Agotados: 1, ValorVenta: 100m, ValorCoste: 46m), resumen);
@@ -136,7 +140,7 @@ public sealed class ProductosTests : IAsyncLifetime
     [Fact]
     public async Task Los_movimientos_manuales_cambian_el_stock_y_quedan_en_el_historial()
     {
-        var id = (await Servicios().Productos.CrearAsync(new DatosProducto(ProductoTests.Ficha(), 5), [], null)).Valor;
+        var id = (await Servicios().Productos.CrearAsync(Datos(ProductoTests.Ficha(), 5), [], null)).Valor;
 
         var entrada = await Servicios().Productos.RegistrarMovimientoAsync(id, MovimientoManual.Entrada, 10, "Pedido 245", 1);
         var uso = await Servicios().Productos.RegistrarMovimientoAsync(id, MovimientoManual.UsoInterno, 3, null, 1);
@@ -157,8 +161,8 @@ public sealed class ProductosTests : IAsyncLifetime
     public async Task Cobrar_una_visita_con_productos_descuenta_el_stock_y_el_resumen_los_cuenta()
     {
         var (clienteId, servicioId) = await ClienteYServicioAsync();
-        var champu = (await Servicios().Productos.CrearAsync(new DatosProducto(ProductoTests.Ficha("CH-1", precio: 10m), 5), [], null)).Valor;
-        var laca = (await Servicios().Productos.CrearAsync(new DatosProducto(ProductoTests.Ficha("LA-1", "Laca", 8m), 2), [], null)).Valor;
+        var champu = (await Servicios().Productos.CrearAsync(Datos(ProductoTests.Ficha("CH-1", precio: 10m), 5), [], null)).Valor;
+        var laca = (await Servicios().Productos.CrearAsync(Datos(ProductoTests.Ficha("LA-1", "Laca", 8m), 2), [], null)).Valor;
         var dia = new DateTime(2026, 10, 17, 10, 0, 0);
 
         var registrada = await Servicios().Visitas.RegistrarAsync(new NuevaVisita(clienteId, dia, FormaPago.Efectivo, [servicioId],
@@ -187,7 +191,7 @@ public sealed class ProductosTests : IAsyncLifetime
     public async Task Sin_stock_al_cobrar_se_cobra_igual_y_el_producto_queda_en_negativo_y_por_reponer()
     {
         var (clienteId, _) = await ClienteYServicioAsync();
-        var champu = (await Servicios().Productos.CrearAsync(new DatosProducto(ProductoTests.Ficha(precio: 10m, minimo: 0), 2), [], null)).Valor;
+        var champu = (await Servicios().Productos.CrearAsync(Datos(ProductoTests.Ficha(precio: 10m, minimo: 0), 2), [], null)).Valor;
         var primera = (await Servicios().Visitas.RegistrarAsync(new NuevaVisita(clienteId, DateTime.Today, FormaPago.Efectivo, [], Productos: [new ProductoNuevaVisita(champu, 2)]))).Valor;
         var segunda = (await Servicios().Visitas.RegistrarAsync(new NuevaVisita(clienteId, DateTime.Today, FormaPago.Efectivo, [], Productos: [new ProductoNuevaVisita(champu, 1)]))).Valor;
         Assert.True((await Servicios().Visitas.CobrarAsync(primera, FormaPago.Efectivo, null, null)).Exito);
@@ -206,8 +210,8 @@ public sealed class ProductosTests : IAsyncLifetime
     public async Task Los_productos_usados_al_cobrar_se_descuentan_con_su_visita_y_no_se_cobran()
     {
         var (clienteId, servicioId) = await ClienteYServicioAsync();
-        var tinte = (await Servicios().Productos.CrearAsync(new DatosProducto(ProductoTests.Ficha("TI-73", "Tinte 7.3", 12m), 1), [], null)).Valor;
-        var oxidante = (await Servicios().Productos.CrearAsync(new DatosProducto(ProductoTests.Ficha("OX-20", "Oxidante 20 vol", 8m), 10), [], null)).Valor;
+        var tinte = (await Servicios().Productos.CrearAsync(Datos(ProductoTests.Ficha("TI-73", "Tinte 7.3", 12m), 1), [], null)).Valor;
+        var oxidante = (await Servicios().Productos.CrearAsync(Datos(ProductoTests.Ficha("OX-20", "Oxidante 20 vol", 8m), 10), [], null)).Valor;
         var visita = (await Servicios().Visitas.RegistrarAsync(new NuevaVisita(clienteId, DateTime.Today, FormaPago.Efectivo, [servicioId]))).Valor;
 
         var inexistente = await Servicios().Visitas.CobrarAsync(visita, FormaPago.Efectivo, null, null, usados: [new ProductoUsadoCobro(999999, 1)]);
@@ -227,7 +231,7 @@ public sealed class ProductosTests : IAsyncLifetime
     [Fact]
     public async Task Dos_cambios_de_stock_a_la_vez_no_se_pisan()
     {
-        var id = (await Servicios().Productos.CrearAsync(new DatosProducto(ProductoTests.Ficha(), 5), [], null)).Valor;
+        var id = (await Servicios().Productos.CrearAsync(Datos(ProductoTests.Ficha(), 5), [], null)).Valor;
         await using var primero = _bd.Contexto();
         await using var segundo = _bd.Contexto();
         var a = await primero.Productos.SingleAsync(p => p.Id == id);
@@ -245,8 +249,8 @@ public sealed class ProductosTests : IAsyncLifetime
     public async Task Eliminar_borra_lo_que_nunca_se_vendio_y_archiva_lo_vendido()
     {
         var (clienteId, _) = await ClienteYServicioAsync();
-        var nuevo = (await Servicios().Productos.CrearAsync(new DatosProducto(ProductoTests.Ficha("NU-1"), 3), [Foto(300, 300, "nuevo.png")], null)).Valor;
-        var vendido = (await Servicios().Productos.CrearAsync(new DatosProducto(ProductoTests.Ficha("VE-1"), 3), [], null)).Valor;
+        var nuevo = (await Servicios().Productos.CrearAsync(Datos(ProductoTests.Ficha("NU-1"), 3), [Foto(300, 300, "nuevo.png")], null)).Valor;
+        var vendido = (await Servicios().Productos.CrearAsync(Datos(ProductoTests.Ficha("VE-1"), 3), [], null)).Valor;
         await Servicios().Visitas.RegistrarAsync(new NuevaVisita(clienteId, DateTime.Today, FormaPago.Efectivo, [], Productos: [new ProductoNuevaVisita(vendido, 1)]));
 
         var borrado = await Servicios().Productos.EliminarAsync(nuevo);
@@ -263,7 +267,7 @@ public sealed class ProductosTests : IAsyncLifetime
     public async Task La_exportacion_detalla_los_productos_vendidos_en_otra_hoja()
     {
         var (clienteId, servicioId) = await ClienteYServicioAsync();
-        var champu = (await Servicios().Productos.CrearAsync(new DatosProducto(ProductoTests.Ficha("CH-1", precio: 10m), 5), [], null)).Valor;
+        var champu = (await Servicios().Productos.CrearAsync(Datos(ProductoTests.Ficha("CH-1", precio: 10m), 5), [], null)).Valor;
         await Servicios().Visitas.RegistrarAsync(new NuevaVisita(clienteId, new DateTime(2026, 10, 17, 9, 0, 0), FormaPago.Efectivo, [servicioId],
             Productos: [new ProductoNuevaVisita(champu, 3)]));
 
@@ -276,6 +280,95 @@ public sealed class ProductosTests : IAsyncLifetime
         var linea = libro.Worksheet("Productos").Table("Productos").DataRange.Rows().Single();
         Assert.Equal(("CH-1", 3, 30m), (linea.Cell(4).GetString(), linea.Cell(6).GetValue<int>(), linea.Cell(8).GetValue<decimal>()));
     }
+
+    [Fact]
+    public async Task Eliminar_una_categoria_archiva_sus_productos_con_su_stock_y_recuperarla_los_devuelve()
+    {
+        var productos = Servicios().Productos;
+        var argan = (await productos.CrearAsync(Datos(ProductoTests.Ficha("CH-1", "Champú de argán", 10m), 5), [], null)).Valor;
+        var ortiga = (await productos.CrearAsync(Datos(ProductoTests.Ficha("CH-2", "Champú de ortiga", 9m), 3), [], null)).Valor;
+        var antiguo = (await productos.CrearAsync(Datos(ProductoTests.Ficha("CH-3", "Champú antiguo", 7m), 1), [], null)).Valor;
+        await productos.CrearAsync(Datos(ProductoTests.Ficha("MA-1", "Mascarilla", 20m), 2, "Mascarillas"), [], null);
+        await Servicios().Productos.ArchivarAsync(antiguo, archivar: true);
+        var champus = await _bd.EscalarAsync<int>("SELECT Id FROM CategoriasProductos WHERE Nombre = N'Champús'");
+
+        // El aviso antes de eliminar sale de aquí: dos productos a la venta con 8 unidades
+        var antes = (await Servicios().Productos.CategoriasAsync()).Single(c => c.Categoria.Id == champus);
+        Assert.Equal((2, 8, 0, 0), (antes.Productos, antes.Unidades, antes.Archivados, antes.UnidadesArchivadas));
+
+        var eliminada = await Servicios().Productos.EliminarCategoriaAsync(champus);
+
+        Assert.Equal(new CambioCategoria("Champús", 2), eliminada.Valor);
+        // Borrado lógico: la categoría y los productos siguen ahí, archivados con su stock, y el inventario ya no los cuenta
+        Assert.Equal(1, await _bd.EscalarAsync<int>($"SELECT COUNT(*) FROM CategoriasProductos WHERE Id = {champus} AND Activa = 0 AND EliminadaEn IS NOT NULL"));
+        Assert.Equal(2, await _bd.EscalarAsync<int>($"SELECT COUNT(*) FROM Productos WHERE CategoriaId = {champus} AND Activo = 0 AND ArchivadoConCategoria = 1"));
+        Assert.Equal((5, 3), ((await Servicios().Productos.ObtenerAsync(argan))!.Stock, (await Servicios().Productos.ObtenerAsync(ortiga))!.Stock));
+        var inventario = await Servicios().Productos.ResumirAsync();
+        Assert.Equal((1, 2, 40m), (inventario.Productos, inventario.Unidades, inventario.ValorVenta));
+        Assert.DoesNotContain(await Servicios().Productos.CategoriasActivasAsync(), c => c.Id == champus);
+        Assert.DoesNotContain(await Servicios().Productos.ParaVentaAsync(), p => p.CategoriaId == champus);
+        var despues = (await Servicios().Productos.CategoriasAsync()).Single(c => c.Categoria.Id == champus);
+        Assert.Equal((0, 0, 2, 8), (despues.Productos, despues.Unidades, despues.Archivados, despues.UnidadesArchivadas));
+
+        // Ni se vuelve a vender un producto suelto ni se da de alta uno nuevo en ella; otra categoría puede llevar su nombre
+        Assert.Equal("CategoriaId", (await Servicios().Productos.ArchivarAsync(argan, archivar: false)).Error?.Campo);
+        Assert.Equal("CategoriaId", (await Servicios().Productos.CrearAsync(new DatosProducto(ProductoTests.Ficha("CH-9"), new CategoriaElegida(champus)), [], null)).Error?.Campo);
+        Assert.False((await Servicios().Productos.EliminarCategoriaAsync(champus)).Exito, "Ya estaba eliminada");
+        var otra = (await Servicios().Productos.CrearCategoriaAsync("champús")).Valor;
+        Assert.Equal("Nombre", (await Servicios().Productos.RecuperarCategoriaAsync(champus)).Error?.Campo);
+        Assert.True((await Servicios().Productos.RenombrarCategoriaAsync(otra, "Champús sólidos")).Exito);
+
+        var recuperada = await Servicios().Productos.RecuperarCategoriaAsync(champus);
+
+        // Vuelven los que se archivaron con ella, con las mismas unidades; el que se archivó a mano sigue archivado
+        Assert.Equal(new CambioCategoria("Champús", 2), recuperada.Valor);
+        Assert.True((await Servicios().Productos.ObtenerAsync(argan))!.Activo);
+        Assert.Equal((true, 3), ((await Servicios().Productos.ObtenerAsync(ortiga))!.Activo, (await Servicios().Productos.ObtenerAsync(ortiga))!.Stock));
+        Assert.False((await Servicios().Productos.ObtenerAsync(antiguo))!.Activo);
+        Assert.Equal(10, (await Servicios().Productos.ResumirAsync()).Unidades);
+    }
+
+    [Fact]
+    public async Task La_categoria_es_obligatoria_y_escribir_una_nueva_la_crea_o_usa_la_que_se_llama_igual()
+    {
+        var sinCategoria = await Servicios().Productos.CrearAsync(new DatosProducto(ProductoTests.Ficha("SC-1"), new CategoriaElegida(null)), [], null);
+        var inexistente = await Servicios().Productos.CrearAsync(new DatosProducto(ProductoTests.Ficha("SC-2"), new CategoriaElegida(999999)), [], null);
+        var larga = await Servicios().Productos.CrearAsync(Datos(ProductoTests.Ficha("SC-3"), categoria: new string('x', CategoriaProducto.LongitudNombre + 1)), [], null);
+
+        Assert.Equal(("CategoriaId", "CategoriaId", "CategoriaId"), (sinCategoria.Error?.Campo, inexistente.Error?.Campo, larga.Error?.Campo));
+        Assert.Equal(0, await _bd.EscalarAsync<int>("SELECT COUNT(*) FROM Productos"));
+        Assert.Equal(0, await _bd.EscalarAsync<int>("SELECT COUNT(*) FROM CategoriasProductos"));
+
+        var primero = await Servicios().Productos.CrearAsync(Datos(ProductoTests.Ficha("AC-1"), categoria: "Aceites"), [], null);
+        var segundo = await Servicios().Productos.CrearAsync(Datos(ProductoTests.Ficha("AC-2"), categoria: "  ACEITES "), [], null);
+        var aceites = await _bd.EscalarAsync<int>("SELECT Id FROM CategoriasProductos WHERE Nombre = N'Aceites'");
+        var tercero = await Servicios().Productos.CrearAsync(new DatosProducto(ProductoTests.Ficha("AC-3"), new CategoriaElegida(aceites)), [], null);
+
+        Assert.True(primero.Exito && segundo.Exito && tercero.Exito);
+        Assert.Equal(1, await _bd.EscalarAsync<int>("SELECT COUNT(*) FROM CategoriasProductos"));
+        Assert.Equal(3, await _bd.EscalarAsync<int>($"SELECT COUNT(*) FROM Productos WHERE CategoriaId = {aceites}"));
+
+        // Al editar se cambia de categoría eligiendo otra o escribiendo una nueva
+        var editado = await Servicios().Productos.EditarAsync(tercero.Valor, ProductoTests.Ficha("AC-3"), new CategoriaElegida(aceites, "Aceites capilares"), CambiosFotos.Ninguno);
+        Assert.True(editado.Exito, editado.Error?.Mensaje);
+        Assert.Equal("Aceites capilares", (await Servicios().Productos.ObtenerAsync(tercero.Valor))!.Categoria!.Nombre);
+    }
+
+    [Fact]
+    public async Task No_hay_dos_categorias_activas_con_el_mismo_nombre()
+    {
+        var aceites = await Servicios().Productos.CrearCategoriaAsync("Aceites");
+        var repetida = await Servicios().Productos.CrearCategoriaAsync(" ACEITES ");
+        var vacia = await Servicios().Productos.CrearCategoriaAsync("  ");
+        var lacas = (await Servicios().Productos.CrearCategoriaAsync("Lacas")).Valor;
+        var renombrada = await Servicios().Productos.RenombrarCategoriaAsync(lacas, "aceites");
+
+        Assert.True(aceites.Exito);
+        Assert.Equal(("Nombre", "Nombre", "Nombre"), (repetida.Error?.Campo, vacia.Error?.Campo, renombrada.Error?.Campo));
+        Assert.Equal(["Aceites", "Lacas"], (await Servicios().Productos.CategoriasActivasAsync()).Select(c => c.Nombre));
+    }
+
+    private static DatosProducto Datos(FichaProducto ficha, int stock = 0, string categoria = "Champús") => new(ficha, new CategoriaElegida(null, categoria), stock);
 
     private async Task<(int Cliente, int Servicio)> ClienteYServicioAsync()
     {

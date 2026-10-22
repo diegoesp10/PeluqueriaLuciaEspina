@@ -24,8 +24,12 @@ public sealed class ProductoFormulario
     [StringLength(Producto.LongitudMarca, ErrorMessage = "Máximo {1} caracteres.")]
     public string? Marca { get; set; }
 
-    [StringLength(Producto.LongitudCategoria, ErrorMessage = "Máximo {1} caracteres.")]
-    public string? Categoria { get; set; }
+    /// <summary>Categoría existente. Obligatoria salvo que se escriba una nueva en <see cref="CategoriaNueva"/>.</summary>
+    public int? CategoriaId { get; set; }
+
+    /// <summary>Categoría escrita en el buscador que no estaba en la lista: se crea al guardar (o se usa la que ya se llame así).</summary>
+    [StringLength(CategoriaProducto.LongitudNombre, ErrorMessage = "El nombre de la categoría no puede superar los {1} caracteres.")]
+    public string? CategoriaNueva { get; set; }
 
     [StringLength(Producto.LongitudDescripcion, ErrorMessage = "Máximo {1} caracteres.")]
     public string? Descripcion { get; set; }
@@ -55,7 +59,9 @@ public sealed class ProductoFormulario
     public Guid? FotoPrincipal { get; set; }
 
     public FichaProducto AFicha() =>
-        new(Referencia, CodigoBarras, Nombre, Marca, Categoria, Descripcion, PrecioVenta ?? 0, PrecioCoste, StockMinimo);
+        new(Referencia, CodigoBarras, Nombre, Marca, Descripcion, PrecioVenta ?? 0, PrecioCoste, StockMinimo);
+
+    public CategoriaElegida ACategoria() => new(CategoriaId, CategoriaNueva);
 
     public IReadOnlyList<ArchivoImagen> AArchivos() =>
         [.. Fotos.Where(f => f.Length > 0).Select(f => new ArchivoImagen(f.OpenReadStream(), f.FileName, f.Length))];
@@ -68,7 +74,7 @@ public sealed class ProductoFormulario
         CodigoBarras = p.CodigoBarras,
         Nombre = p.Nombre,
         Marca = p.Marca,
-        Categoria = p.Categoria,
+        CategoriaId = p.CategoriaId,
         Descripcion = p.Descripcion,
         PrecioVenta = p.PrecioVenta,
         PrecioCoste = p.PrecioCoste,
@@ -78,18 +84,24 @@ public sealed class ProductoFormulario
 }
 
 /// <param name="Producto">El producto guardado al editar (fotos actuales, stock); null al crear.</param>
-public sealed record ProductoEdicionModelo(int? Id, ProductoFormulario Formulario, Producto? Producto, IReadOnlyList<string> Categorias, IReadOnlyList<string> Marcas)
+/// <param name="Categorias">Las que se pueden elegir y, si el producto tiene una eliminada, también esa.</param>
+public sealed record ProductoEdicionModelo(int? Id, ProductoFormulario Formulario, Producto? Producto, IReadOnlyList<CategoriaProducto> Categorias, IReadOnlyList<string> Marcas)
 {
     public bool Nuevo => Id is null;
 }
 
-public sealed record ProductosIndiceModelo(FiltroProductos Filtro, Pagina<Producto> Pagina, ResumenInventario Resumen, IReadOnlyList<string> Categorias)
+/// <param name="Categorias">Todas (también las eliminadas, para ver sus productos archivados) con sus cifras.</param>
+public sealed record ProductosIndiceModelo(FiltroProductos Filtro, Pagina<Producto> Pagina, ResumenInventario Resumen, IReadOnlyList<ResumenCategoria> Categorias)
 {
-    public bool Filtrando => !string.IsNullOrWhiteSpace(Filtro.Texto) || !string.IsNullOrWhiteSpace(Filtro.Categoria) || Filtro.Estado != EstadoInventario.Activos;
+    public bool Filtrando => !string.IsNullOrWhiteSpace(Filtro.Texto) || Filtro.CategoriaId is not null || Filtro.Estado != EstadoInventario.Activos;
+
+    public CategoriaProducto? CategoriaFiltrada => Categorias.FirstOrDefault(c => c.Categoria.Id == Filtro.CategoriaId)?.Categoria;
 
     public string TextoVacio => Filtro.Estado switch
     {
         _ when !string.IsNullOrWhiteSpace(Filtro.Texto) => "Ningún producto coincide con la búsqueda",
+        _ when CategoriaFiltrada is { Activa: false } c && Filtro.Estado == EstadoInventario.Activos => $"«{c.Nombre}» está eliminada",
+        _ when CategoriaFiltrada is { } c && Filtro.Estado == EstadoInventario.Activos => $"Nada a la venta en «{c.Nombre}»",
         EstadoInventario.PorReponer => "Nada por reponer",
         EstadoInventario.Archivados => "No hay productos archivados",
         _ when Resumen.Productos == 0 && Filtro.Estado == EstadoInventario.Activos => "Todavía no hay productos",
@@ -110,6 +122,28 @@ public sealed class MovimientoFormulario
 }
 
 public sealed record ProductoFichaModelo(Producto Producto, Pagina<MovimientoStock> Movimientos, MovimientoFormulario Movimiento);
+
+public sealed class CategoriaProductoFormulario
+{
+    [Required(ErrorMessage = "Escribe el nombre de la categoría.")]
+    [StringLength(CategoriaProducto.LongitudNombre, ErrorMessage = "Máximo {1} caracteres.")]
+    public string Nombre { get; set; } = string.Empty;
+}
+
+/// <param name="Editando">Categoría que se está renombrando (su fila pasa a ser un formulario).</param>
+public sealed record CategoriasModelo(IReadOnlyList<ResumenCategoria> Categorias, CategoriaProductoFormulario Nueva, int? Editando = null)
+{
+    public IReadOnlyList<ResumenCategoria> Activas => [.. Categorias.Where(c => c.Categoria.Activa)];
+
+    public IReadOnlyList<ResumenCategoria> Eliminadas => [.. Categorias.Where(c => !c.Categoria.Activa)];
+
+    /// <summary>El aviso antes de eliminar: qué productos y cuántas unidades se archivan, y que se puede deshacer.</summary>
+    public static string AvisoEliminar(ResumenCategoria c) => c.Productos == 0
+        ? $"Se eliminará «{c.Categoria.Nombre}». No tiene productos a la venta. Podrás recuperarla desde esta pantalla."
+        : $"Se eliminará «{c.Categoria.Nombre}» y {(c.Productos == 1 ? "su producto a la venta se archivará" : $"sus {c.Productos} productos a la venta se archivarán")} " +
+          $"con su stock ({FormatoProductos.Unidades(c.Unidades)}): dejarán de ofrecerse en las visitas y de contar en el inventario. " +
+          "Si recuperas la categoría, volverán a la venta con las mismas unidades.";
+}
 
 /// <summary>Textos, iconos y colores de cada tipo de movimiento y del estado del stock, iguales en todas las pantallas.</summary>
 public static class FormatoProductos
@@ -165,5 +199,13 @@ public static class FormatoProductos
         $"{p.Nombre} · {p.Referencia} · {Formato.Euros(p.PrecioVenta)} · {Disponible(p.Stock)}";
 
     /// <summary>Palabras extra para encontrar el producto en el buscador (código de barras, marca), sin mostrarlas.</summary>
-    public static string ClavesBusqueda(Producto p) => string.Join(' ', new[] { p.CodigoBarras, p.Marca, p.Categoria }.Where(x => x is not null));
+    public static string ClavesBusqueda(Producto p) => string.Join(' ', new[] { p.CodigoBarras, p.Marca, p.Categoria?.Nombre }.Where(x => x is not null));
+
+    /// <summary>«Eco Natura · Champús»: marca y categoría, lo que haya.</summary>
+    public static string Detalle(Producto p) => string.Join(" · ", new[] { p.Marca, p.Categoria?.Nombre }.Where(x => x is not null));
+
+    /// <summary>«5 productos · 23 uds», «Sin productos a la venta».</summary>
+    public static string Cifras(ResumenCategoria c) => c.Productos == 0
+        ? "Sin productos a la venta"
+        : $"{c.Productos} {(c.Productos == 1 ? "producto" : "productos")} · {Unidades(c.Unidades)}";
 }

@@ -12,7 +12,7 @@ Web pública del salón y gestión privada con contraseña y Authenticator oblig
 - `/admin/Seguridad`: sesiones, contraseña con MFA, cambio de Authenticator, intentos de acceso y llamadas por IP.
 - `/admin/Tratamientos`: categorías, duración, orden y publicación de servicios elegidos del catálogo común.
 - `/admin/Resenas`: revisión, publicación, retirada y respuesta a las opiniones.
-- `/admin/Productos`: inventario de la tienda con referencias, fotos, stock e historial; los productos se venden en las visitas y se descuentan al cobrar.
+- `/admin/Productos`: inventario de la tienda con referencias, categorías, fotos, stock e historial; los productos se venden en las visitas y se descuentan al cobrar. Las categorías (`/admin/Productos/Categorias`) se crean, renombran y eliminan con borrado lógico: sus productos se archivan con su stock hasta recuperarlas.
 
 La separación de capas existente se conserva; la gestión se ha trasladado al área MVC `Areas/Admin`. Ver [docs/SEGURIDAD.md](docs/SEGURIDAD.md) para activar o recuperar el acceso.
 

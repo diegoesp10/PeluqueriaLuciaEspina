@@ -16,8 +16,21 @@ public enum EstadoInventario
     Todos,
 }
 
-/// <summary>Búsqueda del inventario: palabras en referencia, código de barras, nombre, marca o categoría.</summary>
-public sealed record FiltroProductos(string? Texto = null, EstadoInventario Estado = EstadoInventario.Activos, string? Categoria = null);
+/// <summary>Búsqueda del inventario: palabras en referencia, código de barras, nombre, marca o categoría; y, si se elige, una categoría.</summary>
+public sealed record FiltroProductos(string? Texto = null, EstadoInventario Estado = EstadoInventario.Activos, int? CategoriaId = null);
+
+/// <summary>
+/// La categoría de un producto: una existente (<paramref name="Id"/>) o una nueva escrita en el formulario
+/// (<paramref name="Nueva"/>); si ya hay una activa con ese nombre se usa esa, y si no, se crea al guardar.
+/// </summary>
+public sealed record CategoriaElegida(int? Id, string? Nueva = null);
+
+/// <summary>Una categoría con sus cifras, para la pantalla de categorías y el aviso antes de eliminarla.</summary>
+/// <param name="Productos">Productos a la venta en la categoría.</param>
+/// <param name="Unidades">Unidades en stock de esos productos.</param>
+/// <param name="Archivados">Productos archivados al eliminarla (vuelven a la venta si se recupera).</param>
+/// <param name="UnidadesArchivadas">Unidades en stock de los archivados con ella.</param>
+public sealed record ResumenCategoria(CategoriaProducto Categoria, int Productos, int Unidades, int Archivados, int UnidadesArchivadas);
 
 /// <summary>Cifras del inventario de productos activos. El stock negativo cuenta como agotado, no resta unidades ni valor.</summary>
 /// <param name="Unidades">Unidades en el almacén (solo las de productos con stock).</param>
@@ -32,8 +45,11 @@ public sealed record ResumenInventario(int Productos, int Unidades, int BajoStoc
     public int PorReponer => BajoStock + Agotados;
 }
 
-/// <summary>Ficha del producto con el stock con el que se da de alta.</summary>
-public sealed record DatosProducto(FichaProducto Ficha, int StockInicial = 0);
+/// <summary>Resultado de eliminar o recuperar una categoría: su nombre y cuántos productos se archivaron o volvieron a la venta.</summary>
+public sealed record CambioCategoria(string Nombre, int Productos);
+
+/// <summary>Ficha del producto, su categoría y el stock con el que se da de alta.</summary>
+public sealed record DatosProducto(FichaProducto Ficha, CategoriaElegida Categoria, int StockInicial = 0);
 
 /// <summary>Cambios en las fotos al editar: las nuevas se añaden al final; la principal puede ser una existente.</summary>
 public sealed record CambiosFotos(IReadOnlyList<Abstracciones.ArchivoImagen> Nuevas, IReadOnlyCollection<Guid> Quitar, Guid? Principal = null)

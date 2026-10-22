@@ -536,6 +536,37 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
                     b.ToTable("FaltasAsistencia", (string)null);
                 });
 
+            modelBuilder.Entity("PeluqueriaLucia.Domain.Productos.CategoriaProducto", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Activa")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("CreadaEn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("EliminadaEn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Nombre")
+                        .IsUnique()
+                        .HasFilter("[Activa] = 1");
+
+                    b.ToTable("CategoriasProductos", (string)null);
+                });
+
             modelBuilder.Entity("PeluqueriaLucia.Domain.Productos.FotoProducto", b =>
                 {
                     b.Property<Guid>("Id")
@@ -616,9 +647,11 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
                     b.Property<DateTime>("ActualizadoEn")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Categoria")
-                        .HasMaxLength(60)
-                        .HasColumnType("nvarchar(60)");
+                    b.Property<bool>("ArchivadoConCategoria")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("CategoriaId")
+                        .HasColumnType("int");
 
                     b.Property<string>("CodigoBarras")
                         .HasMaxLength(14)
@@ -665,6 +698,8 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
                         .HasColumnType("rowversion");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CategoriaId");
 
                     b.HasIndex("CodigoBarras")
                         .IsUnique()
@@ -1269,6 +1304,17 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Producto");
+                });
+
+            modelBuilder.Entity("PeluqueriaLucia.Domain.Productos.Producto", b =>
+                {
+                    b.HasOne("PeluqueriaLucia.Domain.Productos.CategoriaProducto", "Categoria")
+                        .WithMany()
+                        .HasForeignKey("CategoriaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Categoria");
                 });
 
             modelBuilder.Entity("PeluqueriaLucia.Domain.Publico.PermisoResena", b =>

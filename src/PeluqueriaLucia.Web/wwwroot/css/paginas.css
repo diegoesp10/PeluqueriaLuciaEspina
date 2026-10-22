@@ -436,6 +436,59 @@
 .input-icono > .input { padding-left: 42px; }
 .producto-stock-fijo { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; min-height: 44px; margin: 0; }
 
+/* Campos con un borde fino: cada uno se distingue del fondo de su tarjeta, también en modo oscuro */
+.campos-marcados .input { box-shadow: inset 0 0 0 1px var(--separator); }
+.campos-marcados .input:hover { box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--label-3) 60%, var(--separator)); }
+.campos-marcados .input:focus { box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 3px color-mix(in oklab, var(--accent) 35%, transparent); }
+.campos-marcados .input.input-validation-error,
+.campos-marcados .input[aria-invalid='true'] { box-shadow: inset 0 0 0 1px var(--red), 0 0 0 2px color-mix(in oklab, var(--red) 35%, transparent); }
+
+/* Buscador del inventario: en su propio panel, separado de las cifras, con cada campo etiquetado */
+.filtros-productos { display: grid; gap: 14px; margin: 26px 0 24px; padding: 18px 20px; border-radius: var(--r-card); background: var(--surface); box-shadow: var(--card-shadow); }
+.filtros-productos-campos { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 14px 18px; }
+.filtro { display: grid; align-content: start; gap: 8px; min-width: 0; }
+.filtro-etiqueta { padding-left: 2px; color: var(--label-2); font-size: 13px; font-weight: 600; }
+.filtros-productos .search { max-width: none; }
+.filtros-productos .search > .input { min-height: 46px; padding-left: 42px; font-size: 15.5px; }
+.filtros-productos .search > svg { left: 15px; }
+.filtros-productos-pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-top: 14px; border-top: 1px solid var(--separator); }
+@media (max-width: 560px) {
+  /* «Categorías» y «Nuevo producto» en una fila si caben, cada uno a su ancho; si no, uno debajo del otro */
+  .page-head .acciones-ajustadas > .btn { flex: 1 1 auto; padding-inline: 16px; white-space: nowrap; }
+}
+@media (max-width: 720px) {
+  .filtros-productos { padding: 14px; }
+  .filtros-productos-campos { grid-template-columns: minmax(0, 1fr); }
+  .filtros-productos-pie > .segmented { flex: 1 1 100%; }
+  .filtros-productos-pie > .segmented > label { padding-inline: 8px; }
+  .filtros-productos-pie > .btn { flex: 1 1 100%; }
+}
+
+/* Categorías: alta en línea, una fila por categoría con sus cifras y acciones; las eliminadas, atenuadas */
+.categoria-nueva { display: grid; gap: 8px; padding: 16px; border-radius: var(--r-card); background: var(--surface); box-shadow: var(--card-shadow); }
+.categoria-nueva-fila { display: flex; gap: 12px; }
+.categoria-nueva-fila > .input { flex: 1; min-width: 0; }
+.categorias-lista { --row-inset: 66px; }
+.categoria-icono { display: grid; flex: none; place-items: center; width: 36px; height: 36px; border-radius: 10px;
+  background: color-mix(in oklab, var(--tint) 15%, var(--surface)); color: var(--tint-text, var(--tint)); }
+.categoria-fila .row-main { color: inherit; text-decoration: none; }
+.categoria-fila .row-main:hover .row-title { color: var(--accent); }
+.categoria-fila.is-eliminada .row-title { color: var(--label-2); }
+.categoria-fila.is-editando > .input { flex: 1; min-width: 0; min-height: 40px; }
+.categoria-acciones { gap: 8px; }
+.categoria-acciones > form { margin: 0; }
+.producto-aviso-categoria { margin: -8px 0 24px; line-height: 1.45; }
+.producto-aviso-categoria a { font-weight: 600; }
+@media (max-width: 560px) {
+  /* En el teléfono, Renombrar, Eliminar y Recuperar quedan como botones redondos con su icono */
+  .btn-icono-movil { width: 38px; padding: 0; }
+  .btn-icono-movil > span { display: none; }
+  .categoria-nueva-fila > .btn { padding-inline: 16px; }
+  .categoria-fila.is-editando { flex-wrap: wrap; }
+  .categoria-fila.is-editando > .input { flex: 1 1 calc(100% - 50px); }
+  .categoria-fila.is-editando > .row-end { flex: 1 1 100%; justify-content: flex-end; }
+}
+
 /* Fotos del formulario: guardadas y nuevas en la misma cuadrícula */
 .fotos-producto { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 12px; }
 .foto-producto { position: relative; aspect-ratio: 1; overflow: hidden; border-radius: 16px; background: var(--fill); box-shadow: var(--card-edge); transition: opacity .15s; }

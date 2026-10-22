@@ -73,6 +73,7 @@ window.SelectBuscable = (() => {
     let activa = -1;
     let sinCoincidencias = false;
     let filtro = null;
+    let cierre = null;
 
     const elegida = () => opciones.find((o) => o.valor === select.value) ?? null;
     const textoElegido = () => elegida()?.texto ?? (campoLibre?.value || '');
@@ -172,12 +173,14 @@ window.SelectBuscable = (() => {
     }
 
     campo.addEventListener('focus', () => {
+      // Volver al campo enseguida no debe cerrar la lista con el cierre pendiente de la salida anterior
+      clearTimeout(cierre);
       campo.select();
       filtrar('');
     });
     campo.addEventListener('input', () => filtrar(campo.value));
     campo.addEventListener('blur', () => {
-      setTimeout(() => {
+      cierre = setTimeout(() => {
         abrir(false);
         // Un texto que no se ha elegido de la lista no cambia nada: si se ha vaciado, vuelve a la opción vacía
         if (campo.value.trim() === '' && vacia) elegir(null);

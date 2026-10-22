@@ -196,12 +196,86 @@ public sealed class ProductosWebTests(SeguridadWebFixture fixture) : IClassFixtu
         Assert.False(await db.Productos.AnyAsync(p => p.Referencia == referencia));
     }
 
+    [Fact]
+    public async Task Categorias_se_crean_filtran_el_inventario_y_eliminarlas_archiva_sus_productos_hasta_recuperarlas()
+    {
+        using var fabrica = Fabrica();
+        using var admin = fabrica.Cliente();
+        await EntrarAsync(admin);
+        var nombre = "Cat " + Guid.NewGuid().ToString("N")[..6];
+
+        // Alta desde la pantalla de categorías; repetirla (con otras mayúsculas) no crea otra
+        var creada = await admin.PostAsync("/admin/Productos/CrearCategoria", Formulario(await TokenAsync(admin, "/admin/Productos/Categorias"), ("Nueva.Nombre", nombre)));
+        Assert.Equal(HttpStatusCode.Redirect, creada.StatusCode);
+        var repetida = await admin.PostAsync("/admin/Productos/CrearCategoria", Formulario(await TokenAsync(admin, "/admin/Productos/Categorias"), ("Nueva.Nombre", nombre.ToUpperInvariant())));
+        Assert.Equal(HttpStatusCode.OK, repetida.StatusCode);
+        Assert.Contains($"Ya hay una categoría «{nombre.ToUpperInvariant()}»", WebUtility.HtmlDecode(await repetida.Content.ReadAsStringAsync()));
+        int categoriaId;
+        await using (var db = fixture.Bd.Contexto())
+            categoriaId = await db.CategoriasProductos.Where(c => c.Nombre == nombre).Select(c => c.Id).SingleAsync();
+
+        // Dos productos en ella (uno escrito como categoría nueva con el mismo nombre) y otro fuera
+        var dentro = Referencia();
+        var tambien = Referencia();
+        var fuera = Referencia();
+        Assert.Equal(HttpStatusCode.Redirect, (await admin.PostAsync("/admin/Productos/Nuevo", await AltaAsync(admin, dentro, 4, nombre))).StatusCode);
+        Assert.Equal(HttpStatusCode.Redirect, (await admin.PostAsync("/admin/Productos/Nuevo", await AltaAsync(admin, tambien, 2, nombre.ToLowerInvariant()))).StatusCode);
+        Assert.Equal(HttpStatusCode.Redirect, (await admin.PostAsync("/admin/Productos/Nuevo", await AltaAsync(admin, fuera, 1, "Otra " + nombre))).StatusCode);
+
+        var filtrado = WebUtility.HtmlDecode(await admin.GetStringAsync($"/admin/Productos?categoria={categoriaId}"));
+        Assert.Contains(dentro, filtrado);
+        Assert.Contains(tambien, filtrado);
+        Assert.DoesNotContain(fuera, filtrado);
+        Assert.Matches($"<option value=\"{categoriaId}\" selected=\"selected\">{Regex.Escape(nombre)} · 2 productos · 6 uds</option>", filtrado);
+
+        // El aviso de eliminar dice cuántos productos y unidades se archivan
+        var categorias = WebUtility.HtmlDecode(await admin.GetStringAsync("/admin/Productos/Categorias"));
+        Assert.Contains($"Se eliminará «{nombre}» y sus 2 productos a la venta se archivarán con su stock (6 uds)", categorias);
+
+        var eliminada = await admin.PostAsync($"/admin/Productos/EliminarCategoria/{categoriaId}", Formulario(await TokenAsync(admin, "/admin/Productos/Categorias")));
+        Assert.Equal(HttpStatusCode.Redirect, eliminada.StatusCode);
+        await using (var db = fixture.Bd.Contexto())
+        {
+            Assert.All(await db.Productos.Where(p => p.CategoriaId == categoriaId).ToListAsync(), p => Assert.Equal((false, true), (p.Activo, p.ArchivadoConCategoria)));
+            Assert.Equal(4, await db.Productos.Where(p => p.Referencia == dentro).Select(p => p.Stock).SingleAsync());
+        }
+        var vacia = WebUtility.HtmlDecode(await admin.GetStringAsync($"/admin/Productos?categoria={categoriaId}"));
+        Assert.Contains($"«{nombre}» está eliminada", vacia);
+        Assert.Contains($"{nombre} · eliminada</option>", vacia);
+        Assert.Contains(dentro, WebUtility.HtmlDecode(await admin.GetStringAsync($"/admin/Productos?categoria={categoriaId}&estado=Archivados")));
+
+        var recuperada = await admin.PostAsync($"/admin/Productos/RecuperarCategoria/{categoriaId}", Formulario(await TokenAsync(admin, "/admin/Productos/Categorias")));
+        Assert.Equal(HttpStatusCode.Redirect, recuperada.StatusCode);
+        await using (var db = fixture.Bd.Contexto())
+            Assert.Equal(2, await db.Productos.CountAsync(p => p.CategoriaId == categoriaId && p.Activo && !p.ArchivadoConCategoria));
+    }
+
+    [Fact]
+    public async Task Sin_categoria_no_se_da_de_alta_y_el_formulario_lo_dice_en_su_campo()
+    {
+        using var fabrica = Fabrica();
+        using var admin = fabrica.Cliente();
+        await EntrarAsync(admin);
+        var referencia = Referencia();
+
+        var respuesta = await admin.PostAsync("/admin/Productos/Nuevo", await AltaAsync(admin, referencia, 1, ""));
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        var html = WebUtility.HtmlDecode(await respuesta.Content.ReadAsStringAsync());
+        Assert.Matches("data-valmsg-for=\"CategoriaId\"[^>]*>Elige la categoría del producto o escribe una nueva.", html);
+        await using var db = fixture.Bd.Contexto();
+        Assert.False(await db.Productos.AnyAsync(p => p.Referencia == referencia));
+    }
+
     private FabricaWeb Fabrica() => new(fixture.Bd.Cadena, new() { ["FotosProductos:Carpeta"] = _carpeta });
 
     /// <summary>La base de datos de la clase se comparte entre pruebas: cada producto lleva su propia referencia.</summary>
     private static string Referencia() => "WEB-" + Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
 
-    private static async Task<MultipartFormDataContent> AltaAsync(HttpClient admin, string referencia, int stock, params (HttpContent Contenido, string Nombre)[] fotos)
+    private static Task<MultipartFormDataContent> AltaAsync(HttpClient admin, string referencia, int stock, params (HttpContent Contenido, string Nombre)[] fotos) =>
+        AltaAsync(admin, referencia, stock, "Champús", fotos);
+
+    private static async Task<MultipartFormDataContent> AltaAsync(HttpClient admin, string referencia, int stock, string categoria, params (HttpContent Contenido, string Nombre)[] fotos)
     {
         var formulario = new MultipartFormDataContent
         {
@@ -209,7 +283,7 @@ public sealed class ProductosWebTests(SeguridadWebFixture fixture) : IClassFixtu
             { new StringContent(referencia), "Referencia" },
             { new StringContent("Champú de prueba web"), "Nombre" },
             { new StringContent("Eco Natura"), "Marca" },
-            { new StringContent("Champús"), "Categoria" },
+            { new StringContent(categoria), "CategoriaNueva" },
             { new StringContent("12,50"), "PrecioVenta" },
             { new StringContent("6"), "PrecioCoste" },
             { new StringContent("1"), "StockMinimo" },
@@ -235,7 +309,8 @@ public sealed class ProductosWebTests(SeguridadWebFixture fixture) : IClassFixtu
     private async Task<int> ProductoAsync(int stock, string nombre = "Mascarilla de prueba")
     {
         await using var db = fixture.Bd.Contexto();
-        var producto = Producto.Crear(new FichaProducto(Referencia(), null, nombre, null, null, null, 12.40m, null, 1), DateTime.Now);
+        var categoria = CategoriaProducto.Crear("Pruebas " + Guid.NewGuid().ToString("N")[..8], DateTime.Now);
+        var producto = Producto.Crear(new FichaProducto(Referencia(), null, nombre, null, null, 12.40m, null, 1), categoria, DateTime.Now);
         var alta = producto.Alta(stock, DateTime.Now, null);
         db.Add(producto);
         if (alta is not null)

@@ -34,6 +34,8 @@ public sealed class PeluqueriaDbContext(DbContextOptions<PeluqueriaDbContext> op
 
     public DbSet<Producto> Productos => Set<Producto>();
 
+    public DbSet<CategoriaProducto> CategoriasProductos => Set<CategoriaProducto>();
+
     public DbSet<FotoProducto> FotosProductos => Set<FotoProducto>();
 
     public DbSet<MovimientoStock> MovimientosStock => Set<MovimientoStock>();
