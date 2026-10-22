@@ -50,14 +50,23 @@ public sealed class CatalogoController(CatalogoService catalogo, PeluqueriaLucia
     {
         if (ModelState.IsValid)
         {
-            var resultado = await catalogo.ActualizarAsync(id, formulario.ADatos(), formulario.AArchivo(), formulario.QuitarImagen, ct);
-            if (resultado.Exito)
+            try
             {
-                this.AvisarExito("Cambios guardados. Las visitas anteriores conservan su precio.");
-                return RedirectToAction(nameof(Index));
-            }
+                var resultado = await catalogo.ActualizarAsync(id, formulario.ADatos(), formulario.AArchivo(), formulario.QuitarImagen, ct);
+                if (resultado.Exito)
+                {
+                    this.AvisarExito("Cambios guardados. Las visitas anteriores conservan su precio.");
+                    return RedirectToAction(nameof(Index));
+                }
 
-            ModelState.AgregarError(resultado.Error!);
+                ModelState.AgregarError(resultado.Error!);
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException)
+            {
+                // Al cambiar la dualidad se actualizan sus citas por venir; si una cambiaba a la vez en la agenda, no se guarda nada
+                this.AvisarError("Una cita de este servicio acaba de cambiar en la agenda y no se ha guardado nada. Vuelve a intentarlo.");
+                return RedirectToAction(nameof(Editar), new { id });
+            }
         }
 
         var servicio = await catalogo.ObtenerAsync(id, ct);

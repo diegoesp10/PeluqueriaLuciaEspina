@@ -180,7 +180,7 @@ public sealed class CasosDeUsoTests : IAsyncLifetime
         return (
             new ClientesService(clientes, db, reloj),
             new CatalogoService(servicios, imagenes, db, reloj),
-            new VisitasService(new VisitaRepositorio(db), clientes, servicios, new ExportadorExcelVisitas(reloj), db),
+            new VisitasService(new VisitaRepositorio(db), clientes, servicios, new ProductoRepositorio(db), new ExportadorExcelVisitas(reloj), db, reloj),
             db);
     }
 }

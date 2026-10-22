@@ -58,6 +58,10 @@
                         <span class="muted">—</span>
                     }
                 </div>
+                <div class="row row-kv">
+                    <span><icono nombre="@FormatoAvisos.Icono(c.CanalPreferido)" tamano="16" /> Avisos de citas</span>
+                    <span class="@(c.CanalPreferido is null ? "muted" : "pill tint-purple")">@FormatoAvisos.Texto(c.CanalPreferido)</span>
+                </div>
             </div>
 
             @if (r.Visitas == 0 && !Model.TieneCitas)

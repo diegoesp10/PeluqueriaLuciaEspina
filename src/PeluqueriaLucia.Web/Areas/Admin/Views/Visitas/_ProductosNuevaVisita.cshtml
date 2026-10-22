@@ -1,0 +1,95 @@
+@using PeluqueriaLucia.Domain.Productos
+@model NuevaVisitaModelo
+@{
+    var f = Model.Formulario;
+}
+@* Productos de «Nueva visita»: se eligen con el buscador (también con el lector de códigos de barras) y nueva-visita.js
+   añade una fila por producto con sus unidades y su precio. Tras un error de validación, las filas vuelven del servidor. *@
+<section data-productos-visita>
+    <div class="section-head">
+        <h2>Productos</h2>
+        <a asp-controller="Productos" asp-action="Index"><icono nombre="producto" tamano="14" /> Inventario</a>
+    </div>
+    @if (Model.Productos.Count == 0)
+    {
+        <p class="card card-pad muted small producto-vacio">No hay productos a la venta. <a asp-controller="Productos" asp-action="Nuevo">Da de alta los productos de la tienda</a> para venderlos en las visitas.</p>
+    }
+    else
+    {
+        <div class="card card-pad producto-selector">
+            <div class="producto-selector-fila">
+                <div class="field producto-selector-buscar">
+                    <label for="producto-elegir">Añadir un producto</label>
+                    <select class="input" id="producto-elegir" data-producto-elegir
+                            data-buscable="Nombre, referencia o código de barras" data-buscable-vacio="Ningún producto a la venta con ese texto.">
+                        <option value="">Sin elegir</option>
+                        @foreach (var p in Model.Productos)
+                        {
+                            <option value="@p.Id" data-precio="@Formato.ImporteJs(p.PrecioVenta)" data-stock="@p.Stock"
+                                    data-nombre="@p.Nombre" data-referencia="@p.Referencia" data-foto="@(p.FotoPrincipal is { } foto ? FormatoProductos.Foto(foto.Id) : null)"
+                                    data-buscar="@FormatoProductos.ClavesBusqueda(p)">@FormatoProductos.Opcion(p)</option>
+                        }
+                    </select>
+                </div>
+                <div class="field producto-selector-cantidad">
+                    <label for="producto-cantidad">Unidades</label>
+                    <input class="input num" type="number" id="producto-cantidad" min="1" max="@LineaProductoVisita.CantidadMaxima" step="1" value="1" inputmode="numeric" data-producto-cantidad />
+                </div>
+                <button type="button" class="btn btn-gray producto-selector-boton" data-producto-anadir><icono nombre="mas" tamano="17" /> Añadir</button>
+            </div>
+            <p class="field-hint" data-producto-aviso aria-live="polite">El stock se descuenta al cobrar la visita. Si se acaba, queda en negativo para reponerlo.</p>
+        </div>
+
+        <div class="list producto-lineas" data-productos-lista hidden="@(f.Productos.Count == 0)">
+            @for (var i = 0; i < f.Productos.Count; i++)
+            {
+                var linea = f.Productos[i];
+                var p = Model.Productos.FirstOrDefault(x => x.Id == linea.ProductoId);
+                <div class="row producto-linea" data-producto-linea data-producto-id="@linea.ProductoId" data-stock="@(p?.Stock ?? 0)">
+                    <span class="producto-miniatura producto-miniatura-sm">
+                        <icono nombre="producto" tamano="18" />
+                        @if (p?.FotoPrincipal is { } foto)
+                        {
+                            <img src="@FormatoProductos.Foto(foto.Id)" alt="" width="40" height="40" data-ocultar-si-falla />
+                        }
+                    </span>
+                    <span class="row-main">
+                        <span class="row-title" data-linea-nombre>@(p?.Nombre ?? "Producto que ya no está a la venta")</span>
+                        <span class="row-sub"><span class="producto-ref" data-linea-referencia>@p?.Referencia</span> · <span data-linea-stock>@(p is null ? "sin stock" : FormatoProductos.Disponible(p.Stock))</span></span>
+                    </span>
+                    <input type="hidden" name="Productos[@i].ProductoId" value="@linea.ProductoId" data-linea-id />
+                    <span class="producto-linea-cantidad">
+                        <input class="input num" type="number" name="Productos[@i].Cantidad" min="1" max="@LineaProductoVisita.CantidadMaxima" step="1" value="@linea.Cantidad"
+                               inputmode="numeric" aria-label="Unidades de @(p?.Nombre ?? "este producto")" data-linea-cantidad />
+                        <span>uds</span>
+                    </span>
+                    <span class="importe-visita">
+                        <input class="input num" name="Productos[@i].Precio" inputmode="decimal" value="@Formato.Importe(linea.Precio ?? p?.PrecioVenta)"
+                               aria-label="Precio por unidad de @(p?.Nombre ?? "este producto")" data-linea-precio /><span>€</span>
+                    </span>
+                    <button type="button" class="btn btn-gray btn-icono" aria-label="Quitar @(p?.Nombre ?? "este producto")" data-linea-quitar><icono nombre="cerrar" tamano="16" /></button>
+                </div>
+            }
+        </div>
+
+        <template data-producto-plantilla>
+            <div class="row producto-linea" data-producto-linea data-producto-id="" data-stock="0">
+                <span class="producto-miniatura producto-miniatura-sm"><icono nombre="producto" tamano="18" /></span>
+                <span class="row-main">
+                    <span class="row-title" data-linea-nombre></span>
+                    <span class="row-sub"><span class="producto-ref" data-linea-referencia></span> · <span data-linea-stock></span></span>
+                </span>
+                <input type="hidden" name="Productos[0].ProductoId" value="" data-linea-id />
+                <span class="producto-linea-cantidad">
+                    <input class="input num" type="number" name="Productos[0].Cantidad" min="1" max="@LineaProductoVisita.CantidadMaxima" step="1" value="1" inputmode="numeric" data-linea-cantidad />
+                    <span>uds</span>
+                </span>
+                <span class="importe-visita">
+                    <input class="input num" name="Productos[0].Precio" inputmode="decimal" value="" data-linea-precio /><span>€</span>
+                </span>
+                <button type="button" class="btn btn-gray btn-icono" data-linea-quitar><icono nombre="cerrar" tamano="16" /></button>
+            </div>
+        </template>
+    }
+    @Html.ValidationMessage("Productos")
+</section>

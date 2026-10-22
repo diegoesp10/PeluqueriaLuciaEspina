@@ -29,10 +29,13 @@ public sealed class ClienteFormulario
 
     [StringLength(80)] public string? Apodo { get; set; }
 
-    public DatosCliente ADatos() => new(Nombre, Apellido, Email, Telefono, Sexo ?? Domain.Comun.Sexo.Otro, Apodo);
+    /// <summary>Canal preferido para los avisos de sus citas; vacío, sin preferencia (se elige en cada cita).</summary>
+    public Domain.Agenda.CanalConfirmacion? CanalPreferido { get; set; }
+
+    public DatosCliente ADatos() => new(Nombre, Apellido, Email, Telefono, Sexo ?? Domain.Comun.Sexo.Otro, Apodo, CanalPreferido);
 
     public static ClienteFormulario Desde(Cliente c) =>
-        new() { Nombre = c.Nombre, Apellido = c.Apellido, Email = c.Email, Telefono = c.Telefono, Sexo = c.Sexo, Apodo = c.Apodo };
+        new() { Nombre = c.Nombre, Apellido = c.Apellido, Email = c.Email, Telefono = c.Telefono, Sexo = c.Sexo, Apodo = c.Apodo, CanalPreferido = c.CanalPreferido };
 }
 
 /// <param name="VolverAVisita">El alta se abrió desde «Nueva visita»: al guardar se vuelve allí con el cliente elegido.</param>
@@ -42,5 +45,18 @@ public sealed record ClientesIndiceModelo(Pagina<Cliente> Pagina, string? Texto,
 
 public sealed record ClienteDetalleModelo(Cliente Cliente, ResumenVisitas Resumen, Pagina<Visita> Visitas, DateOnly Hoy, bool TieneCitas = false);
 
-/// <summary>Sugerencia del buscador de clientes (JSON).</summary>
-public sealed record ClienteSugerencia(int Id, string Nombre, string? Detalle, string Iniciales, int Sexo);
+/// <summary>Sugerencia del buscador de clientes (JSON). Canal: preferencia de aviso (0 correo, 1 WhatsApp, null sin preferencia).</summary>
+public sealed record ClienteSugerencia(int Id, string Nombre, string? Detalle, string Iniciales, int Sexo, int? Canal = null, bool ConCorreo = false, bool ConTelefono = false);
+
+/// <summary>Textos de la preferencia de aviso, iguales en todas las pantallas del panel.</summary>
+public static class FormatoAvisos
+{
+    public static string Texto(Domain.Agenda.CanalConfirmacion? canal) => canal switch
+    {
+        Domain.Agenda.CanalConfirmacion.Correo => "Por correo",
+        Domain.Agenda.CanalConfirmacion.WhatsApp => "Por WhatsApp",
+        _ => "Sin preferencia",
+    };
+
+    public static string Icono(Domain.Agenda.CanalConfirmacion? canal) => canal == Domain.Agenda.CanalConfirmacion.WhatsApp ? "telefono" : "email";
+}

@@ -470,8 +470,10 @@ label.row:hover {
   }
 }
 
+/* align-content: start: junto a un campo más alto (con ayuda de dos líneas), el campo no se estira */
 .field {
   display: grid;
+  align-content: start;
   gap: 10px;
 }
 

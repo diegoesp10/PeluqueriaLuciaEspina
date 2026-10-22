@@ -1,0 +1,115 @@
+@using PeluqueriaLucia.Application.Productos
+@using PeluqueriaLucia.Domain.Productos
+@model CategoriasModelo
+@{
+    ViewData["Title"] = "Categorías de productos";
+    var activas = Model.Activas;
+    var eliminadas = Model.Eliminadas;
+}
+
+<div class="form-pagina categorias-productos">
+    <a class="back-link" asp-action="Index"><icono nombre="anterior" tamano="20" /> Productos</a>
+    <header class="page-head">
+        <div>
+            <h1>Categorías</h1>
+            <p class="subtitle">Todo producto pertenece a una. Ordenan el inventario y sirven para filtrarlo. Al eliminar una, sus productos se archivan con su stock hasta que la recuperes.</p>
+        </div>
+    </header>
+
+    <section>
+        <div class="section-head"><h2>Nueva categoría</h2></div>
+        <form class="categoria-nueva campos-marcados" method="post" asp-action="CrearCategoria" novalidate>
+            <div class="categoria-nueva-fila">
+                <label class="sr-only" for="Nueva_Nombre">Nombre de la categoría nueva</label>
+                <input class="input" id="Nueva_Nombre" name="Nueva.Nombre" value="@Model.Nueva.Nombre" maxlength="@CategoriaProducto.LongitudNombre" required
+                       autocomplete="off" placeholder="Por ejemplo, Champús" autofocus="@(activas.Count == 0)" />
+                <button class="btn btn-primary"><icono nombre="mas" tamano="18" /> Añadir</button>
+            </div>
+            @Html.ValidationMessage("Nueva.Nombre")
+        </form>
+    </section>
+
+    <section class="section">
+        <div class="section-head">
+            <h2>En uso</h2>
+            <span class="muted small">@activas.Count @(activas.Count == 1 ? "categoría" : "categorías")</span>
+        </div>
+        @if (activas.Count == 0)
+        {
+            <div class="estado-vacio">
+                <span class="estado-icono tint-purple"><icono nombre="etiqueta" tamano="30" /></span>
+                <h2>Todavía no hay categorías</h2>
+                <p>Crea la primera aquí arriba, o escríbela directamente al dar de alta un producto.</p>
+            </div>
+        }
+        else
+        {
+            <div class="list categorias-lista">
+                @foreach (var c in activas)
+                {
+                    var categoria = c.Categoria;
+                    if (Model.Editando == categoria.Id)
+                    {
+                        <form class="row categoria-fila is-editando campos-marcados" id="categoria-@categoria.Id" method="post" asp-action="RenombrarCategoria" asp-route-id="@categoria.Id">
+                            <span class="categoria-icono tint-purple"><icono nombre="etiqueta" tamano="18" /></span>
+                            <label class="sr-only" for="nombre-@categoria.Id">Nuevo nombre de «@categoria.Nombre»</label>
+                            <input class="input" id="nombre-@categoria.Id" name="nombre" value="@categoria.Nombre" maxlength="@CategoriaProducto.LongitudNombre" required autocomplete="off" autofocus />
+                            <span class="row-end categoria-acciones">
+                                <button class="btn btn-primary btn-sm">Guardar</button>
+                                <a class="btn btn-gray btn-sm" asp-action="Categorias">Cancelar</a>
+                            </span>
+                        </form>
+                    }
+                    else
+                    {
+                        <div class="row categoria-fila" id="categoria-@categoria.Id">
+                            <span class="categoria-icono tint-purple"><icono nombre="etiqueta" tamano="18" /></span>
+                            <a class="row-main" asp-action="Index" asp-route-categoria="@categoria.Id" title="Ver sus productos">
+                                <span class="row-title">@categoria.Nombre</span>
+                                <span class="row-sub">@FormatoProductos.Cifras(c)</span>
+                            </a>
+                            <span class="row-end categoria-acciones">
+                                <a class="btn btn-gray btn-sm btn-icono-movil" asp-action="Categorias" asp-route-editar="@categoria.Id" asp-fragment="categoria-@categoria.Id"
+                                   title="Renombrar «@categoria.Nombre»"><icono nombre="editar" tamano="15" /> <span>Renombrar</span></a>
+                                <form method="post" asp-action="EliminarCategoria" asp-route-id="@categoria.Id"
+                                      data-confirmar="@CategoriasModelo.AvisoEliminar(c)" data-confirmar-accion="Eliminar">
+                                    <button class="btn btn-gray btn-sm btn-destructive btn-icono-movil" title="Eliminar «@categoria.Nombre»"><icono nombre="papelera" tamano="15" /> <span>Eliminar</span></button>
+                                </form>
+                            </span>
+                        </div>
+                    }
+                }
+            </div>
+        }
+    </section>
+
+    @if (eliminadas.Count > 0)
+    {
+        <section class="section">
+            <div class="section-head">
+                <h2>Eliminadas</h2>
+                <span class="muted small">Al recuperarlas, sus productos vuelven a la venta</span>
+            </div>
+            <div class="list categorias-lista">
+                @foreach (var c in eliminadas)
+                {
+                    var categoria = c.Categoria;
+                    <div class="row categoria-fila is-eliminada" id="categoria-@categoria.Id">
+                        <span class="categoria-icono tint-gray"><icono nombre="etiqueta" tamano="18" /></span>
+                        <a class="row-main" asp-action="Index" asp-route-categoria="@categoria.Id" asp-route-estado="@EstadoInventario.Archivados" title="Ver sus productos archivados">
+                            <span class="row-title">@categoria.Nombre</span>
+                            <span class="row-sub">Eliminada el @Formato.FechaCorta(categoria.EliminadaEn ?? categoria.CreadaEn) · @(c.Archivados == 0
+                                ? "sin productos archivados con ella"
+                                : $"{c.Archivados} {(c.Archivados == 1 ? "producto archivado" : "productos archivados")} con ella · {FormatoProductos.Unidades(c.UnidadesArchivadas)}")</span>
+                        </a>
+                        <span class="row-end categoria-acciones">
+                            <form method="post" asp-action="RecuperarCategoria" asp-route-id="@categoria.Id">
+                                <button class="btn btn-gray btn-sm btn-icono-movil" title="Recuperar «@categoria.Nombre»"><icono nombre="recuperar" tamano="15" /> <span>Recuperar</span></button>
+                            </form>
+                        </span>
+                    </div>
+                }
+            </div>
+        </section>
+    }
+</div>

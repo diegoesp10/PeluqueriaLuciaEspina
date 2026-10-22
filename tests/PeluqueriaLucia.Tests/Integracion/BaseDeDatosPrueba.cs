@@ -33,7 +33,8 @@ public sealed class BaseDeDatosPrueba : IAsyncDisposable
 
     public PeluqueriaDbContext Contexto() =>
         new(new DbContextOptionsBuilder<PeluqueriaDbContext>().UseSqlServer(Cadena)
-            .ConfigureWarnings(w => w.Throw(Microsoft.EntityFrameworkCore.Diagnostics.CoreEventId.FirstWithoutOrderByAndFilterWarning)).Options);
+            .ConfigureWarnings(w => w.Throw(Microsoft.EntityFrameworkCore.Diagnostics.CoreEventId.FirstWithoutOrderByAndFilterWarning,
+                Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.MultipleCollectionIncludeWarning)).Options);
 
     public async Task<int> EjecutarAsync(string sql)
     {

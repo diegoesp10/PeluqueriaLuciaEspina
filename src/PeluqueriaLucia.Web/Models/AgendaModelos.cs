@@ -80,9 +80,18 @@ public sealed class CitaManualFormulario
     public int? ServicioId { get; set; }
     [StringLength(500)] public string? Nota { get; set; }
     public bool Bloqueo { get; set; }
+
+    /// <summary>Canal del aviso de confirmación si la ficha no tiene preferencia; vacío, sin aviso.</summary>
+    public CanalConfirmacion? Aviso { get; set; }
 }
 public sealed record CitaManualPagina(CitaManualFormulario Formulario, PeluqueriaLucia.Domain.Clientes.Cliente? Cliente, string? Busqueda,
     IReadOnlyList<PeluqueriaLucia.Domain.Clientes.Cliente> Encontrados, IReadOnlyList<ServicioAgenda> Servicios, DisponibilidadAgenda? Dia);
+/// <summary>«por correo» / «por WhatsApp», para el aviso fijado por la preferencia de la ficha.</summary>
+public static class FormatoAvisosCita
+{
+    public static string Texto(CanalConfirmacion? canal) => canal == CanalConfirmacion.WhatsApp ? "por WhatsApp" : "por correo";
+}
+
 /// <summary>Teléfonos de contacto que se están editando (los vacíos se ignoran al guardar).</summary>
 public sealed record ContactoPagina(IReadOnlyList<string> Telefonos, int Maximo);
 public sealed record HorariosPagina(IReadOnlyList<TramoAgenda> Horarios, IReadOnlyList<CierreAgenda> Cierres, DateOnly Hoy);

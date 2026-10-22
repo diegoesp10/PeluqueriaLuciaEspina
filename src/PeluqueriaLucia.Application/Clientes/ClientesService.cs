@@ -5,7 +5,9 @@ using PeluqueriaLucia.Domain.Comun;
 
 namespace PeluqueriaLucia.Application.Clientes;
 
-public sealed record DatosCliente(string Nombre, string Apellido, string? Email, string? Telefono, Sexo Sexo, string? Apodo = null);
+/// <param name="CanalPreferido">Canal de los avisos de sus citas; null, sin preferencia (se elige en cada cita).</param>
+public sealed record DatosCliente(string Nombre, string Apellido, string? Email, string? Telefono, Sexo Sexo, string? Apodo = null,
+    Domain.Agenda.CanalConfirmacion? CanalPreferido = null);
 
 public sealed record ClienteReconocido(int Id, string Nombre, string Apellido, Sexo Sexo, string? Apodo);
 
@@ -45,6 +47,7 @@ public sealed class ClientesService(IClienteRepositorio clientes, IUnidadDeTraba
 
             var cliente = Cliente.Crear(datos.Nombre, datos.Apellido, datos.Email, datos.Telefono, datos.Sexo, reloj.GetLocalNow().DateTime);
             cliente.CambiarApodo(datos.Apodo);
+            cliente.CambiarPreferenciaAviso(datos.CanalPreferido);
             clientes.Agregar(cliente);
             await unidadDeTrabajo.GuardarCambiosAsync(ct);
             return Resultado.Ok(cliente.Id);
@@ -61,6 +64,8 @@ public sealed class ClientesService(IClienteRepositorio clientes, IUnidadDeTraba
 
             cliente.CambiarApodo(datos.Apodo);
             cliente.Actualizar(datos.Nombre, datos.Apellido, datos.Email, datos.Telefono, datos.Sexo);
+            // Después de los datos de contacto: la preferencia necesita el de su canal
+            cliente.CambiarPreferenciaAviso(datos.CanalPreferido);
             await unidadDeTrabajo.GuardarCambiosAsync(ct);
             return Resultado.Ok(cliente.Id);
         });

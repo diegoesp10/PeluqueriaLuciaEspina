@@ -69,7 +69,7 @@ internal sealed class FabricaWeb(string cadena, Dictionary<string, string?>? aju
             if (reloj is not null) { services.RemoveAll<TimeProvider>(); services.AddSingleton(reloj); }
             services.RemoveAll<DbContextOptions<PeluqueriaDbContext>>();
             services.RemoveAll<Microsoft.EntityFrameworkCore.Infrastructure.IDbContextOptionsConfiguration<PeluqueriaDbContext>>();
-            services.AddDbContext<PeluqueriaDbContext>(o => o.UseSqlServer(cadena).ConfigureWarnings(w => w.Throw(Microsoft.EntityFrameworkCore.Diagnostics.CoreEventId.FirstWithoutOrderByAndFilterWarning)));
+            services.AddDbContext<PeluqueriaDbContext>(o => o.UseSqlServer(cadena).ConfigureWarnings(w => w.Throw(Microsoft.EntityFrameworkCore.Diagnostics.CoreEventId.FirstWithoutOrderByAndFilterWarning, Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.MultipleCollectionIncludeWarning)));
         });
     }
 

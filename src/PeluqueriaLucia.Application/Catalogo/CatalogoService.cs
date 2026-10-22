@@ -7,7 +7,8 @@ namespace PeluqueriaLucia.Application.Catalogo;
 
 public sealed record DatosPublicacion(int? CategoriaId, string? Descripcion, Domain.Publico.TipoPrecioPublico TipoPrecio, int DuracionMinutos, int Orden, bool Publicado, bool Destacado, string? DescripcionEn = null);
 /// <summary>El nombre en inglés es obligatorio al crear; en los servicios anteriores al inglés puede faltar y la web muestra el español.</summary>
-public sealed record DatosServicio(string Nombre, decimal Precio, Sexo Sexo, DatosPublicacion? Publicacion = null, string? NombreEn = null);
+/// <param name="Dualidad">Se pueden dar otras citas a la misma hora que este servicio (ver <see cref="Servicio.Dualidad"/>).</param>
+public sealed record DatosServicio(string Nombre, decimal Precio, Sexo Sexo, DatosPublicacion? Publicacion = null, string? NombreEn = null, bool Dualidad = false);
 
 /// <summary>Qué se hizo al pedir eliminar un servicio.</summary>
 public enum Eliminacion
@@ -51,6 +52,7 @@ public sealed class CatalogoService(
                 return new Error("Escribe también la descripción en inglés.", "DescripcionPublicaEn");
 
             var servicio = Servicio.Crear(datos.Nombre, datos.Precio, datos.Sexo, reloj.GetLocalNow().DateTime, datos.NombreEn);
+            servicio.CambiarDualidad(datos.Dualidad);
             await ConfigurarWebAsync(servicio, datos.Publicacion, ct);
             servicio.Traducir(datos.NombreEn, datos.Publicacion?.DescripcionEn);
             var nuevaRuta = imagen is null ? null : await GuardarImagenAsync(imagen, ct);
@@ -73,6 +75,12 @@ public sealed class CatalogoService(
 
             servicio.Actualizar(datos.Nombre, datos.Precio, datos.Sexo);
             await ConfigurarWebAsync(servicio, datos.Publicacion, ct);
+            // La dualidad vale también para las citas de este servicio que aún no han terminado; las pasadas no cambian
+            if (servicio.Dualidad != datos.Dualidad)
+            {
+                servicio.CambiarDualidad(datos.Dualidad);
+                await servicios.CambiarDualidadCitasAsync(servicio.Id, datos.Dualidad, reloj.GetLocalNow().DateTime, ct);
+            }
             // Al editar, el inglés es opcional: los servicios anteriores al inglés se traducen cuando se pueda
             servicio.Traducir(datos.NombreEn, datos.Publicacion is null ? servicio.DescripcionPublicaEn : datos.Publicacion.DescripcionEn);
 

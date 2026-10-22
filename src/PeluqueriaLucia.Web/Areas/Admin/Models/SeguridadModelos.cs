@@ -48,4 +48,5 @@ public class MfaFormularioBase
 public sealed record SeguridadModelo(Guid SesionActual, IReadOnlyList<SesionAdministrador> Sesiones,
     IReadOnlyList<IntentoAcceso> Intentos, IReadOnlyList<ActividadIp> Actividad, OpcionesSeguridad Opciones);
 
-public sealed record PanelModelo(DateOnly Hoy, ResumenVisitas Resumen, IReadOnlyList<ActividadIp> Actividad);
+/// <param name="PorReponer">Productos agotados o bajo mínimo (los primeros), para avisar en el panel.</param>
+public sealed record PanelModelo(DateOnly Hoy, ResumenVisitas Resumen, IReadOnlyList<ActividadIp> Actividad, IReadOnlyList<PeluqueriaLucia.Domain.Productos.Producto> PorReponer);

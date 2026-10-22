@@ -1,11 +1,11 @@
-// Nueva visita: buscador de clientes (combo-clientes.js), buscador y filtro de servicios, y total en vivo.
+// Nueva visita: buscador de clientes (combo-clientes.js), buscador y filtro de servicios, productos y total en vivo.
 'use strict';
 
 (() => {
   const form = document.querySelector('[data-nueva-visita]');
   if (!form) return;
 
-  const { euros } = window.Peluqueria;
+  const { euros, leerImporte, importeCampo } = window.Peluqueria;
   const sexos = ['Hombre', 'Mujer', 'Otro'];
 
   // ── Cliente ──────────────────────────────────────────────────────────────
@@ -66,11 +66,26 @@
     if (sinServicios) sinServicios.hidden = visibles > 0;
   }
 
+  // Filas de producto (ver más abajo): unidades × precio de cada una
+  const lineasProducto = () => [...form.querySelectorAll('[data-producto-linea]')];
+  const importe = (campo) => {
+    const valor = leerImporte(campo.value);
+    return Number.isNaN(valor) ? 0 : Math.round(valor * 100);
+  };
+
   const recalcular = () => {
     const marcados = opciones.map((o) => o.querySelector('input[type=checkbox]')).filter((i) => i.checked);
-    const centimos = marcados.reduce((suma, i) => suma + Math.round((Number(form.querySelector(`[data-importe-servicio="${i.value}"]`).value.replace(",",".")) || 0) * 100), 0);
-    textoTotal.textContent = euros.format(centimos / 100);
-    textoNumero.textContent = marcados.length === 1 ? '1 servicio' : `${marcados.length} servicios`;
+    const servicios = marcados.reduce((suma, i) => suma + importe(form.querySelector(`[data-importe-servicio="${i.value}"]`)), 0);
+    let unidades = 0;
+    const productos = lineasProducto().reduce((suma, fila) => {
+      const cantidad = Math.max(0, Math.trunc(Number(fila.querySelector('[data-linea-cantidad]').value) || 0));
+      unidades += cantidad;
+      return suma + cantidad * importe(fila.querySelector('[data-linea-precio]'));
+    }, 0);
+    textoTotal.textContent = euros.format((servicios + productos) / 100);
+    const partes = [marcados.length === 1 ? '1 servicio' : `${marcados.length} servicios`];
+    if (unidades > 0) partes.push(unidades === 1 ? '1 producto' : `${unidades} productos`);
+    textoNumero.textContent = partes.join(' · ');
   };
 
   form.querySelectorAll('[data-filtro-servicios]').forEach((r) => r.addEventListener('change', filtrarServicios));
@@ -89,6 +104,130 @@
     });
     precio.addEventListener('input',recalcular);
   });
+  // ── Productos ────────────────────────────────────────────────────────────
+  // El buscador (select-buscable.js, también con el lector de códigos) elige el producto; «Añadir» crea su fila.
+  // Elegir uno que ya está suma unidades. Pedir más de lo que hay no se impide: se avisa de que el stock quedará en negativo.
+  const elegirProducto = form.querySelector('[data-producto-elegir]');
+  const cantidadNueva = form.querySelector('[data-producto-cantidad]');
+  const listaProductos = form.querySelector('[data-productos-lista]');
+  const plantilla = form.querySelector('[data-producto-plantilla]');
+  const aviso = form.querySelector('[data-producto-aviso]');
+  const textoAviso = aviso?.textContent;
+
+  const enStock = (n) => (n > 0 ? `${n} en stock` : n === 0 ? 'agotado' : `en negativo (−${-n})`);
+
+  /** Sin texto vuelve la ayuda; «is-error» para errores y «is-aviso» para avisos que no impiden seguir. */
+  const avisar = (texto, tipo = 'is-error') => {
+    if (!aviso) return;
+    aviso.textContent = texto ?? textoAviso;
+    aviso.classList.remove('is-error', 'is-aviso');
+    if (texto) aviso.classList.add(tipo);
+  };
+
+  // Los nombres van seguidos (Productos[0], Productos[1]…): el servidor deja de leer en el primer hueco
+  const renumerar = () => {
+    lineasProducto().forEach((fila, i) => {
+      fila.querySelectorAll('[name^="Productos["]').forEach((campo) => {
+        campo.name = campo.name.replace(/^Productos\[\d+\]/, `Productos[${i}]`);
+      });
+    });
+    if (listaProductos) listaProductos.hidden = lineasProducto().length === 0;
+  };
+
+  // Si se piden más de las que hay, al cobrar el stock quedará en negativo: se avisa, sin impedirlo
+  const revisarStock = () => {
+    const porProducto = new Map();
+    lineasProducto().forEach((fila) => {
+      const actual = porProducto.get(fila.dataset.productoId)
+        ?? { nombre: fila.querySelector('[data-linea-nombre]').textContent, stock: Number(fila.dataset.stock), pedidas: 0 };
+      actual.pedidas += Math.max(0, Math.trunc(Number(fila.querySelector('[data-linea-cantidad]').value)) || 0);
+      porProducto.set(fila.dataset.productoId, actual);
+    });
+    const negativos = [...porProducto.values()].filter((p) => p.pedidas > p.stock);
+    avisar(negativos.length === 0 ? null
+      : `Al cobrar quedará en negativo: ${negativos.map((p) => `«${p.nombre}» (−${p.pedidas - p.stock})`).join(', ')}. Recuerda reponerlo.`, 'is-aviso');
+  };
+
+  const prepararFila = (fila) => {
+    fila.querySelector('[data-linea-cantidad]').addEventListener('input', () => { revisarStock(); recalcular(); });
+    fila.querySelector('[data-linea-precio]').addEventListener('input', recalcular);
+    fila.querySelector('[data-linea-quitar]').addEventListener('click', () => {
+      fila.remove();
+      renumerar();
+      recalcular();
+      revisarStock();
+      elegirProducto?.buscable?.enfocar();
+    });
+  };
+
+  function anadirProducto() {
+    const opcion = elegirProducto?.selectedOptions[0];
+    if (!opcion || !opcion.value) {
+      avisar('Elige primero un producto de la lista.');
+      elegirProducto?.buscable?.enfocar();
+      return;
+    }
+    const cantidad = Math.max(1, Math.trunc(Number(cantidadNueva.value) || 1));
+    const stock = Number(opcion.dataset.stock);
+    const existente = lineasProducto().find((f) => f.dataset.productoId === opcion.value
+      && importe(f.querySelector('[data-linea-precio]')) === Math.round(Number(opcion.dataset.precio) * 100));
+
+    if (existente) {
+      const campo = existente.querySelector('[data-linea-cantidad]');
+      campo.value = String((Math.trunc(Number(campo.value)) || 0) + cantidad);
+    } else {
+      const fila = plantilla.content.firstElementChild.cloneNode(true);
+      fila.dataset.productoId = opcion.value;
+      fila.dataset.stock = opcion.dataset.stock;
+      fila.querySelector('[data-linea-nombre]').textContent = opcion.dataset.nombre;
+      fila.querySelector('[data-linea-referencia]').textContent = opcion.dataset.referencia;
+      fila.querySelector('[data-linea-stock]').textContent = enStock(stock);
+      fila.querySelector('[data-linea-id]').value = opcion.value;
+      fila.querySelector('[data-linea-cantidad]').value = String(cantidad);
+      fila.querySelector('[data-linea-cantidad]').setAttribute('aria-label', `Unidades de ${opcion.dataset.nombre}`);
+      const precio = fila.querySelector('[data-linea-precio]');
+      precio.value = importeCampo(Number(opcion.dataset.precio));
+      precio.setAttribute('aria-label', `Precio por unidad de ${opcion.dataset.nombre}`);
+      fila.querySelector('[data-linea-quitar]').setAttribute('aria-label', `Quitar ${opcion.dataset.nombre}`);
+      if (opcion.dataset.foto) {
+        const imagen = document.createElement('img');
+        imagen.src = opcion.dataset.foto;
+        imagen.alt = '';
+        imagen.width = 40;
+        imagen.height = 40;
+        imagen.addEventListener('error', () => imagen.remove(), { once: true });
+        fila.querySelector('.producto-miniatura').append(imagen);
+      }
+      listaProductos.append(fila);
+      prepararFila(fila);
+      renumerar();
+    }
+
+    revisarStock();
+    cantidadNueva.value = '1';
+    // Listo para el siguiente producto (o el siguiente código del lector)
+    elegirProducto.value = '';
+    elegirProducto.dispatchEvent(new Event('change', { bubbles: true }));
+    elegirProducto.buscable?.enfocar();
+    recalcular();
+  }
+
+  if (elegirProducto && plantilla && listaProductos) {
+    lineasProducto().forEach(prepararFila);
+    revisarStock();
+    form.querySelector('[data-producto-anadir]').addEventListener('click', anadirProducto);
+    // Con el lector de códigos: el código elige el producto (Enter en el buscador), el foco pasa a las unidades y Enter lo añade
+    elegirProducto.addEventListener('change', () => {
+      if (elegirProducto.value) cantidadNueva.focus();
+    });
+    cantidadNueva.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      anadirProducto();
+    });
+    renumerar();
+  }
+
   filtrarServicios();
   recalcular();
 })();

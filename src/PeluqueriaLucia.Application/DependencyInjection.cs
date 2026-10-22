@@ -18,6 +18,7 @@ public static class DependencyInjection
         services.AddScoped<Agenda.VerificacionContactoService>();
         services.AddScoped<CatalogoService>();
         services.AddScoped<VisitasService>();
+        services.AddScoped<Productos.ProductosService>();
         services.AddScoped<AccesoService>();
         services.AddScoped<MfaService>();
         services.AddScoped<Publico.ContenidoService>();

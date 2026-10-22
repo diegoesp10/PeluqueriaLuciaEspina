@@ -60,7 +60,7 @@
                         <span class="row-title">@c.NombreCompleto · #@c.Id</span>
                         @if(c.PendienteCompletar){<span class="badge">Pendiente de completar</span>}
                         @if(c.NumeroFaltas > 0){<span class="badge">@c.NumeroFaltas @(c.NumeroFaltas == 1 ? "inasistencia" : "inasistencias")</span>}
-                        <span class="row-sub">@(string.Join(" · ", new[] { c.Telefono, c.Email }.Where(x => !string.IsNullOrEmpty(x))) is { Length: > 0 } contacto ? contacto : "Sin datos de contacto")</span>
+                        <span class="row-sub">@(string.Join(" · ", new[] { c.Telefono, c.Email }.Where(x => !string.IsNullOrEmpty(x))) is { Length: > 0 } contacto ? contacto : "Sin datos de contacto")@(c.CanalPreferido is null ? "" : $" · avisos {FormatoAvisos.Texto(c.CanalPreferido).ToLowerInvariant()}")</span>
                     </span>
                     <span class="row-end"><span class="row-chevron"><icono nombre="siguiente" tamano="16" /></span></span>
                 </a>

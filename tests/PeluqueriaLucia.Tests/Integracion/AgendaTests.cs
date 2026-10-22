@@ -163,6 +163,58 @@ public sealed class AgendaTests
     }
 
     [Fact]
+    public async Task Dualidad_permite_dar_citas_a_la_misma_hora_salvo_en_el_tiempo_bloqueado()
+    {
+        await using var bd=await BaseDeDatosPrueba.CrearAsync(); await using var db=bd.Contexto(); var reloj=new Reloj(); var agenda=Crear(db,reloj);
+        var admin=Administrador.Crear("dualidad","hash-prueba",reloj.Ahora.UtcDateTime); db.Add(admin);
+        var tinte=PeluqueriaLucia.Domain.Catalogo.Servicio.Crear("Tinte",30m,PeluqueriaLucia.Domain.Comun.Sexo.Mujer,DateTime.Now); tinte.CambiarDualidad(true);
+        var corte=PeluqueriaLucia.Domain.Catalogo.Servicio.Crear("Corte",18m,PeluqueriaLucia.Domain.Comun.Sexo.Mujer,DateTime.Now);
+        db.AddRange(tinte,corte); await db.SaveChangesAsync();
+        CitaManual Cita(TimeOnly hora,int minutos,int? servicio,bool bloqueo=false) => new(Dia,hora,minutos,null,bloqueo?"Médico":"Clienta",null,servicio,null,bloqueo,admin.Id);
+
+        Assert.True((await agenda.CrearCitaAsync(Cita(new(10,0),60,corte.Id),default)).Exito);
+        // Un servicio sin dualidad no puede pisar otra cita; uno con dualidad sí
+        Assert.False((await agenda.CrearCitaAsync(Cita(new(10,30),30,corte.Id),default)).Exito);
+        Assert.DoesNotContain(new TimeOnly(10,30),(await agenda.HuecosPanelAsync(Dia,30,default)).Horas);
+        Assert.Contains(new TimeOnly(10,30),(await agenda.HuecosPanelAsync(Dia,30,default,tinte.Id)).Horas);
+        var dual=await agenda.CrearCitaAsync(Cita(new(10,30),30,tinte.Id),default);
+        Assert.True(dual.Exito,dual.Error?.Mensaje);
+        Assert.True((await db.ReservasCitas.AsNoTracking().SingleAsync(x=>x.Id==dual.Valor)).Dualidad);
+        // Y una cita normal puede coincidir con una que tiene dualidad
+        Assert.True((await agenda.CrearCitaAsync(Cita(new(12,0),30,tinte.Id),default)).Exito);
+        Assert.True((await agenda.CrearCitaAsync(Cita(new(12,0),30,corte.Id),default)).Exito);
+        // El tiempo bloqueado choca con todo, también con las citas con dualidad
+        Assert.False((await agenda.CrearCitaAsync(Cita(new(12,0),30,null,bloqueo:true),default)).Exito);
+        Assert.True((await agenda.CrearCitaAsync(Cita(new(12,30),30,null,bloqueo:true),default)).Exito);
+        Assert.False((await agenda.CrearCitaAsync(Cita(new(12,30),30,tinte.Id),default)).Exito);
+        Assert.DoesNotContain(new TimeOnly(12,30),(await agenda.HuecosPanelAsync(Dia,30,default,tinte.Id)).Horas);
+    }
+
+    [Fact]
+    public async Task Cambiar_la_dualidad_del_servicio_cambia_sus_citas_por_venir_y_no_las_pasadas()
+    {
+        await using var bd=await BaseDeDatosPrueba.CrearAsync(); await using var db=bd.Contexto();
+        var tinte=PeluqueriaLucia.Domain.Catalogo.Servicio.Crear("Tinte",30m,PeluqueriaLucia.Domain.Comun.Sexo.Mujer,DateTime.Now);
+        db.Add(tinte); await db.SaveChangesAsync();
+        ReservaCita Cita(DateTime inicio,EstadoCita estado) => new() { Id=Guid.NewGuid(),SolicitudId=Guid.NewGuid(),Inicio=inicio,Fin=inicio.AddMinutes(30),Nombre="Ana",
+            ServicioId=tinte.Id,ServicioNombre="Tinte",Estado=estado,Origen=OrigenCita.Panel,CreadaUtc=DateTime.UtcNow,ActualizadaUtc=DateTime.UtcNow,CaducaUtc=DateTime.UtcNow };
+        var pasada=Cita(DateTime.Now.AddDays(-2),EstadoCita.Completada); var futura=Cita(DateTime.Now.AddDays(2),EstadoCita.Confirmada); var cancelada=Cita(DateTime.Now.AddDays(3),EstadoCita.Cancelada);
+        db.AddRange(pasada,futura,cancelada); await db.SaveChangesAsync();
+        var imagenes=new PeluqueriaLucia.Infrastructure.Almacenamiento.AlmacenImagenesLocal(
+            Microsoft.Extensions.Options.Options.Create(new PeluqueriaLucia.Infrastructure.Almacenamiento.OpcionesImagenes { Carpeta=Path.Combine(Path.GetTempPath(),"peluqueria-pruebas") }),
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<PeluqueriaLucia.Infrastructure.Almacenamiento.AlmacenImagenesLocal>.Instance);
+        var catalogo=new PeluqueriaLucia.Application.Catalogo.CatalogoService(new ServicioRepositorio(db),imagenes,db,TimeProvider.System);
+
+        var resultado=await catalogo.ActualizarAsync(tinte.Id,new("Tinte",30m,PeluqueriaLucia.Domain.Comun.Sexo.Mujer,Dualidad:true),null,false);
+
+        Assert.True(resultado.Exito,resultado.Error?.Mensaje);
+        await using var otra=bd.Contexto();
+        Assert.True((await otra.Servicios.AsNoTracking().SingleAsync(x=>x.Id==tinte.Id)).Dualidad);
+        var citas=await otra.ReservasCitas.AsNoTracking().ToDictionaryAsync(x=>x.Id,x=>x.Dualidad);
+        Assert.Equal((false,true,false),(citas[pasada.Id],citas[futura.Id],citas[cancelada.Id]));
+    }
+
+    [Fact]
     public async Task Solicitud_sin_servicio_de_la_lista_guarda_lo_que_escribe_el_cliente()
     {
         await using var bd=await BaseDeDatosPrueba.CrearAsync(); await using var db=bd.Contexto(); var agenda=Crear(db,new Reloj());

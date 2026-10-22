@@ -38,7 +38,10 @@ public sealed class ComunicacionesCitas(IRepositorioAgenda datos, IProtectorSecr
         if (r is null) return new Error("El enlace ha caducado, ya se ha utilizado o la propuesta ha cambiado. Contacta con el equipo.");
         var ahora = TimeZoneInfo.ConvertTime(reloj.GetUtcNow(), AgendaService.Zona).DateTime;
         if (r.Inicio <= ahora) return new Error("La hora de esta propuesta ya ha pasado. Contacta con el equipo.");
+        // Dualidad de servicio: una cita dual (esta o la otra) puede coincidir, salvo con tiempo bloqueado
+        var dual = r.Dualidad;
         if (await datos.ExisteAsync<ReservaCita>(x => x.Id != r.Id && x.Inicio < r.Fin && x.Fin > r.Inicio &&
+            (x.Origen == OrigenCita.Bloqueo || (!dual && !x.Dualidad)) &&
             (x.Estado == EstadoCita.Confirmada || ((x.Estado == EstadoCita.Pendiente || x.Estado == EstadoCita.PendienteAceptacion) && x.CaducaUtc > Utc)), ct))
             return new Error("Este horario ya no está disponible. Contacta con el equipo.");
         await ClientesAgendaService.VincularAsync(datos, r, Utc, ct);

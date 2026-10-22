@@ -52,7 +52,7 @@
                         }
                     </span>
                     <span class="servicio-cuerpo">
-                        <span class="row-title">@s.Nombre</span><span class="row-sub">@(s.Publicado ? "Publicado en la web" : "Solo catálogo interno")</span>
+                        <span class="row-title">@s.Nombre</span><span class="row-sub">@(s.Publicado ? "Publicado en la web" : "Solo catálogo interno")@(s.Dualidad ? " · Dualidad" : "")</span>
                         <span class="servicio-pie">
                             <span class="pill @Formato.Tinte(s.Sexo)">@Formato.Texto(s.Sexo)</span>
                             <span class="servicio-precio num">@(s.Precio > 0 ? Formato.Euros(s.Precio) : "Por definir")</span>

@@ -22,7 +22,7 @@ public sealed class IconosWebTests(SeguridadWebFixture fixture) : IClassFixture<
 
         using var admin = fabrica.Cliente();
         await EntrarAsync(admin);
-        foreach (var ruta in new[] { "/admin", "/admin/agenda", "/admin/comunicaciones", "/admin/visitas", "/admin/clientes", "/admin/catalogo", "/admin/tratamientos", "/admin/resenas", "/admin/seguridad" })
+        foreach (var ruta in new[] { "/admin", "/admin/agenda", "/admin/comunicaciones", "/admin/visitas", "/admin/clientes", "/admin/catalogo", "/admin/tratamientos", "/admin/resenas", "/admin/seguridad", "/admin/productos", "/admin/productos/nuevo" })
             Comprobar(ruta, await admin.GetStringAsync(ruta));
 
         var portada = await publico.GetStringAsync("/");

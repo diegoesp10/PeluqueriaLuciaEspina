@@ -23,11 +23,14 @@ public sealed class FormulariosWebTests(SeguridadWebFixture fixture) : IClassFix
         using var cliente = fabrica.Cliente();
         Comprobar("/admin/acceso", await cliente.GetStringAsync("/admin/acceso"));
         await EntrarAsync(cliente);
-        int clienteId;
+        int clienteId, productoId, categoriaId;
         await using (var db = fixture.Bd.Contexto())
         {
             var ficha = Cliente.Crear("Formularios", "Prueba", null, "600000000", Sexo.Mujer, DateTime.UtcNow);
-            db.Add(ficha); await db.SaveChangesAsync(); clienteId = ficha.Id;
+            var categoria = PeluqueriaLucia.Domain.Productos.CategoriaProducto.Crear("Formularios " + Guid.NewGuid().ToString("N")[..8], DateTime.Now);
+            var producto = PeluqueriaLucia.Domain.Productos.Producto.Crear(new("FORM-" + Guid.NewGuid().ToString("N")[..8], null, "Producto de formularios",
+                null, null, 9.90m, null, 1), categoria, DateTime.Now);
+            db.AddRange(ficha, producto); await db.SaveChangesAsync(); clienteId = ficha.Id; productoId = producto.Id; categoriaId = categoria.Id;
         }
         var dia = DateOnly.FromDateTime(DateTime.Today).AddDays(200).ToString("yyyy-MM-dd");
         foreach (var ruta in new[]
@@ -38,6 +41,8 @@ public sealed class FormulariosWebTests(SeguridadWebFixture fixture) : IClassFix
             $"/admin/Clientes/Detalle/{clienteId}", $"/admin/Clientes/Editar/{clienteId}", "/admin/Catalogo", "/admin/Catalogo/Nuevo",
             "/admin/Tratamientos", "/admin/Tratamientos/Nuevo", "/admin/Tratamientos/Categorias", "/admin/Tratamientos/Categoria",
             "/admin/Resenas", "/admin/Seguridad", "/admin/Seguridad/Contrasena", "/admin/Seguridad/Authenticator",
+            "/admin/Productos", "/admin/Productos/Nuevo", $"/admin/Productos/Ficha/{productoId}", $"/admin/Productos/Editar/{productoId}",
+            "/admin/Productos/Categorias", $"/admin/Productos/Categorias?editar={categoriaId}",
         })
         {
             var respuesta = await cliente.GetAsync(ruta);
@@ -58,11 +63,28 @@ public sealed class FormulariosWebTests(SeguridadWebFixture fixture) : IClassFix
         var publicar = await cliente.GetStringAsync("/admin/Tratamientos/Nuevo");
         Assert.Matches("<select[^>]*id=\"ServicioId\"[^>]*data-buscable=", publicar);
         Assert.Matches("<select[^>]*id=\"CategoriaId\"[^>]*data-buscable=", publicar);
-        Assert.Matches("<select[^>]*id=\"CategoriaPublicaId\"[^>]*data-buscable=", await cliente.GetStringAsync("/admin/Catalogo/Nuevo"));
+        var catalogo = await cliente.GetStringAsync("/admin/Catalogo/Nuevo");
+        Assert.Matches("<select[^>]*id=\"CategoriaPublicaId\"[^>]*data-buscable=", catalogo);
+        Assert.Contains("name=\"Dualidad\"", catalogo);
+        // Preferencia de aviso en la ficha y aviso al dar una cita en el salón
+        Assert.Contains("name=\"CanalPreferido\"", await cliente.GetStringAsync("/admin/Clientes/Nuevo"));
+        Assert.Contains("data-aviso-cita", cita);
+        Assert.Contains("name=\"Aviso\"", cita);
         // Los buscadores de clientes sugieren mientras se escribe; el botón «Buscar» solo queda para navegadores sin JavaScript
         Assert.Contains("data-solo-sin-js>Buscar</button>", cita);
         Assert.Contains("data-combo-input", await cliente.GetStringAsync("/admin/Visitas/Nueva"));
-        foreach (var ruta in new[] { "/admin/Clientes", "/admin/Catalogo", "/admin/Tratamientos", "/admin/Resenas", "/admin/comunicaciones" })
+        // Con algún producto a la venta, «Nueva visita» ofrece su buscador (también para el lector de códigos de barras)
+        await using (var db = fixture.Bd.Contexto())
+        {
+            db.Add(PeluqueriaLucia.Domain.Productos.Producto.Crear(new("BUSC-" + Guid.NewGuid().ToString("N")[..8], null, "Producto buscable",
+                null, null, 5m, null, 0), PeluqueriaLucia.Domain.Productos.CategoriaProducto.Crear("Buscables " + Guid.NewGuid().ToString("N")[..8], DateTime.Now), DateTime.Now));
+            await db.SaveChangesAsync();
+        }
+        Assert.Matches("<select[^>]*id=\"producto-elegir\"[^>]*data-buscable=", await cliente.GetStringAsync("/admin/Visitas/Nueva"));
+        // La categoría del producto se busca (o se escribe una nueva) y el inventario se filtra con otro buscador de categorías
+        Assert.Matches("<select[^>]*id=\"CategoriaId\"[^>]*data-buscable=[^>]*data-buscable-libre=\"CategoriaNueva\"", await cliente.GetStringAsync("/admin/Productos/Nuevo"));
+        Assert.Matches("<select[^>]*id=\"categoria-productos\"[^>]*data-buscable=", await cliente.GetStringAsync("/admin/Productos"));
+        foreach (var ruta in new[] { "/admin/Clientes", "/admin/Catalogo", "/admin/Tratamientos", "/admin/Resenas", "/admin/comunicaciones", "/admin/Productos" })
             Assert.Contains("data-buscar-al-escribir", await cliente.GetStringAsync(ruta));
     }
 

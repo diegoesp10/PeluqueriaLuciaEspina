@@ -9,7 +9,7 @@
         <span class="row-title">@(cliente?.NombreCompleto ?? "Sin cliente")</span>
         <span class="row-sub">
             <span class="num">@(mostrarFecha ? Formato.FechaCorta(Model.Fecha) + " · " : "")@Formato.Hora(Model.Fecha)</span>
-            · @string.Join(", ", Model.Lineas.Select(l => l.Nombre))
+            · @string.Join(", ", Model.Lineas.Select(l => l.Nombre).Concat(Model.Productos.Select(p => p.Cantidad == 1 ? p.Nombre : $"{p.Cantidad} × {p.Nombre}")))
         </span>
     </span>
     <span class="row-end">

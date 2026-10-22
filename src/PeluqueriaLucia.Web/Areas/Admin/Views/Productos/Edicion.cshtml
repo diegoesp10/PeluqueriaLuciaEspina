@@ -1,0 +1,215 @@
+@using PeluqueriaLucia.Domain.Productos
+@model ProductoEdicionModelo
+@{
+    var nuevo = Model.Nuevo;
+    var f = Model.Formulario;
+    var p = Model.Producto;
+    ViewData["Title"] = nuevo ? "Nuevo producto" : "Editar producto";
+    var fotos = p?.FotosEnOrden ?? [];
+    var principal = f.FotoPrincipal ?? p?.FotoPrincipal?.Id;
+}
+
+<div class="form-pagina">
+    @if (nuevo)
+    {
+        <a class="back-link" asp-action="Index"><icono nombre="anterior" tamano="20" /> Productos</a>
+    }
+    else
+    {
+        <a class="back-link" asp-action="Ficha" asp-route-id="@Model.Id"><icono nombre="anterior" tamano="20" /> @p!.Nombre</a>
+    }
+    <header class="page-head">
+        <div>
+            <h1>@ViewData["Title"]</h1>
+            @if (p is { Activo: false })
+            {
+                <p class="subtitle"><span class="pill tint-gray"><icono nombre="archivar" tamano="13" /> Archivado</span></p>
+            }
+            else if (nuevo)
+            {
+                <p class="subtitle">Con referencia única y, si lo tiene, el código de barras del envase para encontrarlo con el lector.</p>
+            }
+        </div>
+    </header>
+
+    <form class="form campos-marcados" method="post" enctype="multipart/form-data" asp-action="@(nuevo ? "Nuevo" : "Editar")" asp-route-id="@Model.Id" novalidate data-producto-formulario>
+        <div asp-validation-summary="ModelOnly"></div>
+
+        <section>
+            <div class="section-head"><h2>Identificación</h2></div>
+            <div class="fields">
+                <div class="fields-2">
+                    <div class="field">
+                        <label for="Referencia">Referencia</label>
+                        <input class="input producto-ref-campo" id="Referencia" name="Referencia" value="@f.Referencia" maxlength="@Producto.LongitudReferencia"
+                               autocomplete="off" autocapitalize="characters" spellcheck="false" required autofocus="@nuevo" placeholder="CH-ARG-250" />
+                        <p class="field-hint">Única. Letras, números, espacios y - _ . /</p>
+                        @Html.ValidationMessage("Referencia")
+                    </div>
+                    <div class="field">
+                        <label for="CodigoBarras">Código de barras <span class="muted">(opcional)</span></label>
+                        <div class="input-icono">
+                            <icono nombre="codigo-barras" tamano="18" />
+                            <input class="input num" id="CodigoBarras" name="CodigoBarras" value="@f.CodigoBarras" maxlength="20" inputmode="numeric"
+                                   autocomplete="off" spellcheck="false" placeholder="8412345678901" data-codigo-barras />
+                        </div>
+                        <p class="field-hint">EAN o UPC del envase. Con el lector, pon el cursor aquí y escanea.</p>
+                        @Html.ValidationMessage("CodigoBarras")
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <div class="section-head"><h2>Producto</h2></div>
+            <div class="fields">
+                <div class="field">
+                    <label for="Nombre">Nombre</label>
+                    <input class="input" id="Nombre" name="Nombre" value="@f.Nombre" maxlength="@Producto.LongitudNombre" autocomplete="off" required
+                           placeholder="Por ejemplo, Champú de argán 250 ml" />
+                    @Html.ValidationMessage("Nombre")
+                </div>
+                <div class="fields-2">
+                    <div class="field">
+                        <label for="CategoriaId">Categoría</label>
+                        @* Con JavaScript es un buscador: se elige una o se escribe una nueva («Crear la categoría…») y se crea al guardar *@
+                        <select class="input" id="CategoriaId" name="CategoriaId" required
+                                data-buscable="Busca o escribe una nueva" data-buscable-vacio="Ninguna categoría con ese texto."
+                                data-buscable-libre="CategoriaNueva" data-buscable-libre-texto="Crear la categoría «{0}»">
+                            <option value="">Sin elegir</option>
+                            @foreach (var c in Model.Categorias)
+                            {
+                                <option value="@c.Id" selected="@(c.Id == f.CategoriaId && string.IsNullOrWhiteSpace(f.CategoriaNueva))">@c.Nombre@(c.Activa ? "" : " · eliminada")</option>
+                            }
+                        </select>
+                        <div class="field" data-buscable-libre-campo>
+                            <label for="CategoriaNueva">O escribe una nueva</label>
+                            <input class="input" id="CategoriaNueva" name="CategoriaNueva" value="@f.CategoriaNueva" maxlength="@CategoriaProducto.LongitudNombre" autocomplete="off"
+                                   placeholder="Champús, Mascarillas, Aceites…" />
+                        </div>
+                        <p class="field-hint">@(Model.Categorias.Count == 0 ? "Escribe la primera, por ejemplo «Champús», y elige «Crear la categoría»." : "Si no está, escríbela y elige «Crear la categoría».")
+                            <a asp-action="Categorias">Gestionar categorías</a></p>
+                        @Html.ValidationMessage("CategoriaId")
+                        @Html.ValidationMessage("CategoriaNueva")
+                    </div>
+                    <div class="field">
+                        <label for="Marca">Marca <span class="muted">(opcional)</span></label>
+                        <input class="input" id="Marca" name="Marca" value="@f.Marca" maxlength="@Producto.LongitudMarca" autocomplete="off" list="marcas-producto" />
+                        <datalist id="marcas-producto">@foreach (var m in Model.Marcas) { <option value="@m"></option> }</datalist>
+                        @Html.ValidationMessage("Marca")
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="Descripcion">Descripción <span class="muted">(opcional)</span></label>
+                    <textarea class="input" id="Descripcion" name="Descripcion" maxlength="@Producto.LongitudDescripcion" rows="3"
+                              placeholder="Para qué sirve, para qué tipo de cabello, tamaño del envase…">@f.Descripcion</textarea>
+                    @Html.ValidationMessage("Descripcion")
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <div class="section-head"><h2>Precio y stock</h2></div>
+            <div class="fields">
+                <div class="fields-2">
+                    <div class="field">
+                        <label for="PrecioVenta">Precio de venta</label>
+                        <div class="input-affix input-precio">
+                            <input class="input num" id="PrecioVenta" name="PrecioVenta" inputmode="decimal" autocomplete="off" required
+                                   value="@Formato.Importe(f.PrecioVenta)" placeholder="0,00" data-precio-venta />
+                            <span>€</span>
+                        </div>
+                        <p class="field-hint">Con impuestos incluidos, como en el ticket.</p>
+                        @Html.ValidationMessage("PrecioVenta")
+                    </div>
+                    <div class="field">
+                        <label for="PrecioCoste">Precio de coste <span class="muted">(opcional)</span></label>
+                        <div class="input-affix input-precio">
+                            <input class="input num" id="PrecioCoste" name="PrecioCoste" inputmode="decimal" autocomplete="off"
+                                   value="@Formato.Importe(f.PrecioCoste)" placeholder="0,00" data-precio-coste />
+                            <span>€</span>
+                        </div>
+                        <p class="field-hint" data-margen aria-live="polite">Lo que te cuesta. Sirve para ver el margen y valorar el almacén.</p>
+                        @Html.ValidationMessage("PrecioCoste")
+                    </div>
+                </div>
+                <div class="fields-2">
+                    @if (nuevo)
+                    {
+                        <div class="field">
+                            <label for="StockInicial">Unidades que tienes ahora</label>
+                            <div class="input-affix input-precio">
+                                <input class="input num" type="number" id="StockInicial" name="StockInicial" min="0" max="@Producto.StockMaximo" step="1" value="@f.StockInicial" />
+                                <span>uds</span>
+                            </div>
+                            <p class="field-hint">Queda como «Alta» en el historial. Después, el stock cambia con entradas, ventas y recuentos.</p>
+                            @Html.ValidationMessage("StockInicial")
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="field">
+                            <span class="field-label">Stock actual</span>
+                            <p class="producto-stock-fijo"><span class="pill @FormatoProductos.TinteStock(p!)">@FormatoProductos.Stock(p!)</span>
+                                <a asp-action="Ficha" asp-route-id="@Model.Id" asp-fragment="movimiento">Registrar entrada o recuento</a></p>
+                        </div>
+                    }
+                    <div class="field">
+                        <label for="StockMinimo">Avisar cuando queden</label>
+                        <div class="input-affix input-precio">
+                            <input class="input num" type="number" id="StockMinimo" name="StockMinimo" min="0" max="@Producto.StockMaximo" step="1" value="@f.StockMinimo" />
+                            <span>uds</span>
+                        </div>
+                        <p class="field-hint">Con esas unidades o menos aparece en «Por reponer». Con 0, solo al agotarse.</p>
+                        @Html.ValidationMessage("StockMinimo")
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section data-fotos-producto data-maximo="@Producto.MaximoFotos" data-guardadas="@fotos.Count">
+            <div class="section-head">
+                <h2>Fotos</h2>
+                <span class="muted small">Hasta @Producto.MaximoFotos. La primera es la principal.</span>
+            </div>
+            <div class="fields">
+                @if (fotos.Count > 0)
+                {
+                    <div class="fotos-producto" role="list" aria-label="Fotos guardadas">
+                        @foreach (var foto in fotos)
+                        {
+                            <div class="foto-producto" role="listitem" data-foto-guardada>
+                                <img src="@FormatoProductos.Foto(foto.Id)" alt="" loading="lazy" width="160" height="160" />
+                                <label class="foto-producto-principal" title="Usar como foto principal">
+                                    <input type="radio" name="FotoPrincipal" value="@foto.Id" checked="@(foto.Id == principal)" />
+                                    <icono nombre="estrella" tamano="14" /> <span>Principal</span>
+                                </label>
+                                <label class="foto-producto-quitar" title="Quitar esta foto al guardar">
+                                    <input type="checkbox" name="QuitarFotos" value="@foto.Id" checked="@f.QuitarFotos.Contains(foto.Id)" data-foto-quitar />
+                                    <icono nombre="papelera" tamano="14" /> <span>Quitar</span>
+                                </label>
+                            </div>
+                        }
+                    </div>
+                }
+                <div class="fotos-producto" role="list" aria-label="Fotos nuevas" data-fotos-nuevas hidden></div>
+                <div class="foto-acciones">
+                    <label class="btn btn-gray">
+                        <icono nombre="imagen" tamano="18" /> Añadir fotos
+                        <input class="sr-only" type="file" name="Fotos" accept="image/jpeg,image/png,image/webp" multiple data-fotos-input />
+                    </label>
+                    <span class="field-hint" data-fotos-estado aria-live="polite">JPG, PNG o WebP, hasta 10 MB cada una. Se guardan sin los datos de ubicación de la cámara.</span>
+                    @Html.ValidationMessage("Fotos")
+                </div>
+            </div>
+        </section>
+
+        <div class="acciones acciones-form">
+            <button class="btn btn-primary btn-lg">@(nuevo ? "Añadir al inventario" : "Guardar cambios")</button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script src="~/js/productos.js" asp-append-version="true"></script>
+}

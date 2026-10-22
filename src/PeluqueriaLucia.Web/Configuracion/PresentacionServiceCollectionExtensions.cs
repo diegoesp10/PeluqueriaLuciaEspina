@@ -69,6 +69,10 @@ public static class PresentacionServiceCollectionExtensions
         services.AddHostedService<EnvioCorreosCitas>();
         services.PostConfigure<OpcionesFotosResenas>(o => o.Carpeta = string.IsNullOrWhiteSpace(o.Carpeta)
             ? Path.Combine(environment.ContentRootPath, "AlmacenResenas") : Path.GetFullPath(o.Carpeta, environment.ContentRootPath));
+        // Fotos de productos: cada entorno declara su carpeta en «FotosProductos:Carpeta» (desarrollo, appsettings.Development.json;
+        // Azure, el ajuste FotosProductos__Carpeta=/home/data/productos). Sin ella, AlmacenProductos en la raíz de la web.
+        services.PostConfigure<OpcionesFotosProductos>(o => o.Carpeta = string.IsNullOrWhiteSpace(o.Carpeta)
+            ? Path.Combine(environment.ContentRootPath, "AlmacenProductos") : Path.GetFullPath(o.Carpeta, environment.ContentRootPath));
         return services;
     }
 

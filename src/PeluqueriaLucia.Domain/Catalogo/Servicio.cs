@@ -43,6 +43,14 @@ public sealed class Servicio
     public bool Publicado { get; private set; }
     public bool Destacado { get; private set; }
 
+    /// <summary>
+    /// Dualidad de servicio: mientras se hace (un tinte que actúa, una mascarilla en reposo…) se pueden dar otras citas a la
+    /// misma hora. Solo la marca el salón desde el panel; la web pública no la muestra.
+    /// </summary>
+    public bool Dualidad { get; private set; }
+
+    public void CambiarDualidad(bool dualidad) => Dualidad = dualidad;
+
     /// <summary>Posición dentro de su categoría en la web (1 = primero).</summary>
     public void ColocarEnWeb(int posicion) => OrdenPublico = Math.Clamp(posicion, 0, 10000);
 

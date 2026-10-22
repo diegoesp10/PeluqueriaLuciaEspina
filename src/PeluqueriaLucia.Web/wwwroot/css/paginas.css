@@ -392,3 +392,191 @@
 .telefono-icono { display: grid; flex: none; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--fill); color: var(--accent); }
 .telefono-fila .input { flex: 1 1 auto; min-width: 0; max-width: 360px; font-size: 16px; font-variant-numeric: tabular-nums; }
 .telefonos-anadir { justify-self: start; margin-top: 6px; }
+
+/* ── Productos de la tienda: inventario, ficha, fotos y productos en visitas ──
+   Miniaturas cuadradas con el icono de respaldo debajo: si la foto falta, se quita (data-ocultar-si-falla) y queda el icono.
+   Ningún estado cambia tamaños: marcar «Quitar» o elegir la principal no mueve la cuadrícula. */
+.stat-enlace { color: inherit; text-decoration: none; transition: box-shadow .2s, transform .2s var(--ease); }
+.stat-enlace:hover { box-shadow: var(--card-edge), 0 8px 24px light-dark(rgb(59 31 99 / .10), rgb(0 0 0 / .4)); transform: translateY(-1px); }
+.input-auto { width: auto; min-width: 0; max-width: 100%; }
+.texto-aviso { color: var(--orange-text); font-weight: 600; }
+.field-hint.is-error, .field-hint.is-negativo { color: var(--red); }
+.field-hint.is-aviso { color: var(--orange-text); font-weight: 600; }
+/* «Aviso al cliente» de Nueva cita: con preferencia en la ficha, una línea fija en lugar de elegir */
+.aviso-cita { min-width: 0; margin: 0; padding: 0; border: 0; }
+.aviso-cita > legend { padding: 0; }
+.aviso-fijo { display: flex; align-items: center; gap: 10px; margin: 0; padding: 12px 14px; border-radius: 14px; background: var(--fill); color: var(--label); }
+.aviso-fijo > svg { flex: none; color: var(--accent); }
+/* «¿Qué productos has utilizado?» en el cobro */
+.cobro-usados { display: grid; gap: 10px; min-width: 0; margin: 0 0 18px; padding: 0 0 18px; border: 0; border-bottom: 1px solid var(--separator); }
+.cobro-usados > legend { padding: 0; }
+.cobro-usados .field-hint { margin: 0; }
+.cobro-usados .producto-lineas { margin-top: 0; }
+/* En la columna del cobro no cabe todo en una línea: buscador a lo ancho y cada producto en dos líneas */
+.cobro-usados .producto-selector-fila { grid-template-columns: 96px minmax(0, 1fr); }
+.cobro-usados .producto-selector-buscar { grid-column: 1 / -1; }
+.producto-linea.producto-usado { display: grid; grid-template-columns: 40px minmax(0, 1fr) 36px; grid-template-areas: "foto info quitar" "foto cantidad ."; gap: 8px 12px; align-items: center; }
+.producto-linea.producto-usado > .producto-miniatura { grid-area: foto; align-self: start; }
+.producto-linea.producto-usado > .row-main { grid-area: info; }
+.producto-linea.producto-usado > [data-linea-quitar] { grid-area: quitar; justify-self: end; }
+.producto-linea.producto-usado > .producto-linea-cantidad { grid-area: cantidad; }
+
+.producto-ref { font-family: var(--font-mono); font-size: .92em; letter-spacing: .02em; }
+.producto-ref-campo { text-transform: uppercase; font-family: var(--font-mono); }
+.producto-ref-campo::placeholder { text-transform: none; }
+
+.producto-miniatura { position: relative; display: grid; flex: none; place-items: center; width: 56px; height: 56px; overflow: hidden; border-radius: 14px;
+  background: color-mix(in oklab, var(--purple) 12%, var(--surface)); color: var(--purple); }
+.producto-miniatura img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.producto-miniatura-sm { width: 40px; height: 40px; border-radius: 10px; }
+.producto-fila .row-end { flex-wrap: wrap; justify-content: flex-end; }
+
+.input-icono { position: relative; }
+.input-icono > svg { position: absolute; top: 50%; left: 14px; color: var(--label-2); transform: translateY(-50%); pointer-events: none; }
+.input-icono > .input { padding-left: 42px; }
+.producto-stock-fijo { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; min-height: 44px; margin: 0; }
+
+/* Campos con un borde fino: cada uno se distingue del fondo de su tarjeta, también en modo oscuro */
+.campos-marcados .input { box-shadow: inset 0 0 0 1px var(--separator); }
+.campos-marcados .input:hover { box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--label-3) 60%, var(--separator)); }
+.campos-marcados .input:focus { box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 3px color-mix(in oklab, var(--accent) 35%, transparent); }
+.campos-marcados .input.input-validation-error,
+.campos-marcados .input[aria-invalid='true'] { box-shadow: inset 0 0 0 1px var(--red), 0 0 0 2px color-mix(in oklab, var(--red) 35%, transparent); }
+
+/* Buscador del inventario: en su propio panel, separado de las cifras, con cada campo etiquetado */
+.filtros-productos { display: grid; gap: 14px; margin: 26px 0 24px; padding: 18px 20px; border-radius: var(--r-card); background: var(--surface); box-shadow: var(--card-shadow); }
+.filtros-productos-campos { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 14px 18px; }
+.filtro { display: grid; align-content: start; gap: 8px; min-width: 0; }
+.filtro-etiqueta { padding-left: 2px; color: var(--label-2); font-size: 13px; font-weight: 600; }
+.filtros-productos .search { max-width: none; }
+.filtros-productos .search > .input { min-height: 46px; padding-left: 42px; font-size: 15.5px; }
+.filtros-productos .search > svg { left: 15px; }
+.filtros-productos-pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-top: 14px; border-top: 1px solid var(--separator); }
+@media (max-width: 560px) {
+  /* «Categorías» y «Nuevo producto» en una fila si caben, cada uno a su ancho; si no, uno debajo del otro */
+  .page-head .acciones-ajustadas > .btn { flex: 1 1 auto; padding-inline: 16px; white-space: nowrap; }
+}
+@media (max-width: 720px) {
+  .filtros-productos { padding: 14px; }
+  .filtros-productos-campos { grid-template-columns: minmax(0, 1fr); }
+  .filtros-productos-pie > .segmented { flex: 1 1 100%; }
+  .filtros-productos-pie > .segmented > label { padding-inline: 8px; }
+  .filtros-productos-pie > .btn { flex: 1 1 100%; }
+}
+
+/* Categorías: alta en línea, una fila por categoría con sus cifras y acciones; las eliminadas, atenuadas */
+.categoria-nueva { display: grid; gap: 8px; padding: 16px; border-radius: var(--r-card); background: var(--surface); box-shadow: var(--card-shadow); }
+.categoria-nueva-fila { display: flex; gap: 12px; }
+.categoria-nueva-fila > .input { flex: 1; min-width: 0; }
+.categorias-lista { --row-inset: 66px; }
+.categoria-icono { display: grid; flex: none; place-items: center; width: 36px; height: 36px; border-radius: 10px;
+  background: color-mix(in oklab, var(--tint) 15%, var(--surface)); color: var(--tint-text, var(--tint)); }
+.categoria-fila .row-main { color: inherit; text-decoration: none; }
+.categoria-fila .row-main:hover .row-title { color: var(--accent); }
+.categoria-fila.is-eliminada .row-title { color: var(--label-2); }
+.categoria-fila.is-editando > .input { flex: 1; min-width: 0; min-height: 40px; }
+.categoria-acciones { gap: 8px; }
+.categoria-acciones > form { margin: 0; }
+.producto-aviso-categoria { margin: -8px 0 24px; line-height: 1.45; }
+.producto-aviso-categoria a { font-weight: 600; }
+@media (max-width: 560px) {
+  /* En el teléfono, Renombrar, Eliminar y Recuperar quedan como botones redondos con su icono */
+  .btn-icono-movil { width: 38px; padding: 0; }
+  .btn-icono-movil > span { display: none; }
+  .categoria-nueva-fila > .btn { padding-inline: 16px; }
+  .categoria-fila.is-editando { flex-wrap: wrap; }
+  .categoria-fila.is-editando > .input { flex: 1 1 calc(100% - 50px); }
+  .categoria-fila.is-editando > .row-end { flex: 1 1 100%; justify-content: flex-end; }
+}
+
+/* Fotos del formulario: guardadas y nuevas en la misma cuadrícula */
+.fotos-producto { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 12px; }
+.foto-producto { position: relative; aspect-ratio: 1; overflow: hidden; border-radius: 16px; background: var(--fill); box-shadow: var(--card-edge); transition: opacity .15s; }
+.foto-producto > img { width: 100%; height: 100%; object-fit: cover; }
+.foto-producto-principal, .foto-producto-quitar { position: absolute; display: inline-flex; align-items: center; gap: 4px; min-height: 28px; padding: 3px 9px;
+  border: 0; border-radius: var(--r-pill); background: var(--glass); color: var(--label); font: 600 12px/1 var(--font); cursor: pointer;
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.foto-producto-principal { top: 8px; left: 8px; }
+.foto-producto-quitar { right: 8px; bottom: 8px; }
+.foto-producto-principal input, .foto-producto-quitar input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+.foto-producto-principal:has(input:checked) { background: var(--accent); color: var(--accent-ink); }
+.foto-producto-quitar:has(input:checked) { background: var(--red); color: #fff; }
+.foto-producto-principal:has(input:focus-visible), .foto-producto-quitar:has(input:focus-visible), .foto-producto-quitar:focus-visible { outline: 3px solid var(--olive); outline-offset: 2px; }
+.foto-producto.is-quitada > img { opacity: .35; filter: grayscale(1); }
+.foto-producto.is-quitada .foto-producto-principal { visibility: hidden; }
+.foto-producto-nueva { position: absolute; top: 8px; left: 8px; padding: 3px 9px; border-radius: var(--r-pill); background: var(--green); color: #fff; font: 600 12px/1.4 var(--font); }
+[data-fotos-nuevas]:not([hidden]) { margin-top: 4px; }
+
+/* Ficha. En una columna (móvil, tableta), el stock y el precio van antes que las fotos */
+.producto-ficha { align-items: start; }
+@media (max-width: 900px) {
+  .producto-ficha > section:last-child { order: -1; }
+  .producto-foto-grande { max-height: 70vh; }
+}
+.producto-galeria { display: grid; gap: 12px; padding: 12px; }
+.producto-foto-grande { position: relative; display: grid; place-items: center; aspect-ratio: 1; overflow: hidden; border-radius: 18px;
+  background: color-mix(in oklab, var(--purple) 10%, var(--surface)); color: var(--purple); }
+.producto-foto-grande img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: var(--surface); }
+.producto-miniaturas { display: flex; flex-wrap: wrap; gap: 8px; }
+.producto-miniatura-boton { display: block; width: 64px; height: 64px; overflow: hidden; border-radius: 12px; box-shadow: var(--card-edge); outline-offset: 2px; }
+.producto-miniatura-boton img { width: 100%; height: 100%; object-fit: cover; }
+.producto-miniatura-boton[aria-current="true"] { outline: 2px solid var(--accent); }
+.producto-sin-fotos { margin: 0; text-align: center; }
+.producto-descripcion { white-space: pre-line; line-height: 1.55; }
+.producto-stock { display: grid; justify-items: start; gap: 8px; border-left: 3px solid var(--tint); }
+.producto-stock-cifra { font: 650 44px/1.05 var(--font); letter-spacing: -.02em; color: var(--tint-text, var(--tint)); }
+.producto-movimiento { display: grid; gap: 16px; }
+.producto-movimiento > .btn { justify-self: start; }
+.movimiento-icono { display: grid; flex: none; place-items: center; width: 36px; height: 36px; border-radius: 10px;
+  background: color-mix(in oklab, var(--tint) 15%, var(--surface)); color: var(--tint-text, var(--tint)); }
+.movimiento-fila .row-end { display: grid; justify-items: end; gap: 2px; }
+.movimiento-cantidad { font-size: 16px; font-weight: 700; }
+.movimiento-cantidad.is-entrada { color: var(--green-text); }
+.movimiento-cantidad.is-salida { color: var(--red); }
+
+/* Nueva visita: buscador + unidades + Añadir, y una fila por producto */
+.producto-selector { display: grid; gap: 8px; }
+.producto-selector-fila { display: grid; grid-template-columns: minmax(0, 1fr) 110px auto; align-items: end; gap: 12px; }
+.producto-selector-fila > .field { min-width: 0; margin: 0; }
+.producto-selector-boton { min-height: 44px; }
+.producto-lineas { margin-top: 12px; }
+.producto-linea { flex-wrap: wrap; row-gap: 10px; }
+.producto-linea .row-main { flex: 1 1 180px; }
+.producto-linea-cantidad { display: flex; align-items: center; gap: 6px; width: 104px; }
+.producto-linea-cantidad input { min-width: 0; text-align: right; }
+.producto-linea-cantidad > span, .producto-linea .importe-visita > span { color: var(--label-2); font-size: 14px; }
+.producto-vacio { margin: 0; }
+
+/* Detalle de la visita */
+.producto-visita .row-title svg { vertical-align: -2px; color: var(--purple); }
+.producto-visita .row-end form { margin: 0; }
+.producto-agregar { margin-top: 14px; }
+.producto-agregar > summary { list-style: none; }
+.producto-agregar > summary::-webkit-details-marker { display: none; }
+.producto-agregar[open] > summary { margin-bottom: 12px; }
+.producto-agregar > form { display: grid; gap: 14px; }
+.producto-agregar > form > .btn { justify-self: start; }
+.aviso-stock { display: flex; gap: 10px; align-items: flex-start; margin: 0 0 14px; padding: 12px 14px; border-radius: 14px;
+  background: color-mix(in oklab, var(--orange) 12%, var(--surface)); color: var(--orange-text); font-weight: 600; line-height: 1.4; }
+.aviso-stock > svg { flex: none; margin-top: 1px; }
+
+@media (max-width: 560px) {
+  /* Buscador a lo ancho; debajo, unidades y «Añadir» */
+  .producto-selector-fila { grid-template-columns: 96px minmax(0, 1fr); }
+  .producto-selector-buscar { grid-column: 1 / -1; }
+  /* Cada producto en dos líneas: foto, nombre y quitar arriba; unidades y precio debajo */
+  .producto-linea { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto 36px; grid-template-areas: "foto info info quitar" "foto cantidad precio precio";
+    gap: 10px 12px; align-items: center; }
+  .producto-linea > .producto-miniatura { grid-area: foto; align-self: start; }
+  .producto-linea > .row-main { grid-area: info; }
+  .producto-linea > [data-linea-quitar] { grid-area: quitar; justify-self: end; }
+  .producto-linea > .producto-linea-cantidad { grid-area: cantidad; }
+  .producto-linea > .importe-visita { grid-area: precio; }
+  .producto-stock-cifra { font-size: 36px; }
+  .fotos-producto { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* Barra del total: los botones no se parten; si no caben junto a la cifra, pasan debajo */
+  .barra-total .acciones > .btn { white-space: nowrap; }
+  .barra-total-cifras { min-width: 0; }
+}
+/* Opciones que no se pueden elegir en un control segmentado (p. ej. avisar por correo a una ficha sin email) */
+.segmented > label:has(input:disabled) { opacity: .4; cursor: not-allowed; }
