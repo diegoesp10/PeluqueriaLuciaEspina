@@ -115,7 +115,7 @@ La migración DatosClienteYVerificacionPublica amplía Nombre sin recortar datos
 
 ## Citas del salón, bloqueos y confirmación directa
 
-**Nueva cita** (`/admin/agenda/nueva`) anota las citas dadas por teléfono o en persona. Se busca la ficha por nombre, teléfono o correo; si no tiene ficha basta con un nombre y, opcionalmente, un teléfono (se admiten fijos). Nace confirmada, no envía avisos y se marca «Dada en el salón». Al elegir el servicio su duración se escribe sola en «Duración» (se puede ajustar; sin servicio vale 30 minutos). La hora **solo se elige entre las libres**: el selector muestra, por mañana y tarde, las horas de inicio del horario de apertura en las que cabe esa duración sin solaparse con otra cita, desde ahora en adelante; las que pisan otra cita salen tachadas y no se pueden elegir. Al cambiar el día, el servicio o la duración, `nueva-cita.js` pide las horas otra vez a `GET /admin/agenda/huecos?dia=AAAA-MM-DD&minutos=N` y avisa si la hora que estaba elegida ya no cabe. El servidor repite la comprobación al guardar («Elige una de las horas libres de ese día.»), así que no se puede anotar una hora fuera del horario ni en un día cerrado o pasado. Las horas extra fuera del horario, si alguna vez hacen falta, se abren ampliando el horario de ese día en **Horarios**.
+**Nueva cita** (`/admin/agenda/nueva`) anota las citas dadas por teléfono o en persona. Se busca la ficha por nombre, teléfono o correo; si no tiene ficha basta con un nombre y, opcionalmente, un teléfono (se admiten fijos). Nace confirmada y se marca «Dada en el salón»; el aviso al cliente sigue la preferencia de su ficha (ver «Preferencia de aviso del cliente»). Al elegir el servicio su duración se escribe sola en «Duración» (se puede ajustar; sin servicio vale 30 minutos). La hora **solo se elige entre las libres**: el selector muestra, por mañana y tarde, las horas de inicio del horario de apertura en las que cabe esa duración sin solaparse con otra cita, desde ahora en adelante; las que pisan otra cita salen tachadas y no se pueden elegir. Al cambiar el día, el servicio o la duración, `nueva-cita.js` pide las horas otra vez a `GET /admin/agenda/huecos?dia=AAAA-MM-DD&minutos=N` y avisa si la hora que estaba elegida ya no cabe. El servidor repite la comprobación al guardar («Elige una de las horas libres de ese día.»), así que no se puede anotar una hora fuera del horario ni en un día cerrado o pasado. Las horas extra fuera del horario, si alguna vez hacen falta, se abren ampliando el horario de ese día en **Horarios**.
 
 **Bloquear tiempo** reserva un rato sin cliente (descanso, médico, formación). Su hora se escribe libremente, porque no es una cita, pero tampoco puede solaparse con otra. La web deja de ofrecer esas horas; «Quitar bloqueo» las libera.
 
@@ -124,6 +124,30 @@ En una solicitud de la web, **Confirmar ya (acordada por teléfono)** confirma l
 Las citas confirmadas o completadas con ficha muestran **Registrar visita**, que abre Nueva visita con el cliente elegido.
 
 La migración `OrigenDeLasCitas` añade la columna `Origen` a `ReservasCitas` (0 web, 1 salón, 2 bloqueo). Las reservas existentes quedan como web. No borra ni modifica datos.
+
+## Dualidad de servicio
+
+Algunos servicios dejan tiempo libre mientras se hacen (un tinte que actúa, una mascarilla en reposo). En **Catálogo → Editar servicio**, la casilla **Dualidad de servicio** (solo en el panel; la web pública no la muestra ni la cambia) permite dar otras citas a la misma hora:
+
+- Una cita de un servicio con dualidad **no ocupa la agenda**: otras citas pueden coincidir con ella, y ella puede darse a la hora de otras. Dos citas sin dualidad siguen sin poder solaparse.
+- El **tiempo bloqueado ocupa siempre**: ni las citas con dualidad pueden caer en un bloqueo, ni se puede bloquear un rato que tenga citas (con o sin dualidad). Cerrar un día también exige que no tenga ninguna.
+- Las horas libres de **Nueva cita** y de la reserva web tienen en cuenta el servicio elegido (`GET /admin/agenda/huecos?…&servicioId=N`); al elegir uno con dualidad lo indica («· dualidad» y un aviso).
+- La cita guarda si es dual (`ReservasCitas.Dualidad`) y la agenda la marca con la etiqueta **Dualidad**. Al cambiar la casilla del servicio, cambian también sus citas que aún no han terminado (pendientes o confirmadas); las pasadas conservan cómo se dieron.
+
+La migración `DualidadDeServicios` añade la columna `Dualidad` (`bit`, por defecto 0) a `ServiciosGenericos` y a `ReservasCitas`: nada cambia hasta que se marque un servicio.
+
+## Preferencia de aviso del cliente
+
+Cada ficha de **Clientes** tiene **Avisos de sus citas**: *Sin preferencia*, *Correo* (necesita email) o *WhatsApp* (necesita móvil). Se ve en la ficha y en el listado.
+
+- **Con preferencia, los avisos de sus citas van siempre por ese canal**, se den en el salón o se pidan en la web:
+  - **Web**: si quien pide la cita es una ficha reconocida sin dudas (la única con ese móvil o ese correo, y coincide en los dos), la solicitud se guarda con su canal preferido aunque marque el otro. Si se verifica con el código de la reserva, la página deja marcado su canal y bloquea el otro, con una nota. La propuesta, la confirmación y la cancelación usan la preferencia de la ficha vinculada al gestionarla.
+  - **Panel**: en **Nueva cita**, con una ficha con preferencia se ve «Se le avisará por WhatsApp/correo, como indica su ficha» y no se elige nada; al guardar se crea el aviso de confirmación por ese canal.
+- **Sin preferencia, se elige a mano**: en la web, el cliente marca correo o WhatsApp como hasta ahora; en Nueva cita, *Sin aviso*, *Correo* o *WhatsApp* (solo los canales de los que la ficha tiene el dato; sin ficha, WhatsApp necesita un móvil).
+- Si una cita del salón se avisó al darla y después se cancela, se avisa también de la cancelación por el mismo canal y el aviso de confirmación que no había salido queda obsoleto.
+- Los avisos quedan en **Comunicaciones**: el correo se envía desde allí (o solo, con el envío automático) y WhatsApp con su enlace, como el resto.
+
+La migración `PreferenciaDeAviso` añade a `Clientes` la columna `CanalPreferido` (`int` que admite nulos: 0 correo, 1 WhatsApp; la restricción `CK_Clientes_CanalPreferido` no admite otros valores). Todas las fichas empiezan sin preferencia.
 
 ## Calendario del panel y Comunicaciones
 

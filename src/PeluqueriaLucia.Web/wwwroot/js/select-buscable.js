@@ -3,6 +3,7 @@
 // (es el que se envía) y sin JavaScript se usa tal cual.
 // · En cada opción, el texto antes del primer « · » es el título y lo de después el detalle («Corte · 30 min»).
 // · data-buscable-vacio: texto cuando nada coincide.
+// · data-buscar en una <option>: palabras que también la encuentran sin mostrarse (código de barras, marca…).
 // · data-buscable-libre="nombre": si lo escrito no está en la lista, se ofrece una fila para usarlo tal cual
 //   (data-buscable-libre-texto, con {0}); el texto va al campo «nombre» del mismo formulario, que se oculta
 //   (o su contenedor [data-buscable-libre-campo]) y el <select> queda en su opción vacía.
@@ -27,7 +28,7 @@ window.SelectBuscable = (() => {
       .filter((o) => o.value !== '' && !o.disabled)
       .map((o) => {
         const [titulo, ...resto] = o.textContent.split(' · ');
-        return { valor: o.value, texto: o.textContent.trim(), titulo: titulo.trim(), detalle: resto.join(' · ').trim(), clave: normalizar(o.textContent), elemento: o };
+        return { valor: o.value, texto: o.textContent.trim(), titulo: titulo.trim(), detalle: resto.join(' · ').trim(), clave: normalizar(`${o.textContent} ${o.dataset.buscar ?? ''}`), elemento: o };
       });
 
     // Texto libre: el campo del formulario que lo recibe deja de verse; lo escrito se elige desde la lista
@@ -209,6 +210,8 @@ window.SelectBuscable = (() => {
       lista.children[activa + (sinCoincidencias ? 1 : 0)]?.scrollIntoView({ block: 'nearest' });
     });
     select.form?.addEventListener('reset', () => setTimeout(mostrarElegida));
+    // Si otro script cambia la elección y lo avisa con change (vaciarlo tras añadir un producto…), el campo lo refleja
+    select.addEventListener('change', () => mostrarElegida());
 
     mostrarElegida();
     const api = {

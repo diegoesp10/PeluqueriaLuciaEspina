@@ -10,7 +10,8 @@ using PeluqueriaLucia.Domain.Comun;
 namespace PeluqueriaLucia.Application.Agenda;
 
 /// <summary>Datos que se rellenan tras verificar el código (el móvil ya lo ha escrito el cliente).</summary>
-public sealed record FichaContactoPublica(string Nombre, string Apellido, string Correo, Sexo Sexo);
+/// <param name="Canal">Canal preferido de la ficha: la web lo deja marcado, porque los avisos irán siempre por él.</param>
+public sealed record FichaContactoPublica(string Nombre, string Apellido, string Correo, Sexo Sexo, PeluqueriaLucia.Domain.Agenda.CanalConfirmacion? Canal = null);
 
 public sealed class VerificacionContactoService(IRepositorioAgenda datos, IProtectorSecretos secretos, IEnviadorCorreo correo, TimeProvider reloj, IDatosSalon? salon = null)
 {
@@ -64,7 +65,7 @@ public sealed class VerificacionContactoService(IRepositorioAgenda datos, IProte
         var cliente = await datos.BuscarAsync<Cliente>(x => x.Id == v.ClienteId, ct);
         if (cliente is null || !MismoContacto(cliente, v)) return fallo;
         v.ConsumidaUtc = Utc; v.CodigoProtegido = null; v.SecretoProtegido = null; v.EstadoEnvio = EstadoNotificacion.Obsoleto;
-        return Resultado.Ok(new FichaContactoPublica(cliente.Nombre,cliente.Apellido,cliente.Email!,cliente.Sexo));
+        return Resultado.Ok(new FichaContactoPublica(cliente.Nombre,cliente.Apellido,cliente.Email!,cliente.Sexo,cliente.CanalPreferido));
     }, ct);
 
     /// <summary>La ficha sigue teniendo el contacto verificado: el mismo correo y, si se verificó con móvil, el mismo móvil.</summary>

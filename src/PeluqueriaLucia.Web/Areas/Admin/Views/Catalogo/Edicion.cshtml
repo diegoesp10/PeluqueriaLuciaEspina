@@ -60,6 +60,11 @@
                 </div>
                 @Html.ValidationMessage("Sexo")
             </fieldset>
+
+            <div class="field">
+                <label class="check-opcion"><input type="checkbox" name="Dualidad" value="true" checked="@f.Dualidad" /> Dualidad de servicio</label>
+                <p class="field-hint">Con la casilla marcada, en la agenda se pueden dar otras citas a la misma hora que este servicio (por ejemplo, mientras actúa un tinte). El tiempo bloqueado se respeta siempre. Solo lo ve el salón.</p>
+            </div>
         </div>
 
         <div>

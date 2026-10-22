@@ -1,0 +1,130 @@
+@using PeluqueriaLucia.Application.Productos
+@model ProductosIndiceModelo
+@{
+    ViewData["Title"] = "Productos";
+    var r = Model.Resumen;
+    var f = Model.Filtro;
+    var estados = new (EstadoInventario Estado, string Texto)[]
+    {
+        (EstadoInventario.Activos, "En venta"), (EstadoInventario.PorReponer, "Por reponer"), (EstadoInventario.Archivados, "Archivados"), (EstadoInventario.Todos, "Todos"),
+    };
+}
+
+<div>
+    <header class="page-head">
+        <div>
+            <h1>Productos</h1>
+            <p class="subtitle">La tienda del salón: referencias, fotos y stock. Cada venta, entrada o recuento queda en el historial del producto.</p>
+        </div>
+        <div class="acciones">
+            <a class="btn btn-primary" asp-action="Nuevo"><icono nombre="mas" tamano="18" /> Nuevo producto</a>
+        </div>
+    </header>
+
+    <section class="stats" aria-label="Resumen del inventario">
+        <div class="stat tint-purple">
+            <span class="stat-label"><icono nombre="producto" tamano="16" /> En venta</span>
+            <span class="stat-value">@r.Productos</span>
+            <span class="stat-foot">@(r.Productos == 1 ? "producto activo" : "productos activos")</span>
+        </div>
+        <div class="stat tint-blue">
+            <span class="stat-label"><icono nombre="archivar" tamano="16" /> Unidades</span>
+            <span class="stat-value">@r.Unidades.ToString("#,##0", Formato.Espanol)</span>
+            <span class="stat-foot">En el almacén</span>
+        </div>
+        <a class="stat stat-enlace @(r.PorReponer > 0 ? "tint-orange" : "tint-green")" asp-action="Index" asp-route-estado="@EstadoInventario.PorReponer">
+            <span class="stat-label"><icono nombre="alerta" tamano="16" /> Por reponer</span>
+            <span class="stat-value">@r.PorReponer</span>
+            <span class="stat-foot">@(r.PorReponer == 0 ? "Todo en orden" : $"{r.Agotados} {(r.Agotados == 1 ? "agotado" : "agotados")} · {r.BajoStock} bajo mínimo")</span>
+        </a>
+        <div class="stat tint-green">
+            <span class="stat-label"><icono nombre="euro" tamano="16" /> Valor del stock</span>
+            <span class="stat-value">@Formato.Euros(r.ValorVenta)</span>
+            <span class="stat-foot">@(r.ValorCoste > 0 ? $"{Formato.Euros(r.ValorCoste)} a precio de coste" : "A precio de venta")</span>
+        </div>
+    </section>
+
+    <form class="toolbar" method="get" asp-action="Index" role="search">
+        <label class="search">
+            <icono nombre="buscar" tamano="17" />
+            <input class="input" type="search" name="q" value="@f.Texto" placeholder="Nombre, referencia o código"
+                   aria-label="Buscar productos" autocomplete="off" data-buscar-al-escribir />
+        </label>
+        <div class="segmented" role="radiogroup" aria-label="Estado del stock">
+            @foreach (var (estado, texto) in estados)
+            {
+                <label><input type="radio" name="estado" value="@estado" checked="@(f.Estado == estado)" data-enviar-al-cambiar /> @texto</label>
+            }
+        </div>
+        @if (Model.Categorias.Count > 0)
+        {
+            <select class="input input-auto" name="categoria" aria-label="Categoría" data-enviar-al-cambiar>
+                <option value="">Todas las categorías</option>
+                @foreach (var c in Model.Categorias)
+                {
+                    <option value="@c" selected="@(string.Equals(c, f.Categoria, StringComparison.OrdinalIgnoreCase))">@c</option>
+                }
+            </select>
+        }
+    </form>
+
+    @if (Model.Pagina.TotalElementos == 0)
+    {
+        <div class="estado-vacio">
+            <span class="estado-icono tint-purple"><icono nombre="producto" tamano="30" /></span>
+            <h2>@Model.TextoVacio</h2>
+            @if (Model.Filtro.Estado == EstadoInventario.PorReponer && string.IsNullOrWhiteSpace(Model.Filtro.Texto))
+            {
+                <p>Todos los productos a la venta tienen más unidades que su mínimo.</p>
+                <div class="acciones"><a class="btn btn-gray" asp-action="Index">Ver los productos en venta</a></div>
+            }
+            else if (!Model.Filtrando)
+            {
+                <p>Da de alta los productos que vendes en el salón, con su referencia, precio, stock y fotos. Después podrás añadirlos a las visitas y se descontarán al cobrar.</p>
+                <div class="acciones"><a class="btn btn-primary" asp-action="Nuevo"><icono nombre="mas" tamano="18" /> Nuevo producto</a></div>
+            }
+            else
+            {
+                <p>Prueba con otras palabras o con otro filtro.</p>
+                <div class="acciones"><a class="btn btn-gray" asp-action="Index">Ver los productos en venta</a></div>
+            }
+        </div>
+    }
+    else
+    {
+        <section class="section">
+            <div class="section-head">
+                <h2>@Model.Pagina.TotalElementos @(Model.Pagina.TotalElementos == 1 ? "producto" : "productos")</h2>
+            </div>
+            <div class="list">
+                @foreach (var p in Model.Pagina.Elementos)
+                {
+                    <a class="row producto-fila" asp-action="Ficha" asp-route-id="@p.Id">
+                        <span class="producto-miniatura">
+                            <icono nombre="producto" tamano="22" />
+                            @if (p.FotoPrincipal is { } foto)
+                            {
+                                <img src="@FormatoProductos.Foto(foto.Id)" alt="" loading="lazy" width="56" height="56" data-ocultar-si-falla />
+                            }
+                        </span>
+                        <span class="row-main">
+                            <span class="row-title">@p.Nombre</span>
+                            <span class="row-sub"><span class="producto-ref">@p.Referencia</span>@(p.Marca is null ? "" : $" · {p.Marca}")@(p.Categoria is null ? "" : $" · {p.Categoria}")</span>
+                        </span>
+                        <span class="row-end">
+                            @if (!p.Activo)
+                            {
+                                <span class="pill tint-gray"><icono nombre="archivar" tamano="13" /> Archivado</span>
+                            }
+                            <span class="pill @FormatoProductos.TinteStock(p)">@FormatoProductos.Stock(p)</span>
+                            <span class="row-amount">@Formato.Euros(p.PrecioVenta)</span>
+                            <span class="row-chevron"><icono nombre="siguiente" tamano="16" /></span>
+                        </span>
+                    </a>
+                }
+            </div>
+        </section>
+
+        <partial name="_Paginacion" model="@(new PaginacionModelo(Model.Pagina.Numero, Model.Pagina.TotalPaginas, Model.Pagina.TotalElementos, n => Url.Action("Index", new { q = f.Texto, estado = f.Estado, categoria = f.Categoria, pagina = n })!))" />
+    }
+</div>

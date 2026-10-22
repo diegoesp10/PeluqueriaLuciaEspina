@@ -5,7 +5,7 @@
     <img class="panel-foto" src="~/publico/fachada-lucia.png" asp-append-version="true" alt="Fachada de Lucía Peluquería Ecológica" width="1369" height="1306" />
 </section>
 <section class="stats" aria-label="Resumen de hoy">
-    <div class="stat tint-blue"><span class="stat-label"><icono nombre="euro" tamano="16" /> Facturado hoy</span><strong class="stat-value">@Formato.Euros(r.Facturado)</strong><span class="stat-foot">@r.Servicios servicios</span></div>
+    <div class="stat tint-blue"><span class="stat-label"><icono nombre="euro" tamano="16" /> Facturado hoy</span><strong class="stat-value">@Formato.Euros(r.Facturado)</strong><span class="stat-foot">@r.Servicios servicios@(r.Productos > 0 ? $" · {r.Productos} productos" : "")</span></div>
     <div class="stat tint-green"><span class="stat-label"><icono nombre="check-circulo" tamano="16" /> Cobrado</span><strong class="stat-value">@Formato.Euros(r.Cobrado)</strong><span class="stat-foot">@Formato.Euros(r.Efectivo) efectivo · @Formato.Euros(r.Tarjeta) tarjeta</span></div>
     <div class="stat tint-orange"><span class="stat-label"><icono nombre="reloj" tamano="16" /> Pendiente</span><strong class="stat-value">@Formato.Euros(r.Pendiente)</strong><span class="stat-foot">Por cobrar</span></div>
     <div class="stat tint-purple"><span class="stat-label"><icono nombre="clientes" tamano="16" /> Visitas</span><strong class="stat-value">@r.Visitas</strong><span class="stat-foot">Hoy</span></div>
@@ -16,12 +16,29 @@
         <a class="row" asp-controller="Visitas" asp-action="Index"><icono nombre="calendario" /><span class="row-title">Visitas y cobros</span><icono nombre="siguiente" tamano="16" /></a>
         <a class="row" asp-controller="Clientes" asp-action="Index"><icono nombre="clientes" /><span class="row-title">Clientes e historiales</span><icono nombre="siguiente" tamano="16" /></a>
         <a class="row" asp-controller="Catalogo" asp-action="Index"><icono nombre="tijeras" /><span class="row-title">Catálogo de servicios</span><icono nombre="siguiente" tamano="16" /></a>
+        <a class="row" asp-controller="Productos" asp-action="Index"><icono nombre="producto" /><span class="row-title">Productos y stock de la tienda</span><icono nombre="siguiente" tamano="16" /></a>
         <a class="row" asp-controller="Seguridad" asp-action="Index"><icono nombre="check-circulo" /><span class="row-title">Seguridad y sesiones</span><icono nombre="siguiente" tamano="16" /></a>
         <a class="row" asp-controller="Tratamientos" asp-action="Index"><icono nombre="hoja" /><span class="row-title">Precios y servicios de la web</span><icono nombre="siguiente" tamano="16" /></a>
         <a class="row" asp-controller="Resenas" asp-action="Index"><icono nombre="clientes" /><span class="row-title">Reseñas y fotos</span><icono nombre="siguiente" tamano="16" /></a>
         <a class="row" asp-area="" asp-controller="Inicio" asp-action="Index"><icono nombre="casa" /><span class="row-title">Ver la web del salón</span><icono nombre="flecha-salir" tamano="14" /></a>
     </div></section>
     <div>
+        @if (Model.PorReponer.Count > 0)
+        {
+            <section class="section">
+                <div class="section-head"><h2>Productos por reponer</h2><a asp-controller="Productos" asp-action="Index" asp-route-estado="PorReponer">Ver todos <icono nombre="flecha" tamano="14" /></a></div>
+                <div class="list">
+                    @foreach (var p in Model.PorReponer)
+                    {
+                        <a class="row" asp-controller="Productos" asp-action="Ficha" asp-route-id="@p.Id">
+                            <icono nombre="producto" />
+                            <span class="row-main"><span class="row-title">@p.Nombre</span><span class="row-sub"><span class="producto-ref">@p.Referencia</span> · aviso con @FormatoProductos.Unidades(p.StockMinimo)</span></span>
+                            <span class="pill @FormatoProductos.TinteStock(p)">@FormatoProductos.Stock(p)</span>
+                        </a>
+                    }
+                </div>
+            </section>
+        }
         <section class="section"><div class="section-head"><h2>Actividad de la web · última hora</h2><a asp-controller="Seguridad" asp-action="Index">Ver detalle <icono nombre="flecha" tamano="14" /></a></div><div class="card panel-actividad"><div><strong>@Model.Actividad.Sum(a => a.Peticiones)</strong><span>Peticiones</span></div><div><strong>@Model.Actividad.Sum(a => a.Rechazadas)</strong><span>Rechazadas por límite</span></div></div></section>
         <section class="section"><div class="section-head"><h2>Tu cuenta</h2></div><div class="card panel-cuenta"><div><strong>@User.Identity?.Name</strong><p>Cuida también de tu acceso.</p></div><a class="btn btn-gray" asp-controller="Seguridad" asp-action="Contrasena">Cambiar contraseña</a></div></section>
     </div>

@@ -20,6 +20,7 @@ public static class DependencyInjection
         services.AddScoped<IClienteRepositorio, ClienteRepositorio>();
         services.AddScoped<IServicioRepositorio, ServicioRepositorio>();
         services.AddScoped<IVisitaRepositorio, VisitaRepositorio>();
+        services.AddScoped<IProductoRepositorio, ProductoRepositorio>();
         services.AddScoped<IAdministradorRepositorio, AdministradorRepositorio>();
         services.AddScoped<ISesionRepositorio, SesionRepositorio>();
         services.AddScoped<IIntentoAccesoRepositorio, IntentoAccesoRepositorio>();
@@ -35,6 +36,8 @@ public static class DependencyInjection
         services.AddSingleton<PeluqueriaLucia.Application.Agenda.IAjustesComunicaciones, AjustesComunicaciones>();
         services.AddSingleton<IFotosResenas, FotosResenas>();
         services.AddOptions<OpcionesFotosResenas>().Bind(configuracion.GetSection("FotosResenas"));
+        services.AddSingleton<IFotosProductos, FotosProductos>();
+        services.AddOptions<OpcionesFotosProductos>().Bind(configuracion.GetSection(OpcionesFotosProductos.Seccion));
 
         // Claves de cifrado de cookies y tokens antifalsificación en la base de datos: sobreviven a reinicios de IIS
         // y no dependen de permisos de carpetas en el equipo

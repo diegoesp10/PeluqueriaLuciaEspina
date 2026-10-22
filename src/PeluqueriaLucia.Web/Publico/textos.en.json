@@ -299,5 +299,8 @@
   "La hora de esta propuesta ya ha pasado. Contacta con el equipo.": "The time of this proposal has already passed. Please contact the team.",
   "El código del ticket no es válido, ha caducado o ya se utilizó.": "The receipt code is not valid, has expired or has already been used.",
   "Sube una foto JPG, PNG o WebP válida, de hasta 20 megapíxeles.": "Please upload a valid JPG, PNG or WebP photo of up to 20 megapixels.",
-  "La imagen está dañada.": "The image is damaged."
+  "La imagen está dañada.": "The image is damaged.",
+  "Si ya eres cliente y tienes un canal preferido en el salón, te avisaremos por ese canal.": "If you are already a client and have a preferred channel at the salon, we will contact you through it.",
+  "Te avisaremos por correo electrónico, el canal que tienes indicado en el salón.": "We will contact you by email, the channel you chose at the salon.",
+  "Te avisaremos por WhatsApp, el canal que tienes indicado en el salón.": "We will contact you by WhatsApp, the channel you chose at the salon."
 }

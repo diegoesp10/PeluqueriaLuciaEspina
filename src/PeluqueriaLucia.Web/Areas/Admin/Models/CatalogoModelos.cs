@@ -35,15 +35,18 @@ public sealed class ServicioFormulario
     public bool Publicado { get; set; }
     public bool Destacado { get; set; }
 
+    /// <summary>Dualidad de servicio: se pueden dar otras citas a la misma hora que este servicio.</summary>
+    public bool Dualidad { get; set; }
+
     public DatosServicio ADatos() => new(Nombre, Precio ?? 0, Sexo ?? Domain.Comun.Sexo.Otro,
-        new(CategoriaPublicaId, DescripcionPublica, TipoPrecioPublico, DuracionMinutos, OrdenPublico, Publicado, Destacado, DescripcionPublicaEn), NombreEn);
+        new(CategoriaPublicaId, DescripcionPublica, TipoPrecioPublico, DuracionMinutos, OrdenPublico, Publicado, Destacado, DescripcionPublicaEn), NombreEn, Dualidad);
 
     public ArchivoImagen? AArchivo() =>
         Imagen is { Length: > 0 } f ? new ArchivoImagen(f.OpenReadStream(), f.FileName, f.Length) : null;
 
     public static ServicioFormulario Desde(Servicio s) => new() { Nombre = s.Nombre, Precio = s.Precio, Sexo = s.Sexo,
         CategoriaPublicaId=s.CategoriaPublicaId, DescripcionPublica=s.DescripcionPublica, TipoPrecioPublico=s.TipoPrecioPublico,
-        DuracionMinutos=s.DuracionMinutos, OrdenPublico=s.OrdenPublico, Publicado=s.Publicado, Destacado=s.Destacado };
+        DuracionMinutos=s.DuracionMinutos, OrdenPublico=s.OrdenPublico, Publicado=s.Publicado, Destacado=s.Destacado, Dualidad=s.Dualidad };
 }
 
 public sealed record ServicioEdicionModelo(int? Id, ServicioFormulario Formulario, string? ImagenActual, bool Activo = true,

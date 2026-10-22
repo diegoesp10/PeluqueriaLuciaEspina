@@ -69,7 +69,19 @@ public static class PresentacionServiceCollectionExtensions
         services.AddHostedService<EnvioCorreosCitas>();
         services.PostConfigure<OpcionesFotosResenas>(o => o.Carpeta = string.IsNullOrWhiteSpace(o.Carpeta)
             ? Path.Combine(environment.ContentRootPath, "AlmacenResenas") : Path.GetFullPath(o.Carpeta, environment.ContentRootPath));
+        // Fotos de productos: «FotosProductos:Carpeta»; si no, junto a las de las opiniones cuando esas tienen carpeta propia
+        // (en Azure, /home/data/resenas → /home/data/productos, que sobrevive a los despliegues); si no, AlmacenProductos.
+        services.PostConfigure<OpcionesFotosProductos>(o => o.Carpeta = CarpetaFotosProductos(o.Carpeta, configuration["FotosResenas:Carpeta"], environment.ContentRootPath));
         return services;
+    }
+
+    internal static string CarpetaFotosProductos(string? configurada, string? carpetaResenas, string raiz)
+    {
+        if (!string.IsNullOrWhiteSpace(configurada))
+            return Path.GetFullPath(configurada, raiz);
+        if (!string.IsNullOrWhiteSpace(carpetaResenas) && Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(Path.GetFullPath(carpetaResenas, raiz))) is { Length: > 0 } padre)
+            return Path.Combine(padre, "productos");
+        return Path.Combine(raiz, "AlmacenProductos");
     }
 
     /// <summary>Acceso al panel con usuario y contraseña, límites de peticiones por IP y monitor de actividad.</summary>

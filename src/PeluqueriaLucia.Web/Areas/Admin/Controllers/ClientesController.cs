@@ -22,7 +22,7 @@ public sealed class ClientesController(ClientesService clientes, VisitasService 
     {
         var encontrados = await clientes.SugerirAsync(q, ct);
         return Json(encontrados.Select(c => new ClienteSugerencia(
-            c.Id, c.NombreCompleto, c.Telefono ?? c.Email, c.Iniciales, (int)c.Sexo)));
+            c.Id, c.NombreCompleto, c.Telefono ?? c.Email, c.Iniciales, (int)c.Sexo, (int?)c.CanalPreferido, c.Email is not null, c.Telefono is not null)));
     }
 
     [HttpGet]

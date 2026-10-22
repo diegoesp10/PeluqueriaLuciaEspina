@@ -1,4 +1,5 @@
 @model PeluqueriaLucia.Web.Models.CitaManualPagina
+@using PeluqueriaLucia.Domain.Agenda
 @{
     var f = Model.Formulario;
     ViewData["Title"] = f.Bloqueo ? "Bloquear tiempo" : "Nueva cita";
@@ -11,7 +12,7 @@
     <header class="page-head">
         <div>
             <h1>@ViewData["Title"]</h1>
-            <p class="subtitle">@(f.Bloqueo ? "Reserva un rato sin clientes: descanso, recados, formación… La web no ofrecerá esas horas." : "Para las citas que das por teléfono o en persona. Queda confirmada al guardarla y no se envía ningún aviso.")</p>
+            <p class="subtitle">@(f.Bloqueo ? "Reserva un rato sin clientes: descanso, recados, formación… La web no ofrecerá esas horas." : "Para las citas que das por teléfono o en persona. Queda confirmada al guardarla; el aviso al cliente, si lo hay, queda en Comunicaciones para enviarlo.")</p>
         </div>
     </header>
 
@@ -129,9 +130,10 @@
                             <option value="">Sin indicar</option>
                             @foreach (var s in Model.Servicios)
                             {
-                                <option value="@s.Id" data-minutos="@s.Minutos" selected="@(f.ServicioId == s.Id)">@s.Nombre@(s.Minutos > 0 ? $" · {s.Minutos} min" : "")</option>
+                                <option value="@s.Id" data-minutos="@s.Minutos" data-dualidad="@(s.Dualidad ? "true" : null)" selected="@(f.ServicioId == s.Id)">@s.Nombre@(s.Minutos > 0 ? $" · {s.Minutos} min" : "")@(s.Dualidad ? " · dualidad" : "")</option>
                             }
                         </select>
+                        <p class="field-hint" data-dualidad-aviso hidden="@(!Model.Servicios.Any(s => s.Id == f.ServicioId && s.Dualidad))">Servicio con dualidad: la cita puede coincidir con otras a la misma hora.</p>
                         @Html.ValidationMessage("ServicioId")
                     </div>
                     <div class="field">
@@ -175,6 +177,28 @@
                     </div>
                     <p class="horas-vacio" data-horas-vacio hidden="@(huecos is null || huecos.Horas.Count > 0)">No quedan horas libres ese día para esta duración. Prueba otro día o acorta la duración.</p>
                     @Html.ValidationMessage("Hora")
+                </fieldset>
+                @* Aviso de confirmación: si la ficha tiene canal preferido, siempre por ese; si no, se elige aquí (nueva-cita.js lo
+                   ajusta al elegir la ficha sin recargar) *@
+                var preferido = Model.Cliente?.CanalPreferido;
+                // Con la ficha elegida, solo se ofrecen los canales de los que tiene el dato
+                var sinCorreo = Model.Cliente is { Email: null };
+                var sinTelefono = Model.Cliente is { Telefono: null };
+                <fieldset class="field aviso-cita" data-aviso-cita>
+                    <legend class="field-label">Aviso al cliente</legend>
+                    <p class="aviso-fijo" data-aviso-fijo hidden="@(preferido is null)">
+                        <icono nombre="check-circulo" tamano="17" />
+                        <span>Se le avisará <strong data-aviso-fijo-canal>@PeluqueriaLucia.Web.Models.FormatoAvisosCita.Texto(preferido)</strong>, como indica su ficha.</span>
+                    </p>
+                    <div class="segmented segmented-lg segmented-block" data-aviso-elegir hidden="@(preferido is not null)">
+                        <label><input type="radio" name="Aviso" value="" checked="@(f.Aviso is null)" /> Sin aviso</label>
+                        <label><input type="radio" name="Aviso" value="Correo" checked="@(f.Aviso == CanalConfirmacion.Correo && !sinCorreo)" disabled="@sinCorreo" data-aviso-correo /> <icono nombre="email" tamano="16" /> Correo</label>
+                        <label><input type="radio" name="Aviso" value="WhatsApp" checked="@(f.Aviso == CanalConfirmacion.WhatsApp && !sinTelefono)" disabled="@sinTelefono" data-aviso-whatsapp /> <icono nombre="telefono" tamano="16" /> WhatsApp</label>
+                    </div>
+                    <p class="field-hint" data-aviso-ayuda>@(preferido is not null ? "El aviso de confirmación queda en Comunicaciones para enviarlo."
+                        : sinCorreo || sinTelefono ? $"Sin preferencia en la ficha.{(sinCorreo ? " No tiene email: no se le puede avisar por correo." : "")}{(sinTelefono ? " No tiene teléfono: no se le puede avisar por WhatsApp." : "")}"
+                        : "Sin preferencia en la ficha: elige si avisarle y por dónde. El correo necesita su email; WhatsApp, un móvil.")</p>
+                    @Html.ValidationMessage("Aviso")
                 </fieldset>
                 @if (Model.Cliente is null)
                 {

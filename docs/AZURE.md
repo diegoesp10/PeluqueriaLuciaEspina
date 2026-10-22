@@ -37,6 +37,7 @@ Ninguna pieza usa contraseñas: la Web App entra en SQL y en Key Vault con su **
 | `ProteccionDatos__ClaveKeyVault` | `https://kv-lucia-peluqueria.vault.azure.net/keys/proteccion-datos` | Sin versión: Key Vault usa siempre la vigente |
 | `Imagenes__Carpeta` | `/home/data/imagenes` | Fotos del catálogo |
 | `FotosResenas__Carpeta` | `/home/data/resenas` | Fotos de las opiniones |
+| `FotosProductos__Carpeta` | `/home/data/productos` | Fotos de los productos de la tienda (ver docs/PRODUCTOS.md) |
 | `AllowedHosts` | `luciapeluqueriaecologica.com;www.luciapeluqueriaecologica.com;webappluciapeluqueria-a9dycjgph4f0etaz.spaincentral-01.azurewebsites.net` | Dominios que acepta la app |
 | `Seguridad__CabeceraIpCliente` | `CF-Connecting-IP` | **Solo cuando Cloudflare esté delante y la Web App restringida a sus IPs** (paso 5) |
 | `PELUQUERIA_URL_PUBLICA` | `https://luciapeluqueriaecologica.com/` | Cuando el dominio funcione |
@@ -83,6 +84,8 @@ dotnet run --project src/PeluqueriaLucia.Web -c Release -- administrador
 Cierra la terminal al acabar (o `Remove-Item Env:ConnectionStrings__Peluqueria`) para que la app local vuelva a usar tu base local.
 
 **Última migración aplicada en producción:** `TelefonosDeContacto` (15-oct-2026), que crea la tabla de los teléfonos de **Contacto de la web**. Hasta que se guarden teléfonos desde el panel publicado, la web sigue mostrando el de `contenido-publico.json`.
+
+**Pendientes de aplicar antes de publicar los productos, la dualidad y la preferencia de aviso:** `ControlDeProductos` (crea `Productos`, `FotosProductos`, `MovimientosStock` y `ProductosVisitas`), `DualidadDeServicios` (añade la columna `Dualidad`, por defecto 0, a `ServiciosGenericos` y `ReservasCitas`) y `PreferenciaDeAviso` (añade `CanalPreferido`, que admite nulos, a `Clientes`). Ninguna borra ni cambia datos. Detalles en [PRODUCTOS.md](PRODUCTOS.md) y [AGENDA.md](AGENDA.md).
 
 ## 4. Publicar
 

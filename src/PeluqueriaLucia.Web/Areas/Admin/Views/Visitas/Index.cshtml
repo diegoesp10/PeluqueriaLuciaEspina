@@ -74,7 +74,7 @@
         <div class="stat tint-blue">
             <span class="stat-label"><icono nombre="euro" tamano="16" /> Facturado</span>
             <span class="stat-value">@Formato.Euros(r.Facturado)</span>
-            <span class="stat-foot">@r.Servicios @(r.Servicios == 1 ? "servicio" : "servicios")</span>
+            <span class="stat-foot">@r.Servicios @(r.Servicios == 1 ? "servicio" : "servicios")@(r.Productos > 0 ? $" · {r.Productos} {(r.Productos == 1 ? "producto" : "productos")}" : "")</span>
         </div>
         <div class="stat tint-green">
             <span class="stat-label"><icono nombre="check-circulo" tamano="16" /> Cobrado</span>

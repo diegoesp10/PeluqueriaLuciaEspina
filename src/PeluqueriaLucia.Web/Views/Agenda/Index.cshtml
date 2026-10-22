@@ -65,6 +65,8 @@
         <fieldset class="agenda-horas"><legend>@T["¿Dónde prefieres recibir la propuesta y confirmar tu cita?"]</legend>
             <label><input asp-for="Formulario.Canal" id="canal-correo" type="radio" value="Correo" required /><span>@T["Correo electrónico"]</span></label>
             <label><input asp-for="Formulario.Canal" id="canal-whatsapp" type="radio" value="WhatsApp" required /><span>WhatsApp</span></label>
+            <p class="nota" data-canal-preferido hidden></p>
+            <p class="nota">@T["Si ya eres cliente y tienes un canal preferido en el salón, te avisaremos por ese canal."]</p>
         </fieldset>
         <label class="agenda-consentimiento"><input asp-for="Formulario.Consentimiento" required /> <span>@T["Acepto que el salón use mi teléfono y correo para gestionar esta cita y contactar por el canal elegido."] <a asp-controller="Legal" asp-action="Privacidad" target="_blank">@T["Política de privacidad"]</a> · <a asp-controller="Legal" asp-action="Terminos" target="_blank">@T["Términos y condiciones"]</a></span></label>
         <button class="btn btn-primary btn-block" type="submit" disabled="@(Model.Disponibilidad.Horas.Count==0)">@T["Solicitar mi cita"] <icono nombre="flecha" tamano="14" /></button>

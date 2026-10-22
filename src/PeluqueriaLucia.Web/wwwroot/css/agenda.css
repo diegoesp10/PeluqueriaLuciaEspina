@@ -136,3 +136,5 @@
   .calendario-cierre { display: none; }
   .calendario-pie { flex-direction: column; align-items: flex-start; }
 }
+/* Canal bloqueado por la preferencia de la ficha (contacto-publico.js): se ve, pero no se puede elegir */
+.agenda-horas input:disabled+span{opacity:.4;cursor:not-allowed}

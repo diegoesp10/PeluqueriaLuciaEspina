@@ -66,7 +66,7 @@
             var web = c.Origen == OrigenCita.Web; var bloqueo = c.Origen == OrigenCita.Bloqueo;
             var estado = AgendaCalendario.TextoEstado(c, Model.Utc);
             var cerrada = AgendaCalendario.GrupoDe(c, Model.Utc) == FiltroCitas.Canceladas;
-            <article class="card agenda-cita@(bloqueo ? " agenda-bloqueo" : "")"><div class="agenda-cita-hora"><strong>@c.Inicio.ToString("HH:mm")</strong><span>hasta @c.Fin.ToString("HH:mm")</span><span class="badge">@estado</span>@if (c.Origen == OrigenCita.Panel) { <span class="badge">Dada en el salón</span> }</div><div class="agenda-cita-datos">
+            <article class="card agenda-cita@(bloqueo ? " agenda-bloqueo" : "")"><div class="agenda-cita-hora"><strong>@c.Inicio.ToString("HH:mm")</strong><span>hasta @c.Fin.ToString("HH:mm")</span><span class="badge">@estado</span>@if (c.Origen == OrigenCita.Panel) { <span class="badge">Dada en el salón</span> }@if (c.Dualidad) { <span class="badge" title="Servicio con dualidad: puede coincidir con otras citas">Dualidad</span> }</div><div class="agenda-cita-datos">
             @if (bloqueo) { <h3>@c.Nombre</h3> }
             else
             {

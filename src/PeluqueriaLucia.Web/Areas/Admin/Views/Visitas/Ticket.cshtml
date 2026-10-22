@@ -51,6 +51,10 @@
                 {
                     <tr><td class="uds">1</td><td>@linea.Nombre</td><td class="importe">@Importe(linea.Precio)</td></tr>
                 }
+                @foreach (var producto in v.Productos)
+                {
+                    <tr><td class="uds">@producto.Cantidad</td><td>@producto.Nombre@if (producto.Cantidad > 1) { <span class="ticket-tenue"> (@Importe(producto.PrecioUnitario) c/u)</span> }</td><td class="importe">@Importe(producto.Importe)</td></tr>
+                }
             </tbody>
             <tfoot>
                 <tr><td></td><td class="ticket-fuerte derecha">TOTAL</td><td class="importe ticket-fuerte">@Importe(v.Total)</td></tr>

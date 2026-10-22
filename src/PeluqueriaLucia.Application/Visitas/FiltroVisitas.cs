@@ -40,18 +40,26 @@ public sealed record FiltroVisitas(DateOnly? Desde, DateOnly? Hasta, int? Client
     };
 }
 
-/// <summary>Cifras de caja de un periodo.</summary>
+/// <summary>Cifras de caja de un periodo. Facturado y cobrado incluyen servicios y productos.</summary>
+/// <param name="Productos">Unidades de productos vendidas (en visitas cobradas o pendientes).</param>
 public sealed record ResumenVisitas(
     int Visitas,
     int Servicios,
     decimal Facturado,
     decimal Cobrado,
     decimal Efectivo,
-    decimal Tarjeta)
+    decimal Tarjeta,
+    int Productos = 0)
 {
     public static ResumenVisitas Vacio { get; } = new(0, 0, 0, 0, 0, 0);
 
     public decimal Pendiente => Facturado - Cobrado;
 }
 
-public sealed record NuevaVisita(int ClienteId, DateTime Fecha, Domain.Visitas.FormaPago FormaPago, IReadOnlyCollection<int> ServicioIds, IReadOnlyDictionary<int,decimal>? Precios = null);
+public sealed record NuevaVisita(int ClienteId, DateTime Fecha, Domain.Visitas.FormaPago FormaPago, IReadOnlyCollection<int> ServicioIds, IReadOnlyDictionary<int,decimal>? Precios = null, IReadOnlyList<ProductoNuevaVisita>? Productos = null);
+
+/// <summary>Unidades de un producto en una visita nueva; sin precio, el de venta de la ficha.</summary>
+public sealed record ProductoNuevaVisita(int ProductoId, int Cantidad, decimal? PrecioUnitario = null);
+
+/// <summary>Unidades de un producto gastadas en el servicio, que se indican al cobrar (no se cobran).</summary>
+public sealed record ProductoUsadoCobro(int ProductoId, int Cantidad);

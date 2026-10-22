@@ -86,6 +86,8 @@ public static class TicketEscPos
         Negrita(false);
         foreach (var linea in v.Lineas)
             Linea(TresColumnas("1", anchoUds, linea.Nombre, anchoDescripcion, Importe(linea.Precio), anchoTotal));
+        foreach (var producto in v.Productos)
+            Linea(TresColumnas(producto.Cantidad.ToString(Formato.Espanol), anchoUds, producto.Nombre, anchoDescripcion, Importe(producto.Importe), anchoTotal));
         Linea(Separador());
         Negrita(true);
         Linea(DosColumnas("TOTAL", Importe(v.Total) + " EUR"));

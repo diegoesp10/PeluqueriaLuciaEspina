@@ -1,0 +1,179 @@
+@using PeluqueriaLucia.Application.Productos
+@using PeluqueriaLucia.Domain.Productos
+@model ProductoFichaModelo
+@{
+    var p = Model.Producto;
+    var m = Model.Movimiento;
+    ViewData["Title"] = p.Nombre;
+    var fotos = p.FotosEnOrden;
+    var detalle = string.Join(" · ", new[] { p.Marca, p.Categoria }.Where(x => x is not null));
+    var tipos = new (MovimientoManual Tipo, string Texto, string Icono, string Ayuda)[]
+    {
+        (MovimientoManual.Entrada, "Entrada", "mas", "Unidades que llegan (pedido, reposición). Se suman al stock."),
+        (MovimientoManual.UsoInterno, "Uso en el salón", "tijeras", "Unidades que se gastan en el salón. Se restan del stock (si se acaba, queda en negativo)."),
+        (MovimientoManual.Recuento, "Recuento", "ajustes", "Las unidades que has contado. El stock pasa a ser esa cantidad."),
+    };
+}
+
+<div>
+    <a class="back-link" asp-action="Index"><icono nombre="anterior" tamano="20" /> Productos</a>
+    <header class="page-head">
+        <div>
+            <h1>@p.Nombre</h1>
+            <p class="subtitle"><span class="producto-ref">@p.Referencia</span>@(detalle.Length > 0 ? $" · {detalle}" : "")
+                @if (!p.Activo) { <span class="pill tint-gray"><icono nombre="archivar" tamano="13" /> Archivado</span> }</p>
+        </div>
+        <div class="acciones">
+            <a class="btn btn-gray" asp-action="Editar" asp-route-id="@p.Id"><icono nombre="editar" tamano="17" /> Editar</a>
+            @if (p.Activo)
+            {
+                <form method="post" asp-action="Archivar" asp-route-id="@p.Id"
+                      data-confirmar="«@p.Nombre» dejará de ofrecerse en las visitas nuevas. Su historial y sus tickets se conservan.">
+                    <button class="btn btn-gray"><icono nombre="archivar" tamano="17" /> Archivar</button>
+                </form>
+            }
+            else
+            {
+                <form method="post" asp-action="Reactivar" asp-route-id="@p.Id">
+                    <button class="btn btn-gray"><icono nombre="recuperar" tamano="17" /> Volver a vender</button>
+                </form>
+            }
+        </div>
+    </header>
+
+    <div class="detalle-grid producto-ficha">
+        <section>
+            <div class="producto-galeria card" data-galeria>
+                <div class="producto-foto-grande">
+                    <icono nombre="producto" tamano="56" />
+                    @if (fotos.Count > 0)
+                    {
+                        <img src="@FormatoProductos.Foto(fotos[0].Id, miniatura: false)" alt="@p.Nombre" width="1600" height="1600" data-galeria-grande data-ocultar-si-falla />
+                    }
+                </div>
+                @if (fotos.Count > 1)
+                {
+                    <div class="producto-miniaturas" role="list" aria-label="Fotos del producto">
+                        @for (var i = 0; i < fotos.Count; i++)
+                        {
+                            <a class="producto-miniatura-boton" role="listitem" href="@FormatoProductos.Foto(fotos[i].Id, miniatura: false)" target="_blank" rel="noopener"
+                               aria-label="Foto @(i + 1) de @fotos.Count" aria-current="@(i == 0 ? "true" : null)" data-galeria-miniatura>
+                                <img src="@FormatoProductos.Foto(fotos[i].Id)" alt="" loading="lazy" width="72" height="72" />
+                            </a>
+                        }
+                    </div>
+                }
+                @if (fotos.Count == 0)
+                {
+                    <p class="producto-sin-fotos muted small">Sin fotos. <a asp-action="Editar" asp-route-id="@p.Id">Añadir fotos</a></p>
+                }
+            </div>
+
+            @if (p.Descripcion is not null)
+            {
+                <div class="section">
+                    <div class="section-head"><h2>Descripción</h2></div>
+                    <div class="card card-pad producto-descripcion">@p.Descripcion</div>
+                </div>
+            }
+        </section>
+
+        <section>
+            <div class="producto-stock card card-pad @FormatoProductos.TinteStock(p)">
+                <span class="stat-label"><icono nombre="archivar" tamano="16" /> En stock</span>
+                <strong class="producto-stock-cifra num">@(p.EnNegativo ? FormatoProductos.Cantidad(p.Stock) : p.Stock.ToString("#,##0", Formato.Espanol))</strong>
+                <span class="pill @FormatoProductos.TinteStock(p)">@FormatoProductos.Estado(p)</span>
+                <span class="muted small">Aviso con @FormatoProductos.Unidades(p.StockMinimo) o menos</span>
+            </div>
+
+            <div class="section">
+                <div class="section-head"><h2>Precio</h2></div>
+                <div class="list">
+                    <div class="row row-kv"><span>Venta</span><span class="num">@Formato.Euros(p.PrecioVenta)</span></div>
+                    <div class="row row-kv"><span>Coste</span><span class="num">@(p.PrecioCoste is { } coste ? Formato.Euros(coste) : "—")</span></div>
+                    @if (p.Margen is { } margen)
+                    {
+                        <div class="row row-kv"><span>Margen</span><span class="num">@Formato.Euros(margen)@(p.PrecioVenta > 0 ? $" · {margen / p.PrecioVenta:P0}" : "")</span></div>
+                    }
+                    @if (p.CodigoBarras is not null)
+                    {
+                        <div class="row row-kv"><span><icono nombre="codigo-barras" tamano="16" /> Código de barras</span><span class="num">@p.CodigoBarras</span></div>
+                    }
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <section class="section" id="movimiento">
+        <div class="section-head"><h2>Registrar un movimiento</h2></div>
+        <form class="card card-pad producto-movimiento" method="post" asp-action="Movimiento" asp-route-id="@p.Id" novalidate data-movimiento-stock>
+            <div asp-validation-summary="All"></div>
+            <fieldset class="field">
+                <legend class="sr-only">Tipo de movimiento</legend>
+                <div class="segmented segmented-lg segmented-block">
+                    @foreach (var (tipo, texto, icono, ayuda) in tipos)
+                    {
+                        <label title="@ayuda"><input type="radio" name="Tipo" value="@tipo" checked="@(m.Tipo == tipo)" data-ayuda="@ayuda" /> <icono nombre="@icono" tamano="16" /> @texto</label>
+                    }
+                </div>
+                <p class="field-hint" data-movimiento-ayuda>@tipos.First(t => t.Tipo == m.Tipo).Ayuda</p>
+            </fieldset>
+            <div class="fields-2">
+                <div class="field">
+                    <label for="Cantidad">Unidades</label>
+                    <div class="input-affix input-precio">
+                        <input class="input num" type="number" id="Cantidad" name="Cantidad" min="0" max="@Producto.StockMaximo" step="1" required value="@m.Cantidad" inputmode="numeric" />
+                        <span>uds</span>
+                    </div>
+                    @Html.ValidationMessage("Cantidad")
+                </div>
+                <div class="field">
+                    <label for="Nota">Nota <span class="muted">(opcional)</span></label>
+                    <input class="input" id="Nota" name="Nota" value="@m.Nota" maxlength="@MovimientoStock.LongitudNota" autocomplete="off" placeholder="Pedido 245, caducado, muestra…" />
+                    @Html.ValidationMessage("Nota")
+                </div>
+            </div>
+            <button class="btn btn-primary">Registrar</button>
+        </form>
+    </section>
+
+    <section class="section">
+        <div class="section-head">
+            <h2>Historial de stock</h2>
+            <span class="muted small">Las ventas se registran solas al cobrar la visita</span>
+        </div>
+        @if (Model.Movimientos.TotalElementos == 0)
+        {
+            <p class="card card-pad muted">Todavía no hay movimientos. La primera entrada o el primer recuento aparecerán aquí.</p>
+        }
+        else
+        {
+            <div class="list">
+                @foreach (var mov in Model.Movimientos.Elementos)
+                {
+                    <div class="row movimiento-fila">
+                        <span class="movimiento-icono @FormatoProductos.Tinte(mov.Tipo)"><icono nombre="@FormatoProductos.Icono(mov.Tipo)" tamano="17" /></span>
+                        <span class="row-main">
+                            <span class="row-title">@FormatoProductos.Texto(mov.Tipo)@if (mov.VisitaId is { } visita) { <text> · </text><a asp-controller="Visitas" asp-action="Detalle" asp-route-id="@visita">visita @visita</a> }</span>
+                            <span class="row-sub"><span class="num">@Formato.FechaCorta(mov.Fecha) · @Formato.Hora(mov.Fecha)</span>@(mov.Nota is null ? "" : $" · {mov.Nota}")</span>
+                        </span>
+                        <span class="row-end">
+                            <span class="movimiento-cantidad num @(mov.Cantidad > 0 ? "is-entrada" : "is-salida")">@FormatoProductos.Cantidad(mov.Cantidad)</span>
+                            <span class="muted small num" title="Stock después del movimiento">@FormatoProductos.Unidades(mov.StockResultante)</span>
+                        </span>
+                    </div>
+                }
+            </div>
+            <partial name="_Paginacion" model="@(new PaginacionModelo(Model.Movimientos.Numero, Model.Movimientos.TotalPaginas, Model.Movimientos.TotalElementos, n => Url.Action("Ficha", new { id = p.Id, pagina = n })!))" />
+        }
+    </section>
+
+    <form class="form zona-peligro" method="post" asp-action="Eliminar" asp-route-id="@p.Id"
+          data-confirmar="Si «@p.Nombre» aparece en alguna visita se archivará en lugar de borrarse, para conservar tickets e historial. Si no, se borrará con sus fotos.">
+        <button class="btn btn-gray btn-destructive"><icono nombre="papelera" tamano="17" /> Eliminar producto</button>
+    </form>
+</div>
+
+@section Scripts {
+    <script src="~/js/productos.js" asp-append-version="true"></script>
+}

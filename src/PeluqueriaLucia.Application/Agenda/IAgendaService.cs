@@ -4,7 +4,7 @@ using PeluqueriaLucia.Domain.Agenda;
 namespace PeluqueriaLucia.Application.Agenda;
 
 /// <summary>Servicio que se puede reservar. Sexo es su público: Hombre, Mujer u Otro (unisex: manicura, maquillaje…).</summary>
-public sealed record ServicioAgenda(int Id, string Nombre, int Minutos, string? NombreEn = null, PeluqueriaLucia.Domain.Comun.Sexo Sexo = PeluqueriaLucia.Domain.Comun.Sexo.Otro)
+public sealed record ServicioAgenda(int Id, string Nombre, int Minutos, string? NombreEn = null, PeluqueriaLucia.Domain.Comun.Sexo Sexo = PeluqueriaLucia.Domain.Comun.Sexo.Otro, bool Dualidad = false)
 {
     /// <summary>Nombre que ve el visitante: en inglés si hay traducción; si no, el español.</summary>
     public string NombreEnIdioma(bool ingles) => ingles && NombreEn is { Length: > 0 } ? NombreEn : Nombre;
@@ -15,7 +15,9 @@ public sealed record SolicitarCita(Guid SolicitudId, DateOnly Dia, TimeOnly Hora
 /// <param name="ConfirmarDirecto">La cita ya se ha acordado por teléfono: se confirma sin esperar al enlace de aceptación.</param>
 public sealed record GestionarCita(Guid Id, string Version, EstadoCita Estado, int Minutos, bool TelefonoValidado, string? Nota, int AdministradorId, bool ConfirmarDirecto = false);
 /// <summary>Cita que da el propio salón (teléfono, en persona) o tiempo bloqueado sin cliente. Nace confirmada.</summary>
-public sealed record CitaManual(DateOnly Dia, TimeOnly Hora, int? Minutos, int? ClienteId, string? Nombre, string? Telefono, int? ServicioId, string? Nota, bool Bloqueo, int AdministradorId);
+/// <param name="Aviso">Canal del aviso de confirmación si el cliente no tiene preferencia en su ficha; null, sin aviso. Con preferencia, se usa siempre la suya.</param>
+public sealed record CitaManual(DateOnly Dia, TimeOnly Hora, int? Minutos, int? ClienteId, string? Nombre, string? Telefono, int? ServicioId, string? Nota, bool Bloqueo, int AdministradorId,
+    CanalConfirmacion? Aviso = null);
 public sealed record AvisoAgenda(int Pendientes, DateTime? UltimaUtc);
 public interface IAgendaService
 {
@@ -23,7 +25,8 @@ public interface IAgendaService
     Task<IReadOnlyList<ServicioAgenda>> ServiciosAsync(CancellationToken ct);
     Task<DisponibilidadAgenda> DisponibilidadAsync(DateOnly dia, int? servicioId, CancellationToken ct);
     /// <summary>Horas en las que el salón puede dar una cita de esa duración: dentro del horario, sin solapes y desde ahora.</summary>
-    Task<DisponibilidadAgenda> HuecosPanelAsync(DateOnly dia, int minutos, CancellationToken ct);
+    /// <param name="servicioId">Con un servicio con dualidad, las citas ya dadas no quitan horas (el tiempo bloqueado sí).</param>
+    Task<DisponibilidadAgenda> HuecosPanelAsync(DateOnly dia, int minutos, CancellationToken ct, int? servicioId = null);
     Task<Resultado<Guid>> SolicitarAsync(SolicitarCita datos, CancellationToken ct);
     Task<Resultado> GestionarAsync(GestionarCita datos, CancellationToken ct);
     Task<IReadOnlyList<ServicioAgenda>> ServiciosPanelAsync(CancellationToken ct);

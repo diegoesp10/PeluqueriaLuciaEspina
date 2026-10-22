@@ -71,10 +71,10 @@ public sealed class AgendaController(IAgendaService agenda, ClientesAgendaServic
         {
             var f = formulario;
             var resultado = await agenda.CrearCitaAsync(new(f.Dia!.Value, f.Hora!.Value, f.Minutos, f.Bloqueo ? null : f.ClienteId,
-                f.Nombre, f.Telefono, f.Bloqueo ? null : f.ServicioId, f.Nota, f.Bloqueo, AdministradorId), ct);
+                f.Nombre, f.Telefono, f.Bloqueo ? null : f.ServicioId, f.Nota, f.Bloqueo, AdministradorId, f.Bloqueo ? null : f.Aviso), ct);
             if (resultado.Exito)
             {
-                this.AvisarExito(f.Bloqueo ? "Tiempo bloqueado en la agenda." : "Cita guardada en la agenda.");
+                this.AvisarExito(f.Bloqueo ? "Tiempo bloqueado en la agenda." : "Cita guardada en la agenda. Si hay aviso para el cliente, está en Comunicaciones.");
                 return RedirectToAction(nameof(Index), new { dia = f.Dia.Value.ToString("yyyy-MM-dd") });
             }
             ModelState.AddModelError(resultado.Error!.Campo ?? string.Empty, resultado.Error.Mensaje);
@@ -88,15 +88,16 @@ public sealed class AgendaController(IAgendaService agenda, ClientesAgendaServic
         var servicios = await agenda.ServiciosPanelAsync(ct);
         // Las horas libres dependen de la duración: la escrita, la del servicio elegido o media hora
         var minutos = f.Minutos ?? servicios.FirstOrDefault(s => s.Id == f.ServicioId && s.Minutos > 0)?.Minutos ?? (f.Bloqueo ? 60 : 30);
-        var dia = f.Dia is { } d ? await agenda.HuecosPanelAsync(d, minutos, ct) : null;
+        var dia = f.Dia is { } d ? await agenda.HuecosPanelAsync(d, minutos, ct, f.Bloqueo ? null : f.ServicioId) : null;
         return new(f, cliente, q, encontrados, servicios, dia);
     }
 
-    /// <summary>Horas libres de un día para una cita de esa duración (selector de horas de «Nueva cita»).</summary>
+    /// <summary>Horas libres de un día para una cita de esa duración (selector de horas de «Nueva cita»). Con un servicio
+    /// con dualidad, las citas ya dadas no quitan horas.</summary>
     [HttpGet("/admin/agenda/huecos")]
-    public async Task<IActionResult> Huecos(DateOnly dia, int minutos, CancellationToken ct)
+    public async Task<IActionResult> Huecos(DateOnly dia, int minutos, int? servicioId, CancellationToken ct)
     {
-        var huecos = await agenda.HuecosPanelAsync(dia, minutos, ct);
+        var huecos = await agenda.HuecosPanelAsync(dia, minutos, ct, servicioId);
         return Json(new
         {
             dia = huecos.Dia.ToString("yyyy-MM-dd"),

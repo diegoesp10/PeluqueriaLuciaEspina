@@ -1,6 +1,6 @@
 # Peluquería Lucía
 
-Aplicación de gestión interna de la Peluquería Ecológica Lucía Espina: visitas y cobros del día, clientes con su historial, catálogo de servicios con precios, tickets de caja y exportación a Excel para la gestoría.
+Aplicación de gestión interna de la Peluquería Ecológica Lucía Espina: visitas y cobros del día, clientes con su historial, catálogo de servicios con precios, productos de la tienda con su stock, tickets de caja y exportación a Excel para la gestoría.
 
 Web pública del salón y gestión privada con contraseña y Authenticator obligatorio. Corre con ASP.NET Core 10 y SQL Server, en el ordenador de la peluquería o en su servidor IIS.
 
@@ -12,6 +12,7 @@ Web pública del salón y gestión privada con contraseña y Authenticator oblig
 - `/admin/Seguridad`: sesiones, contraseña con MFA, cambio de Authenticator, intentos de acceso y llamadas por IP.
 - `/admin/Tratamientos`: categorías, duración, orden y publicación de servicios elegidos del catálogo común.
 - `/admin/Resenas`: revisión, publicación, retirada y respuesta a las opiniones.
+- `/admin/Productos`: inventario de la tienda con referencias, fotos, stock e historial; los productos se venden en las visitas y se descuentan al cobrar.
 
 La separación de capas existente se conserva; la gestión se ha trasladado al área MVC `Areas/Admin`. Ver [docs/SEGURIDAD.md](docs/SEGURIDAD.md) para activar o recuperar el acceso.
 
@@ -23,7 +24,10 @@ La separación de capas existente se conserva; la gestión se ha trasladado al �
 - **Impresora térmica de tickets** del salón: el botón Imprimir del ticket manda el ticket en ESC/POS (logo, tildes con CP850, corte de papel) directamente por USB desde el navegador con **WebUSB**, sin diálogo de impresión, también con la web publicada en Azure. Se configura en la sección `ImpresoraTickets` de `appsettings.json` (`Vid`/`Pid` USB de la impresora, 32 caracteres y 384 puntos para papel de 58 mm). Requiere Chrome o Edge, la web en HTTPS (o `localhost`) y la impresora con el driver WinUSB que instala Zadig; la primera vez el navegador pide elegir la impresora. El botón «Navegador» imprime con el diálogo normal.
 - **Clientes** con buscador, ficha, historial de visitas y total gastado.
 - **Catálogo** con fotos. Cambiar un precio no altera las visitas ya registradas, porque cada visita guarda el nombre y el precio de cada servicio. Un servicio que aparece en visitas se archiva en lugar de borrarse.
-- **Exportación a Excel** del periodo que se está viendo.
+- **Productos de la tienda** con referencia, código de barras (también con lector), fotos y stock. Se añaden a las visitas y al ticket; al cobrar se preguntan también los productos utilizados en el servicio, y el stock se descuenta (si se acaba, queda en negativo para reponerlo). Entradas, usos y recuentos quedan en el historial de cada producto. Ver [docs/PRODUCTOS.md](docs/PRODUCTOS.md).
+- **Dualidad de servicio**: una casilla del catálogo permite dar otras citas a la misma hora que ese servicio (un tinte mientras actúa). Ver [docs/AGENDA.md](docs/AGENDA.md).
+- **Preferencia de aviso del cliente** (correo o WhatsApp): si la ficha la tiene, los avisos de sus citas van siempre por ese canal, se den en el salón o se pidan en la web; si no, se elige en cada cita. Ver [docs/AGENDA.md](docs/AGENDA.md).
+- **Exportación a Excel** del periodo que se está viendo (con una hoja de productos vendidos si los hay).
 
 ## Arquitectura
 
@@ -31,8 +35,9 @@ Capas al estilo de una arquitectura limpia. Cada capa solo conoce a la de debajo
 
 ```
 src/
-  PeluqueriaLucia.Domain/          Entidades y reglas del negocio (Cliente, Servicio, Visita, LineaVisita). Sin dependencias.
-  PeluqueriaLucia.Application/     Casos de uso (ClientesService, CatalogoService, VisitasService) y los contratos que
+  PeluqueriaLucia.Domain/          Entidades y reglas del negocio (Cliente, Servicio, Visita, LineaVisita, Producto,
+                                   MovimientoStock). Sin dependencias.
+  PeluqueriaLucia.Application/     Casos de uso (ClientesService, CatalogoService, VisitasService, ProductosService) y los contratos que
                                    necesitan (repositorios, almacén de imágenes, exportador). Devuelven Resultado, no excepciones.
   PeluqueriaLucia.Infrastructure/  EF Core + SQL Server, migraciones, fotos en disco y Excel (ClosedXML).
   PeluqueriaLucia.Web/             ASP.NET Core MVC: web pública y área Admin protegida, vistas Razor, CSS y JS propios.
@@ -55,7 +60,7 @@ Una identidad compartida para la web, el login y la administración: morado en t
 
 ## Desarrollo
 
-Requisitos: SDK de .NET 10 y SQL Server local (la cadena de desarrollo está en `appsettings.Development.json`: `localhost`, base de datos `PeluqueriaLuciaDb`, autenticación de Windows).
+Requisitos: SDK de .NET 10 (fijado en `global.json`, el mismo que usa GitHub Actions: aunque el equipo tenga instalada una versión preliminar más nueva, se compila con la 10) y SQL Server local (la cadena de desarrollo está en `appsettings.Development.json`: `localhost`, base de datos `PeluqueriaLuciaDb`, autenticación de Windows).
 
 ```powershell
 dotnet tool restore

@@ -1,9 +1,12 @@
+@using PeluqueriaLucia.Domain.Productos
 @model VisitaDetalleModelo
 @{
     var v = Model.Visita;
     var cliente = v.Cliente;
     ViewData["Title"] = cliente?.NombreCompleto ?? "Visita";
     var fechaDia = v.Fecha.ToString("yyyy-MM-dd");
+    var negativos = v.EstaCobrada ? [] : Model.QuedaranEnNegativo().ToList();
+    var agregar = Model.Agregar ?? new AgregarProductoFormulario();
 }
 
 <div>
@@ -38,7 +41,7 @@
     <div class="detalle-grid">
         <section>
             <div class="section-head">
-                <h2>Servicios</h2>
+                <h2>@(v.Productos.Count > 0 ? (v.Lineas.Count > 0 ? "Servicios y productos" : "Productos") : "Servicios")</h2>
                 @if (v.EstaCobrada)
                 {
                     <span class="pill tint-green"><icono nombre="check" tamano="13" /> Cobrada</span>
@@ -56,11 +59,86 @@
                         <span class="row-amount">@Formato.Euros(linea.Precio)</span>
                     </div>
                 }
+                @foreach (var producto in v.Productos)
+                {
+                    var stock = v.EstaCobrada ? null : Model.Stock(producto.ProductoId);
+                    <div class="row row-kv producto-visita">
+                        <span class="row-main">
+                            <span class="row-title"><icono nombre="producto" tamano="15" /> @producto.Nombre</span>
+                            <span class="row-sub"><span class="producto-ref">@producto.Referencia</span> · @producto.Cantidad × @Formato.Euros(producto.PrecioUnitario)@if (!v.EstaCobrada) { <text> · </text><span class="@(stock is null || stock < producto.Cantidad ? "texto-aviso" : "")">@(stock is null ? "ya no está a la venta" : FormatoProductos.Disponible(stock.Value))</span> }</span>
+                        </span>
+                        <span class="row-end">
+                            <span class="row-amount">@Formato.Euros(producto.Importe)</span>
+                            @if (!v.EstaCobrada)
+                            {
+                                <form method="post" asp-action="QuitarProducto" asp-route-id="@v.Id" asp-route-lineaId="@producto.Id">
+                                    <button class="btn btn-gray btn-icono" aria-label="Quitar @producto.Nombre de la visita" title="Quitar de la visita"><icono nombre="cerrar" tamano="15" /></button>
+                                </form>
+                            }
+                        </span>
+                    </div>
+                }
                 <div class="row row-kv">
                     <strong>Total</strong>
                     <span class="row-amount row-total">@Formato.Euros(v.Total)</span>
                 </div>
             </div>
+
+            @if (!v.EstaCobrada && Model.ParaVenta.Count > 0)
+            {
+                <details class="producto-agregar" open="@(Model.Agregar is not null)">
+                    <summary class="btn btn-gray btn-sm"><icono nombre="mas" tamano="16" /> Añadir un producto</summary>
+                    <form class="card card-pad" method="post" asp-action="AgregarProducto" asp-route-id="@v.Id" novalidate>
+                        @if (Model.Agregar is not null)
+                        {
+                            <div asp-validation-summary="All"></div>
+                        }
+                        <div class="field">
+                            <label for="ProductoId">Producto</label>
+                            <select class="input" id="ProductoId" name="ProductoId" required data-buscable="Nombre, referencia o código de barras" data-buscable-vacio="Ningún producto a la venta con ese texto.">
+                                <option value="">Sin elegir</option>
+                                @foreach (var p in Model.ParaVenta)
+                                {
+                                    <option value="@p.Id" selected="@(p.Id == agregar.ProductoId)" data-buscar="@FormatoProductos.ClavesBusqueda(p)">@FormatoProductos.Opcion(p)</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="fields-2">
+                            <div class="field">
+                                <label for="Cantidad">Unidades</label>
+                                <input class="input num" type="number" id="Cantidad" name="Cantidad" min="1" max="@LineaProductoVisita.CantidadMaxima" step="1" value="@agregar.Cantidad" inputmode="numeric" />
+                            </div>
+                            <div class="field">
+                                <label for="Precio">Precio por unidad</label>
+                                <div class="input-affix">
+                                    <input class="input num" id="Precio" name="Precio" inputmode="decimal" autocomplete="off" value="@Formato.Importe(agregar.Precio)" placeholder="El de la ficha" />
+                                    <span>€</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary"><icono nombre="mas" tamano="17" /> Añadir a la visita</button>
+                    </form>
+                </details>
+            }
+
+            @if (v.EstaCobrada && Model.Usados is { Count: > 0 } usadosEnServicio)
+            {
+                <div class="section">
+                    <div class="section-head"><h2>Productos utilizados</h2><span class="muted small">No se cobran</span></div>
+                    <div class="list">
+                        @foreach (var uso in usadosEnServicio)
+                        {
+                            <a class="row row-kv" asp-controller="Productos" asp-action="Ficha" asp-route-id="@uso.ProductoId">
+                                <span class="row-main">
+                                    <span class="row-title"><icono nombre="producto" tamano="15" /> @(uso.Producto?.Nombre ?? "Producto")</span>
+                                    <span class="row-sub"><span class="producto-ref">@uso.Producto?.Referencia</span> · stock tras el cobro: @FormatoProductos.Unidades(uso.StockResultante)</span>
+                                </span>
+                                <span class="num">@FormatoProductos.Unidades(-uso.Cantidad)</span>
+                            </a>
+                        }
+                    </div>
+                </div>
+            }
 
             @if (v.EstaCobrada)
             {
@@ -84,7 +162,20 @@
                 <div class="section-head"><h2>Cobrar</h2></div>
                 <form class="card card-pad cobro" method="post" asp-action="Cobrar" asp-route-id="@v.Id"
                       data-cobro data-total="@Formato.ImporteJs(v.Total)">
-                    <div asp-validation-summary="All"></div>
+                    @if (Model.Agregar is null)
+                    {
+                        <div asp-validation-summary="All"></div>
+                    }
+                    @if (negativos.Count > 0)
+                    {
+                        <p class="aviso-stock" role="status"><icono nombre="alerta" tamano="17" /> Al cobrar quedará en negativo: @string.Join(", ", negativos.Select(n => $"«{n.Nombre}» (−{n.Faltan})")). Se puede cobrar igualmente; recuerda reponerlo.</p>
+                    }
+                    @if (v.Productos.Count > 0)
+                    {
+                        <p class="field-hint">Al cobrar, se descuenta del stock lo vendido: @(v.UnidadesProductos == 1 ? "1 unidad" : $"{v.UnidadesProductos} unidades").</p>
+                    }
+
+                    <partial name="_ProductosUsadosCobro" model="Model" />
 
                     <fieldset class="cobro-formas">
                         <legend class="field-label">¿Cómo paga?</legend>
@@ -132,4 +223,5 @@
 
 @section Scripts {
     <script src="~/js/cobro.js" asp-append-version="true"></script>
+    <script src="~/js/cobro-productos.js" asp-append-version="true"></script>
 }

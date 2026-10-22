@@ -6,16 +6,26 @@ namespace PeluqueriaLucia.Application.Agenda;
 
 public sealed class ClientesAgendaService(IRepositorioAgenda datos, TimeProvider reloj)
 {
+    /// <summary>
+    /// La ficha de quien pide la cita, si es inequívoca: la única que comparte el móvil o el correo y coincide en los dos.
+    /// Si hay varias parecidas o solo coincide uno de los datos, null (lo resuelve el salón). Hay más candidatas en <paramref name="candidatas"/>.
+    /// </summary>
+    internal static async Task<(Cliente? Ficha, int Candidatas)> FichaDeAsync(IRepositorioAgenda datos, string telefono, string correo, CancellationToken ct)
+    {
+        var candidatos = await datos.ClientesPorContactoAsync(telefono, correo, ct);
+        var exactos = candidatos.Where(c => AgendaService.NormalizarTelefono(c.Telefono) == telefono &&
+            string.Equals(c.Email?.Trim(), correo.Trim(), StringComparison.OrdinalIgnoreCase)).ToList();
+        return (candidatos.Count == 1 && exactos.Count == 1 ? exactos[0] : null, candidatos.Count);
+    }
+
     internal static async Task VincularAsync(IRepositorioAgenda datos, ReservaCita r, DateTime utc, CancellationToken ct)
     {
         // La identidad ya revisada por administración se conserva al aceptar una nueva duración.
         if (r.ClienteId is not null) return;
-        var candidatos = await datos.ClientesPorContactoAsync(r.Telefono, r.Correo, ct);
-        var exactos = candidatos.Where(c => AgendaService.NormalizarTelefono(c.Telefono) == r.Telefono &&
-            string.Equals(c.Email?.Trim(), r.Correo.Trim(), StringComparison.OrdinalIgnoreCase)).ToList();
-        if (candidatos.Count == 1 && exactos.Count == 1)
-        { r.ClienteId = exactos[0].Id; r.PendienteVinculacion = false; return; }
-        if (candidatos.Count > 0) { r.PendienteVinculacion = true; return; }
+        var (ficha, candidatas) = await FichaDeAsync(datos, r.Telefono, r.Correo, ct);
+        if (ficha is not null)
+        { r.ClienteId = ficha.Id; r.PendienteVinculacion = false; return; }
+        if (candidatas > 0) { r.PendienteVinculacion = true; return; }
         var cliente = Cliente.CrearDesdeReserva(string.IsNullOrWhiteSpace(r.Nombre) ? "Cliente de la agenda" : r.Nombre,
             r.Correo, r.Telefono, utc, r.Apellido, r.Sexo);
         datos.Agregar(cliente); r.Cliente = cliente; r.PendienteVinculacion = false;

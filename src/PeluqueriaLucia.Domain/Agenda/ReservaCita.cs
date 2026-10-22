@@ -27,6 +27,14 @@ public sealed class ReservaCita
     public bool PendienteVinculacion { get; set; }
     public int? ServicioId { get; set; }
     public string ServicioNombre { get; set; } = "Consulta en la peluquería";
+
+    /// <summary>
+    /// La cita es de un servicio con dualidad: no ocupa la agenda, así que otras citas pueden coincidir con ella (y ella con
+    /// otras). Se toma del servicio al dar la cita y cambia con él mientras la cita no ha terminado. El tiempo bloqueado
+    /// ocupa siempre.
+    /// </summary>
+    public bool Dualidad { get; set; }
+
     public EstadoCita Estado { get; set; }
     public DateTime CreadaUtc { get; set; }
     public DateTime ActualizadaUtc { get; set; }

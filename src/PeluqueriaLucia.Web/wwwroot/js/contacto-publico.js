@@ -3,7 +3,8 @@
 // móvil y, si no, por el correo, y el código llega al correo de esa ficha (la respuesta es la misma exista o no: nadie
 // ve datos ajenos escribiendo un teléfono o un correo). Se pide con los dos a la vez para enviar un único código aunque
 // el cliente haya cambiado de móvil. Al teclear las seis cifras se verifica solo y se rellenan nombre, apellidos, móvil,
-// correo y para quién es la cita.
+// correo y para quién es la cita. Si la ficha tiene canal preferido para los avisos, queda marcado y el otro no se puede elegir
+// (el servidor lo aplica igualmente al guardar la solicitud).
 (() => {
     const form = document.querySelector('[data-contacto-publico]');
     if (!form || form.dataset.contactoPublico !== 'true') return;
@@ -31,6 +32,20 @@
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor) ? valor : null;
     };
     const avisar = texto => { estado.hidden = false; estado.textContent = texto; };
+    const canales = () => [...document.querySelectorAll('input[name="Formulario.Canal"]')];
+    const notaCanal = document.querySelector('[data-canal-preferido]');
+    // Canal preferido de la ficha (0 correo, 1 WhatsApp): se marca y el otro queda bloqueado; null, todo libre otra vez
+    const fijarCanal = (canal) => {
+        const valor = canal === 0 ? 'Correo' : canal === 1 ? 'WhatsApp' : null;
+        canales().forEach(radio => {
+            radio.disabled = valor !== null && radio.value !== valor;
+            if (valor !== null && radio.value === valor) radio.checked = true;
+        });
+        if (notaCanal) {
+            notaCanal.hidden = valor === null;
+            notaCanal.textContent = valor === null ? '' : texto(valor === 'Correo' ? 'canalPreferidoCorreo' : 'canalPreferidoWhatsApp');
+        }
+    };
     const { texto } = window.Peluqueria;
     const fallo = () => texto('contactoError', 'No se ha podido verificar el contacto. Puedes completar tus datos manualmente.');
     // Contrato: POST con language y antifalsificación → 200 JSON; 400 { mensaje }; 429 texto plano con Retry-After.
@@ -74,6 +89,7 @@
             relleno = { Nombre: datos.nombre, Apellido: datos.apellido, Correo: datos.correo, Sexo: sexo };
             for (const [nombre, valor] of Object.entries(relleno)) if (nombre !== 'Sexo') campo(nombre).value = valor;
             if (sexo) marcarPara(sexo, true);
+            fijarCanal(datos.canal ?? null);
             desafio = null; codigo.value = ''; panel.hidden = true;
             avisar(texto('contactoVerificado'));
         } catch (error) { if (error.name !== 'AbortError' && actual === revision) avisar(error.message); }
@@ -92,6 +108,7 @@
                 } else if (campo(nombre).value === valor) campo(nombre).value = '';
             }
             relleno = null;
+            fijarCanal(null);
         }
     });
     // Cambiar el correo con el que se pidió el código lo anula: al salir del campo se pide otro

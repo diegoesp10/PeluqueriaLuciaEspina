@@ -10,7 +10,8 @@ internal sealed class ClienteConfiguracion : IEntityTypeConfiguration<Cliente>
 {
     public void Configure(EntityTypeBuilder<Cliente> builder)
     {
-        builder.ToTable("Clientes");
+        // Preferencia de aviso: sin preferencia (NULL), correo (0) o WhatsApp (1), como CanalConfirmacion
+        builder.ToTable("Clientes", t => t.HasCheckConstraint("CK_Clientes_CanalPreferido", "[CanalPreferido] IS NULL OR [CanalPreferido] IN (0,1)"));
         builder.Property(c => c.Nombre).IsRequired().HasMaxLength(Cliente.LongitudNombre);
         builder.Property(c => c.Apellido).IsRequired().HasMaxLength(Cliente.LongitudNombre);
         builder.Ignore(c => c.NombreCompleto);
@@ -49,6 +50,9 @@ internal sealed class VisitaConfiguracion : IEntityTypeConfiguration<Visita>
         builder.Property(v => v.TotalTarjeta).HasColumnType("decimal(18,2)");
         builder.Property(v => v.PorcentajeIva).HasColumnType("decimal(5,2)");
         builder.Ignore(v => v.Total);
+        builder.Ignore(v => v.TotalServicios);
+        builder.Ignore(v => v.TotalProductos);
+        builder.Ignore(v => v.UnidadesProductos);
         builder.Ignore(v => v.EstaCobrada);
 
         // Un cliente con visitas no se puede borrar: la aplicación lo impide y la base de datos también
@@ -62,6 +66,12 @@ internal sealed class VisitaConfiguracion : IEntityTypeConfiguration<Visita>
             .HasForeignKey(l => l.VisitaId)
             .OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(v => v.Lineas).HasField("_lineas").UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasMany(v => v.Productos)
+            .WithOne()
+            .HasForeignKey(l => l.VisitaId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.Navigation(v => v.Productos).HasField("_productos").UsePropertyAccessMode(PropertyAccessMode.Field);
 
         builder.HasIndex(v => v.Fecha);
     }

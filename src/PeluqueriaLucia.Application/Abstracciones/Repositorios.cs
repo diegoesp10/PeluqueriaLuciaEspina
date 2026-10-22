@@ -42,6 +42,10 @@ public interface IServicioRepositorio
 
     Task<bool> TieneVisitasAsync(int id, CancellationToken ct = default);
 
+    /// <summary>Las citas vivas del servicio que terminan después de <paramref name="desde"/> pasan a tener (o no) dualidad.
+    /// Se guardan con el resto de cambios.</summary>
+    Task CambiarDualidadCitasAsync(int servicioId, bool dualidad, DateTime desde, CancellationToken ct = default);
+
     void Agregar(Servicio servicio);
 
     void Eliminar(Servicio servicio);

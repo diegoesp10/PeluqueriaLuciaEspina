@@ -3,6 +3,7 @@ using PeluqueriaLucia.Application.Comun;
 using PeluqueriaLucia.Application.Visitas;
 using PeluqueriaLucia.Domain.Catalogo;
 using PeluqueriaLucia.Domain.Clientes;
+using PeluqueriaLucia.Domain.Productos;
 using PeluqueriaLucia.Domain.Visitas;
 using PeluqueriaLucia.Web.Infraestructura;
 
@@ -87,11 +88,37 @@ public sealed class NuevaVisitaFormulario
     public List<int> Servicios { get; set; } = [];
     public Dictionary<int,decimal> Precios { get; set; } = [];
 
+    /// <summary>Productos que se lleva el cliente (nueva-visita.js añade una fila por producto).</summary>
+    public List<ProductoVisitaFormulario> Productos { get; set; } = [];
+
     /// <summary>«cobrar» lleva directamente a la pantalla de cobro después de guardar.</summary>
     public string? Accion { get; set; }
 }
 
-public sealed record NuevaVisitaModelo(NuevaVisitaFormulario Formulario, Cliente? Cliente, IReadOnlyList<Servicio> Servicios);
+/// <summary>Una fila de producto en «Nueva visita». Sin precio, el de venta de la ficha.</summary>
+public sealed class ProductoVisitaFormulario
+{
+    public int ProductoId { get; set; }
+
+    [Range(1, Domain.Visitas.LineaProductoVisita.CantidadMaxima, ErrorMessage = "Indica entre {1} y {2} unidades de cada producto.")]
+    public int Cantidad { get; set; } = 1;
+
+    public decimal? Precio { get; set; }
+}
+
+/// <summary>Añadir un producto a una visita pendiente desde su detalle.</summary>
+public sealed class AgregarProductoFormulario
+{
+    [Required(ErrorMessage = "Elige un producto de la lista.")]
+    public int? ProductoId { get; set; }
+
+    [Range(1, Domain.Visitas.LineaProductoVisita.CantidadMaxima, ErrorMessage = "Indica entre {1} y {2} unidades.")]
+    public int Cantidad { get; set; } = 1;
+
+    public decimal? Precio { get; set; }
+}
+
+public sealed record NuevaVisitaModelo(NuevaVisitaFormulario Formulario, Cliente? Cliente, IReadOnlyList<Servicio> Servicios, IReadOnlyList<Producto> Productos);
 
 public sealed class CobroFormulario
 {
@@ -100,9 +127,38 @@ public sealed class CobroFormulario
     public decimal? Efectivo { get; set; }
 
     public decimal? Tarjeta { get; set; }
+
+    /// <summary>Productos gastados en el servicio (tintes, oxidantes…): no se cobran, pero salen del stock al cobrar.</summary>
+    public List<ProductoUsadoFormulario> Usados { get; set; } = [];
 }
 
-public sealed record VisitaDetalleModelo(Visita Visita, CobroFormulario Cobro);
+/// <summary>Una fila de «Productos utilizados» en el cobro.</summary>
+public sealed class ProductoUsadoFormulario
+{
+    public int ProductoId { get; set; }
+
+    [Range(1, Domain.Visitas.LineaProductoVisita.CantidadMaxima, ErrorMessage = "Indica entre {1} y {2} unidades de cada producto utilizado.")]
+    public int Cantidad { get; set; } = 1;
+}
+
+/// <param name="ParaVenta">Productos activos, para añadirlos o indicarlos como usados mientras la visita está pendiente.</param>
+/// <param name="Usados">Productos gastados en el servicio de una visita ya cobrada.</param>
+public sealed record VisitaDetalleModelo(Visita Visita, CobroFormulario Cobro, IReadOnlyList<Producto> ParaVenta, AgregarProductoFormulario? Agregar = null,
+    IReadOnlyList<MovimientoStock>? Usados = null)
+{
+    /// <summary>Unidades en stock de un producto, o null si ya no está a la venta.</summary>
+    public int? Stock(int productoId) => ParaVenta.FirstOrDefault(p => p.Id == productoId)?.Stock;
+
+    /// <summary>Lo que quedará en stock de un producto después de vender las unidades de esta visita (puede ser negativo).</summary>
+    public int Disponibles(int productoId) =>
+        (Stock(productoId) ?? 0) - Visita.Productos.Where(l => l.ProductoId == productoId).Sum(l => l.Cantidad);
+
+    /// <summary>Productos vendidos en la visita cuyo stock quedará en negativo al cobrar: nombre y cuántas faltarán.</summary>
+    public IEnumerable<(string Nombre, int Faltan)> QuedaranEnNegativo() => Visita.Productos
+        .GroupBy(l => l.ProductoId)
+        .Select(g => (Nombre: g.First().Nombre, Faltan: -Disponibles(g.Key)))
+        .Where(x => x.Faltan > 0);
+}
 
 public sealed record TicketModelo(Visita Visita, DatosNegocio Negocio, string? CodigoOpinion = null, Infraestructura.Impresion.ImpresoraTickets? Impresora = null)
 {

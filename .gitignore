@@ -409,3 +409,4 @@ FodyWeavers.xsd
 appsettings.Production.json
 .artifacts/
 AlmacenResenas/
+AlmacenProductos/

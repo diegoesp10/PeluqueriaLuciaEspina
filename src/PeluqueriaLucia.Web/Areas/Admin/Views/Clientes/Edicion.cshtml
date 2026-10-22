@@ -45,6 +45,16 @@
                         @Html.ValidationMessage("Email")
                     </div>
                 </div>
+                <fieldset class="field aviso-cita">
+                    <legend class="field-label">Avisos de sus citas</legend>
+                    <div class="segmented segmented-lg segmented-block">
+                        <label><input type="radio" name="CanalPreferido" value="" checked="@(f.CanalPreferido is null)" /> Sin preferencia</label>
+                        <label><input type="radio" name="CanalPreferido" value="Correo" checked="@(f.CanalPreferido == PeluqueriaLucia.Domain.Agenda.CanalConfirmacion.Correo)" /> <icono nombre="email" tamano="16" /> Correo</label>
+                        <label><input type="radio" name="CanalPreferido" value="WhatsApp" checked="@(f.CanalPreferido == PeluqueriaLucia.Domain.Agenda.CanalConfirmacion.WhatsApp)" /> <icono nombre="telefono" tamano="16" /> WhatsApp</label>
+                    </div>
+                    <p class="field-hint">Con preferencia, los avisos de sus citas van siempre por ese canal, las dé el salón o las pida en la web. Sin preferencia, se elige en cada cita. Correo necesita el email y WhatsApp, un móvil.</p>
+                    @Html.ValidationMessage("CanalPreferido")
+                </fieldset>
             </div>
             <p class="section-foot">Sirven para encontrar al cliente más rápido. No puede haber dos clientes con el mismo teléfono o email.</p>
         </div>

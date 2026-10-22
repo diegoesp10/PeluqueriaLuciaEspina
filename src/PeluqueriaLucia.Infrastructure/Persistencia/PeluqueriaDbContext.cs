@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using PeluqueriaLucia.Application.Abstracciones;
 using PeluqueriaLucia.Domain.Catalogo;
 using PeluqueriaLucia.Domain.Clientes;
+using PeluqueriaLucia.Domain.Productos;
 using PeluqueriaLucia.Domain.Seguridad;
 using PeluqueriaLucia.Domain.Visitas;
 using PeluqueriaLucia.Domain.Publico;
@@ -28,6 +29,14 @@ public sealed class PeluqueriaDbContext(DbContextOptions<PeluqueriaDbContext> op
     public DbSet<Visita> Visitas => Set<Visita>();
 
     public DbSet<LineaVisita> LineasVisita => Set<LineaVisita>();
+
+    public DbSet<LineaProductoVisita> ProductosVisitas => Set<LineaProductoVisita>();
+
+    public DbSet<Producto> Productos => Set<Producto>();
+
+    public DbSet<FotoProducto> FotosProductos => Set<FotoProducto>();
+
+    public DbSet<MovimientoStock> MovimientosStock => Set<MovimientoStock>();
 
     public DbSet<Administrador> Administradores => Set<Administrador>();
 

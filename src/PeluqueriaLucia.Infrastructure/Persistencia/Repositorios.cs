@@ -88,6 +88,16 @@ internal sealed class ServicioRepositorio(PeluqueriaDbContext db) : IServicioRep
 
     public Task<bool> TieneVisitasAsync(int id, CancellationToken ct) => db.LineasVisita.AnyAsync(l => l.ServicioId == id, ct);
 
+    public async Task CambiarDualidadCitasAsync(int servicioId, bool dualidad, DateTime desde, CancellationToken ct)
+    {
+        var citas = await db.ReservasCitas
+            .Where(c => c.ServicioId == servicioId && c.Fin > desde && c.Origen != PeluqueriaLucia.Domain.Agenda.OrigenCita.Bloqueo
+                && (c.Estado == PeluqueriaLucia.Domain.Agenda.EstadoCita.Confirmada || c.Estado == PeluqueriaLucia.Domain.Agenda.EstadoCita.Pendiente
+                    || c.Estado == PeluqueriaLucia.Domain.Agenda.EstadoCita.PendienteAceptacion))
+            .ToListAsync(ct);
+        citas.ForEach(c => c.Dualidad = dualidad);
+    }
+
     public void Agregar(Servicio servicio) => db.Servicios.Add(servicio);
 
     public void Eliminar(Servicio servicio) => db.Servicios.Remove(servicio);
@@ -96,7 +106,7 @@ internal sealed class ServicioRepositorio(PeluqueriaDbContext db) : IServicioRep
 internal sealed class VisitaRepositorio(PeluqueriaDbContext db) : IVisitaRepositorio
 {
     public Task<Visita?> ObtenerAsync(int id, CancellationToken ct) =>
-        db.Visitas.Include(v => v.Cliente).Include(v => v.Lineas).FirstOrDefaultAsync(v => v.Id == id, ct);
+        db.Visitas.Include(v => v.Cliente).Include(v => v.Lineas).Include(v => v.Productos).AsSplitQuery().SingleOrDefaultAsync(v => v.Id == id, ct);
 
     public async Task<Pagina<Visita>> ListarAsync(FiltroVisitas filtro, int pagina, int tamano, CancellationToken ct)
     {
@@ -106,6 +116,7 @@ internal sealed class VisitaRepositorio(PeluqueriaDbContext db) : IVisitaReposit
             .AsNoTracking()
             .Include(v => v.Cliente)
             .Include(v => v.Lineas)
+            .Include(v => v.Productos)
             .OrderByDescending(v => v.Fecha).ThenByDescending(v => v.Id)
             .Skip((pagina - 1) * tamano)
             .Take(tamano)
@@ -119,6 +130,7 @@ internal sealed class VisitaRepositorio(PeluqueriaDbContext db) : IVisitaReposit
             .AsNoTracking()
             .Include(v => v.Cliente)
             .Include(v => v.Lineas)
+            .Include(v => v.Productos)
             .OrderBy(v => v.Fecha).ThenBy(v => v.Id)
             .AsSplitQuery()
             .ToListAsync(ct);
@@ -128,7 +140,7 @@ internal sealed class VisitaRepositorio(PeluqueriaDbContext db) : IVisitaReposit
         var visitas = Filtrar(filtro);
         var cobradas = visitas.Where(v => v.Estado == EstadoVisita.Cobrada);
 
-        // Tres consultas agregadas pequeñas: ninguna trae filas a memoria.
+        // Consultas agregadas pequeñas: ninguna trae filas a memoria.
         // Agrupar por una constante da cero o un grupo: SingleOrDefault lo dice tal cual y EF no avisa (First sin OrderBy sí).
         var porVisita = await visitas
             .GroupBy(_ => 1)
@@ -147,7 +159,19 @@ internal sealed class VisitaRepositorio(PeluqueriaDbContext db) : IVisitaReposit
         var facturado = await lineas.SumAsync(l => (decimal?)l.Precio, ct) ?? 0;
         var cobrado = await cobradas.SelectMany(v => v.Lineas).SumAsync(l => (decimal?)l.Precio, ct) ?? 0;
 
-        return new ResumenVisitas(porVisita.Visitas, servicios, facturado, cobrado, porVisita.Efectivo, porVisita.Tarjeta);
+        var productos = await visitas
+            .SelectMany(v => v.Productos.Select(p => new { p.Cantidad, p.Importe, Cobrada = v.Estado == EstadoVisita.Cobrada }))
+            .GroupBy(_ => 1)
+            .Select(g => new
+            {
+                Unidades = g.Sum(p => p.Cantidad),
+                Facturado = g.Sum(p => p.Importe),
+                Cobrado = g.Where(p => p.Cobrada).Sum(p => p.Importe),
+            })
+            .SingleOrDefaultAsync(ct);
+
+        return new ResumenVisitas(porVisita.Visitas, servicios, facturado + (productos?.Facturado ?? 0), cobrado + (productos?.Cobrado ?? 0),
+            porVisita.Efectivo, porVisita.Tarjeta, productos?.Unidades ?? 0);
     }
 
     public void Agregar(Visita visita) => db.Visitas.Add(visita);
