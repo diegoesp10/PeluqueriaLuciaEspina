@@ -19,15 +19,18 @@ La separación de capas existente se conserva; la gestión se ha trasladado al �
 ## Qué hace
 
 - **Visitas**: registro de lo que se le hace a cada cliente, por día, por mes o histórico completo, con lo facturado, lo cobrado (efectivo y tarjeta) y lo pendiente.
-- **Cobro** en efectivo, con tarjeta o mixto. En el mixto, al escribir una parte se completa la otra y no deja cobrar si no cuadra.
+- **Cobro** en efectivo, con tarjeta o mixto. En el mixto, al escribir una parte se completa la otra y no deja cobrar si no cuadra. Hasta cobrar, la visita se edita: precios de cada línea, servicios y productos.
+- **Citas que se cobran desde la agenda**: una cita confirmada ya es su visita; «Cobrar» la abre con el servicio de la cita y, al cobrarla, la cita queda completada. Ver [docs/AGENDA.md](docs/AGENDA.md).
 - **Ticket** de caja imprimible (factura simplificada). Los datos fiscales salen de la sección `Negocio` de `appsettings.json`.
 - **Impresora térmica de tickets** del salón: el botón Imprimir del ticket manda el ticket en ESC/POS (logo, tildes con CP850, corte de papel) directamente por USB desde el navegador con **WebUSB**, sin diálogo de impresión, también con la web publicada en Azure. Se configura en la sección `ImpresoraTickets` de `appsettings.json` (`Vid`/`Pid` USB de la impresora, 32 caracteres y 384 puntos para papel de 58 mm). Requiere Chrome o Edge, la web en HTTPS (o `localhost`) y la impresora con el driver WinUSB que instala Zadig; la primera vez el navegador pide elegir la impresora. El botón «Navegador» imprime con el diálogo normal.
 - **Clientes** con buscador, ficha, historial de visitas y total gastado.
 - **Catálogo** con fotos. Cambiar un precio no altera las visitas ya registradas, porque cada visita guarda el nombre y el precio de cada servicio. Un servicio que aparece en visitas se archiva en lugar de borrarse.
-- **Productos de la tienda** con referencia, código de barras (también con lector), fotos y stock. Se añaden a las visitas y al ticket; al cobrar se preguntan también los productos utilizados en el servicio, y el stock se descuenta (si se acaba, queda en negativo para reponerlo). Entradas, usos y recuentos quedan en el historial de cada producto. Ver [docs/PRODUCTOS.md](docs/PRODUCTOS.md).
+- **Productos de la tienda** con referencia, código de barras (también con lector), fotos y stock. Se añaden a las visitas y al ticket vendidos o usados en el servicio (incluidos, a 0,00 €; se pregunta si se han terminado para descontarlos), y el stock se descuenta al cobrar (si se acaba, queda en negativo para reponerlo). Entradas, usos y recuentos quedan en el historial de cada producto. Ver [docs/PRODUCTOS.md](docs/PRODUCTOS.md).
 - **Dualidad de servicio**: una casilla del catálogo permite dar otras citas a la misma hora que ese servicio (un tinte mientras actúa). Ver [docs/AGENDA.md](docs/AGENDA.md).
 - **Preferencia de aviso del cliente** (correo o WhatsApp): si la ficha la tiene, los avisos de sus citas van siempre por ese canal, se den en el salón o se pidan en la web; si no, se elige en cada cita. Ver [docs/AGENDA.md](docs/AGENDA.md).
 - **Exportación a Excel** del periodo que se está viendo (con una hoja de productos vendidos si los hay).
+- **Coste de compra de cada producto con su historial** («en enero me costó 100, en febrero 120»), anotado al dar de alta, al editar, al recibir mercancía o a mano. Ver [docs/PRODUCTOS.md](docs/PRODUCTOS.md).
+- **Sorteos** de servicios y productos entre los clientes que elige el salón: ganador al azar (o elegido por el salón), aviso por correo o WhatsApp, historial de quién ganó, cuándo y cómo, y anuncios en la web (aviso flotante y página `/sorteos`) entre las fechas que se elijan. Ver [docs/SORTEOS.md](docs/SORTEOS.md).
 
 ## Arquitectura
 

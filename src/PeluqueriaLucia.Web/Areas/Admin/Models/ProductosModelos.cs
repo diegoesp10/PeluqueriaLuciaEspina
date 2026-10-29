@@ -119,9 +119,41 @@ public sealed class MovimientoFormulario
 
     [StringLength(MovimientoStock.LongitudNota, ErrorMessage = "La nota admite hasta {1} caracteres.")]
     public string? Nota { get; set; }
+
+    /// <summary>En una entrada, lo que ha costado cada unidad (opcional): queda en el historial de costes.</summary>
+    public decimal? Coste { get; set; }
 }
 
-public sealed record ProductoFichaModelo(Producto Producto, Pagina<MovimientoStock> Movimientos, MovimientoFormulario Movimiento);
+/// <summary>Anotar en la ficha lo que ha costado el producto desde una fecha.</summary>
+public sealed class CosteFormulario
+{
+    public decimal? Coste { get; set; }
+
+    /// <summary>Desde cuándo; sin fecha, hoy.</summary>
+    public DateOnly? Desde { get; set; }
+
+    [StringLength(CosteProducto.LongitudNota, ErrorMessage = "La nota admite hasta {1} caracteres.")]
+    public string? NotaCoste { get; set; }
+}
+
+/// <param name="Costes">Historial de costes de compra, lo más reciente primero.</param>
+public sealed record ProductoFichaModelo(Producto Producto, Pagina<MovimientoStock> Movimientos, MovimientoFormulario Movimiento,
+    IReadOnlyList<CosteProducto>? Costes = null, CosteFormulario? Coste = null)
+{
+    public IReadOnlyList<CosteProducto> HistorialCostes => Costes ?? [];
+
+    public CosteFormulario FormularioCoste => Coste ?? new CosteFormulario();
+
+    /// <summary>Lo que cambió el coste respecto al anotado antes (el siguiente de la lista); null en el primero.</summary>
+    public (decimal Diferencia, decimal? Porcentaje)? Variacion(int indice)
+    {
+        if (indice + 1 >= HistorialCostes.Count)
+            return null;
+        var anterior = HistorialCostes[indice + 1].Coste;
+        var diferencia = HistorialCostes[indice].Coste - anterior;
+        return (diferencia, anterior == 0 ? null : diferencia / anterior);
+    }
+}
 
 public sealed class CategoriaProductoFormulario
 {

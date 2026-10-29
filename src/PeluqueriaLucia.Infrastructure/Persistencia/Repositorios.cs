@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using PeluqueriaLucia.Application.Abstracciones;
 using PeluqueriaLucia.Application.Comun;
 using PeluqueriaLucia.Application.Visitas;
+using PeluqueriaLucia.Domain.Agenda;
 using PeluqueriaLucia.Domain.Catalogo;
 using PeluqueriaLucia.Domain.Clientes;
 using PeluqueriaLucia.Domain.Comun;
@@ -49,6 +50,18 @@ internal sealed class ClienteRepositorio(PeluqueriaDbContext db) : IClienteRepos
 
     public Task<bool> TieneVisitasAsync(int id, CancellationToken ct) => db.Visitas.AnyAsync(v => v.ClienteId == id, ct);
     public Task<List<Cliente>> BuscarPorContactoAsync(string telefono, string correo, CancellationToken ct) => ConsultaContactos.Candidatos(db.Clientes.AsNoTracking(),telefono,correo).ToListAsync(ct);
+
+    public Task<List<Cliente>> PorTelefonoAsync(string telefono, CancellationToken ct)
+    {
+        var numero = new string(telefono.Where(c => char.IsAsciiDigit(c) || c == '+').ToArray());
+        var local = numero.StartsWith("+34", StringComparison.Ordinal) ? numero[3..] : numero.StartsWith("0034", StringComparison.Ordinal) ? numero[4..] : numero;
+        return db.Clientes
+            .Where(c => c.Telefono != null)
+            .Where(c => c.Telefono!.Replace(" ", "").Replace("-", "").Replace("(", "").Replace(")", "") == local
+                || c.Telefono!.Replace(" ", "").Replace("-", "").Replace("(", "").Replace(")", "") == "+34" + local
+                || c.Telefono!.Replace(" ", "").Replace("-", "").Replace("(", "").Replace(")", "") == "0034" + local)
+            .ToListAsync(ct);
+    }
     public Task<bool> TieneCitasAsync(int id, CancellationToken ct) => db.ReservasCitas.AnyAsync(v => v.ClienteId == id, ct);
 
     public void Agregar(Cliente cliente) => db.Clientes.Add(cliente);
@@ -159,8 +172,9 @@ internal sealed class VisitaRepositorio(PeluqueriaDbContext db) : IVisitaReposit
         var facturado = await lineas.SumAsync(l => (decimal?)l.Precio, ct) ?? 0;
         var cobrado = await cobradas.SelectMany(v => v.Lineas).SumAsync(l => (decimal?)l.Precio, ct) ?? 0;
 
+        // Lo usado en el servicio no se vende (va incluido, a 0,00 €): no cuenta como producto vendido
         var productos = await visitas
-            .SelectMany(v => v.Productos.Select(p => new { p.Cantidad, p.Importe, Cobrada = v.Estado == EstadoVisita.Cobrada }))
+            .SelectMany(v => v.Productos.Where(p => p.Uso == UsoProducto.Venta).Select(p => new { p.Cantidad, p.Importe, Cobrada = v.Estado == EstadoVisita.Cobrada }))
             .GroupBy(_ => 1)
             .Select(g => new
             {
@@ -172,6 +186,37 @@ internal sealed class VisitaRepositorio(PeluqueriaDbContext db) : IVisitaReposit
 
         return new ResumenVisitas(porVisita.Visitas, servicios, facturado + (productos?.Facturado ?? 0), cobrado + (productos?.Cobrado ?? 0),
             porVisita.Efectivo, porVisita.Tarjeta, productos?.Unidades ?? 0);
+    }
+
+    public Task<ReservaCita?> CitaAsync(Guid id, CancellationToken ct) => db.ReservasCitas.SingleOrDefaultAsync(c => c.Id == id, ct);
+
+    public Task<Visita?> DeCitaAsync(Guid reservaId, CancellationToken ct) =>
+        db.Visitas.Include(v => v.Cliente).Include(v => v.Lineas).Include(v => v.Productos).AsSplitQuery()
+            .SingleOrDefaultAsync(v => v.ReservaId == reservaId, ct);
+
+    public async Task<Visita?> SinCitaDelDiaAsync(int clienteId, DateTime hora, CancellationToken ct)
+    {
+        var inicio = hora.Date;
+        var fin = inicio.AddDays(1);
+        var delDia = await db.Visitas
+            .Where(v => v.ClienteId == clienteId && v.ReservaId == null && v.Fecha >= inicio && v.Fecha < fin)
+            .ToListAsync(ct);
+        return delDia.OrderBy(v => Math.Abs((v.Fecha - hora).Ticks)).FirstOrDefault();
+    }
+
+    public async Task<IReadOnlyList<ReservaCita>> CitasPorCobrarAsync(DateOnly dia, CancellationToken ct)
+    {
+        var inicio = dia.ToDateTime(TimeOnly.MinValue);
+        var fin = inicio.AddDays(1);
+        return await db.ReservasCitas
+            .AsNoTracking()
+            .Include(c => c.Cliente)
+            .Where(c => c.Inicio >= inicio && c.Inicio < fin && c.Origen != OrigenCita.Bloqueo
+                && (c.Estado == EstadoCita.Confirmada || c.Estado == EstadoCita.Completada)
+                && !db.Visitas.Any(v => v.ReservaId == c.Id
+                    || (c.ClienteId != null && v.ReservaId == null && v.ClienteId == c.ClienteId && v.Fecha >= inicio && v.Fecha < fin)))
+            .OrderBy(c => c.Inicio)
+            .ToListAsync(ct);
     }
 
     public void Agregar(Visita visita) => db.Visitas.Add(visita);

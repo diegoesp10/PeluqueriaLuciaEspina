@@ -94,16 +94,40 @@ internal sealed class MovimientoStockConfiguracion : IEntityTypeConfiguration<Mo
     }
 }
 
+internal sealed class CosteProductoConfiguracion : IEntityTypeConfiguration<CosteProducto>
+{
+    public void Configure(EntityTypeBuilder<CosteProducto> builder)
+    {
+        builder.ToTable("CostesProductos", t => t.HasCheckConstraint("CK_CostesProductos_Coste", "[Coste] >= 0"));
+        builder.Property(c => c.Coste).HasColumnType("decimal(18,2)");
+        builder.Property(c => c.Nota).HasMaxLength(CosteProducto.LongitudNota);
+
+        // El historial de costes es del producto: solo se borra con él (que solo se borra si nunca se ha vendido)
+        builder.HasOne(c => c.Producto)
+            .WithMany()
+            .HasForeignKey(c => c.ProductoId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(c => new { c.ProductoId, c.Desde });
+    }
+}
+
 internal sealed class LineaProductoVisitaConfiguracion : IEntityTypeConfiguration<LineaProductoVisita>
 {
     public void Configure(EntityTypeBuilder<LineaProductoVisita> builder)
     {
         builder.ToTable("ProductosVisitas", t =>
-            t.HasCheckConstraint("CK_ProductosVisitas_Cantidad", $"[Cantidad] BETWEEN 1 AND {LineaProductoVisita.CantidadMaxima}"));
+        {
+            t.HasCheckConstraint("CK_ProductosVisitas_Cantidad", $"[Cantidad] BETWEEN 1 AND {LineaProductoVisita.CantidadMaxima}");
+            // Lo usado en el servicio va incluido en él: nunca tiene precio
+            t.HasCheckConstraint("CK_ProductosVisitas_Uso", "[Uso] = 0 OR ([Uso] IN (1, 2) AND [PrecioUnitario] = 0 AND [Importe] = 0)");
+        });
         builder.Property(l => l.Referencia).IsRequired().HasMaxLength(Producto.LongitudReferencia);
         builder.Property(l => l.Nombre).IsRequired().HasMaxLength(Producto.LongitudNombre);
         builder.Property(l => l.PrecioUnitario).HasColumnType("decimal(18,2)");
         builder.Property(l => l.Importe).HasColumnType("decimal(18,2)");
+        builder.Ignore(l => l.Incluido);
+        builder.Ignore(l => l.DescuentaStock);
 
         // Un producto vendido se archiva, nunca se borra
         builder.HasOne<Producto>()

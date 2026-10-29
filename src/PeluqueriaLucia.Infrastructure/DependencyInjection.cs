@@ -29,6 +29,8 @@ public static class DependencyInjection
         services.AddSingleton<IProtectorSecretos, ProtectorSecretos>();
         services.AddScoped<IContenidoRepositorio, ContenidoRepositorio>();
         services.AddScoped<PeluqueriaLucia.Application.Agenda.IRepositorioAgenda, RepositorioAgenda>();
+        services.AddScoped<PeluqueriaLucia.Application.Sorteos.ISorteoRepositorio, SorteoRepositorio>();
+        services.AddSingleton<PeluqueriaLucia.Application.Sorteos.IAzar, AzarSeguro>();
         services.AddSingleton<Comunicaciones.Correo.IConfiguracionSmtp, ConfiguracionCorreo>();
         services.AddSingleton<Comunicaciones.Correo.IEnviadorCorreo, Comunicaciones.Correo.EnviadorCorreoSmtp>();
         services.AddSingleton<Comunicaciones.WhatsApp.IWhatsAppManual, Comunicaciones.WhatsApp.WhatsAppManual>();

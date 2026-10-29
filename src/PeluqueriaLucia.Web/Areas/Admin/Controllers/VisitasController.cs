@@ -3,8 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using PeluqueriaLucia.Application.Catalogo;
 using PeluqueriaLucia.Application.Clientes;
+using PeluqueriaLucia.Application.Comun;
 using PeluqueriaLucia.Application.Productos;
 using PeluqueriaLucia.Application.Visitas;
+using PeluqueriaLucia.Domain.Visitas;
 using PeluqueriaLucia.Web.Infraestructura;
 using PeluqueriaLucia.Web.Infraestructura.Impresion;
 using PeluqueriaLucia.Web.Areas.Admin.Models;
@@ -22,6 +24,9 @@ public sealed class VisitasController(
     IOptions<ImpresoraTickets> impresora,
     IWebHostEnvironment entorno) : AdminController
 {
+    private const string PreciosServicios = nameof(VisitaFormulario.PreciosServicios) + "[";
+    private const string PreciosProductos = nameof(VisitaFormulario.PreciosProductos) + "[";
+
     private DateTime Ahora => reloj.GetLocalNow().DateTime;
 
     private DateOnly Hoy => DateOnly.FromDateTime(Ahora);
@@ -35,7 +40,8 @@ public sealed class VisitasController(
         // Secuencial a propósito: el contexto de base de datos no admite consultas simultáneas
         var listado = await visitas.ListarAsync(filtro, pagina, ct);
         var resumen = await visitas.ResumirAsync(filtro, ct);
-        return View(new VisitasIndiceModelo(periodo, dia, Hoy, listado, resumen));
+        var porCobrar = periodo == Periodo.Dia ? await visitas.CitasPorCobrarAsync(dia, ct) : [];
+        return View(new VisitasIndiceModelo(periodo, dia, Hoy, listado, resumen, porCobrar));
     }
 
     [HttpGet]
@@ -79,7 +85,7 @@ public sealed class VisitasController(
         if (ModelState.IsValid)
         {
             var datos = new NuevaVisita(formulario.ClienteId!.Value, formulario.Fecha!.Value, formulario.FormaPago, formulario.Servicios, formulario.Precios,
-                [.. formulario.Productos.Select(p => new ProductoNuevaVisita(p.ProductoId, p.Cantidad, p.Precio))]);
+                [.. formulario.Productos.Select(p => new ProductoNuevaVisita(p.ProductoId, p.Cantidad, p.Precio, p.Uso))]);
             var resultado = await visitas.RegistrarAsync(datos, ct);
             if (resultado.Exito)
             {
@@ -96,6 +102,32 @@ public sealed class VisitasController(
         return View(await ModeloNuevaAsync(formulario, ct));
     }
 
+    /// <summary>
+    /// «Cobrar» en una cita confirmada de la agenda: abre su visita, con el servicio de la cita, para añadir lo que haga falta
+    /// y cobrarla. Si ya la tenía (o el cliente tiene una visita ese día registrada aparte), abre esa.
+    /// </summary>
+    [HttpPost]
+    public async Task<IActionResult> DesdeCita(Guid reservaId, string? volver, CancellationToken ct)
+    {
+        IActionResult Volver() => Url.IsLocalUrl(volver) ? LocalRedirect(volver) : Redirect("/admin/agenda");
+        Resultado<int> resultado;
+        try
+        {
+            resultado = await visitas.AbrirDesdeCitaAsync(reservaId, ct);
+        }
+        catch (DbUpdateException)
+        {
+            // Dos «Cobrar» a la vez en la misma cita: una cita solo tiene una visita y la otra petición ya la ha abierto
+            this.AvisarError("La visita de esta cita se acaba de abrir en otra pestaña. Vuelve a pulsar «Cobrar».");
+            return Volver();
+        }
+
+        if (resultado.Exito)
+            return RedirectToAction(nameof(Detalle), new { id = resultado.Valor });
+        this.AvisarError(resultado.Error!.Mensaje);
+        return Volver();
+    }
+
     [HttpGet]
     public async Task<IActionResult> Detalle(int id, CancellationToken ct)
     {
@@ -103,84 +135,78 @@ public sealed class VisitasController(
         if (visita is null)
             return NotFound();
 
-        return View(await ModeloDetalleAsync(visita, new CobroFormulario { FormaPago = visita.FormaPago }, ct));
+        return View(await ModeloDetalleAsync(visita, new VisitaFormulario { FormaPago = visita.FormaPago }, ct));
+    }
+
+    /// <summary>Guarda los precios escritos sin cobrar (la visita sigue pendiente).</summary>
+    [HttpPost]
+    public Task<IActionResult> Guardar(int id, VisitaFormulario formulario, CancellationToken ct) =>
+        EditarAsync(id, formulario, precios => visitas.GuardarPreciosAsync(id, precios, ct), "Precios guardados. La visita sigue pendiente de cobro.", null, ct);
+
+    [HttpPost]
+    public Task<IActionResult> AgregarServicio(int id, VisitaFormulario formulario, CancellationToken ct)
+    {
+        if (formulario.ServicioId is null)
+            ModelState.AddModelError(nameof(formulario.ServicioId), "Elige un servicio de la lista.");
+        return EditarAsync(id, formulario, precios => visitas.AgregarServicioAsync(id, formulario.ServicioId!.Value, formulario.PrecioServicio, precios, ct),
+            "Servicio añadido a la visita.", "servicio", ct, nameof(formulario.ServicioId), nameof(formulario.PrecioServicio));
     }
 
     [HttpPost]
-    public async Task<IActionResult> Cobrar(int id, CobroFormulario cobro, CancellationToken ct)
+    public Task<IActionResult> QuitarServicio(int id, int lineaId, VisitaFormulario formulario, CancellationToken ct) =>
+        EditarAsync(id, formulario, precios => visitas.QuitarServicioAsync(id, lineaId, precios, ct), "Servicio quitado de la visita.", null, ct);
+
+    [HttpPost]
+    public Task<IActionResult> AgregarProducto(int id, VisitaFormulario formulario, CancellationToken ct)
     {
-        try
-        {
-            // Las filas sin producto elegido (quitadas a medias) no cuentan
-            cobro.Usados.RemoveAll(u => u.ProductoId <= 0);
-            // Unidades no válidas en una fila: un solo mensaje, debajo de la lista de productos utilizados
-            var filas = ModelState.Where(e => e.Key.StartsWith("Usados[", StringComparison.Ordinal)).ToList();
-            var invalidas = filas.SelectMany(e => e.Value!.Errors).Select(e => e.ErrorMessage).Distinct().ToList();
-            if (invalidas.Count > 0)
-            {
-                filas.ForEach(e => ModelState.Remove(e.Key));
-                invalidas.ForEach(m => ModelState.AddModelError(nameof(cobro.Usados), m));
-                var actual = await visitas.ObtenerAsync(id, ct);
-                return actual is null ? NotFound() : View(nameof(Detalle), await ModeloDetalleAsync(actual, cobro, ct));
-            }
+        if (formulario.ProductoId is null)
+            ModelState.AddModelError(nameof(formulario.ProductoId), "Elige un producto de la lista.");
+        if (formulario.Cantidad is < 1 or > LineaProductoVisita.CantidadMaxima)
+            ModelState.AddModelError(nameof(formulario.Cantidad), $"Indica entre 1 y {LineaProductoVisita.CantidadMaxima} unidades.");
+        if (formulario.Uso is null)
+            ModelState.AddModelError(nameof(formulario.Terminado), "¿Se ha terminado el producto usado en el servicio? Si se ha terminado sale del stock; si no, sigue en uso.");
+        return EditarAsync(id, formulario,
+            precios => visitas.AgregarProductoAsync(id, formulario.ProductoId!.Value, formulario.Cantidad, formulario.Precio, formulario.Uso!.Value, precios, ct),
+            formulario.EnServicio ? "Producto usado en el servicio añadido a la visita." : "Producto añadido a la visita.", "producto", ct,
+            nameof(formulario.ProductoId), nameof(formulario.Cantidad), nameof(formulario.Precio), nameof(formulario.EnServicio), nameof(formulario.Terminado));
+    }
 
-            var usados = cobro.Usados.Select(u => new ProductoUsadoCobro(u.ProductoId, u.Cantidad)).ToList();
-            var resultado = await visitas.CobrarAsync(id, cobro.FormaPago, cobro.Efectivo, cobro.Tarjeta, AdministradorId, usados, ct);
-            if (resultado.Exito)
-            {
-                this.AvisarExito("Visita cobrada.");
-                return RedirectToAction(nameof(Ticket), new { id });
-            }
+    [HttpPost]
+    public Task<IActionResult> QuitarProducto(int id, int lineaId, VisitaFormulario formulario, CancellationToken ct) =>
+        EditarAsync(id, formulario, precios => visitas.QuitarProductoAsync(id, lineaId, precios, ct), "Producto quitado de la visita.", null, ct);
 
-            ModelState.AgregarError(resultado.Error!);
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            // Otro cobro ha vendido a la vez alguno de los productos: no se ha cobrado nada. Se vuelve a cargar la visita
-            // en otra petición, porque la de esta tiene en memoria el cobro que no se ha guardado.
-            this.AvisarError("El stock de algún producto acaba de cambiar con otro cobro. No se ha cobrado nada: revisa la visita y vuelve a cobrar.");
-            return RedirectToAction(nameof(Detalle), new { id });
-        }
-
+    /// <summary>Cobra la visita con los precios que hay escritos en pantalla en ese momento.</summary>
+    [HttpPost]
+    public async Task<IActionResult> Cobrar(int id, VisitaFormulario formulario, CancellationToken ct)
+    {
         var visita = await visitas.ObtenerAsync(id, ct);
         if (visita is null)
             return NotFound();
 
-        return View(nameof(Detalle), await ModeloDetalleAsync(visita, cobro, ct));
-    }
-
-    [HttpPost]
-    public async Task<IActionResult> AgregarProducto(int id, AgregarProductoFormulario agregar, CancellationToken ct)
-    {
-        if (ModelState.IsValid)
+        var precios = LeerPrecios(formulario, visita, nameof(formulario.FormaPago), nameof(formulario.Efectivo), nameof(formulario.Tarjeta));
+        if (precios is not null)
         {
-            var resultado = await visitas.AgregarProductoAsync(id, agregar.ProductoId!.Value, agregar.Cantidad, agregar.Precio, ct);
-            if (resultado.Exito)
+            try
             {
-                this.AvisarExito("Producto añadido a la visita.");
+                var resultado = await visitas.CobrarAsync(id, formulario.FormaPago, formulario.Efectivo, formulario.Tarjeta, AdministradorId, precios, ct);
+                if (resultado.Exito)
+                {
+                    this.AvisarExito("Visita cobrada.");
+                    return RedirectToAction(nameof(Ticket), new { id });
+                }
+
+                ModelState.AgregarError(resultado.Error!);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                // Otro cobro ha vendido a la vez alguno de los productos, o la cita ha cambiado en la agenda: no se ha cobrado
+                // nada. Se vuelve a cargar la visita en otra petición, porque la de esta tiene en memoria el cobro sin guardar.
+                this.AvisarError("El stock de algún producto o la cita acaban de cambiar. No se ha cobrado nada: revisa la visita y vuelve a cobrar.");
                 return RedirectToAction(nameof(Detalle), new { id });
             }
-
-            ModelState.AgregarError(resultado.Error!);
         }
 
-        var visita = await visitas.ObtenerAsync(id, ct);
-        if (visita is null)
-            return NotFound();
-
-        return View(nameof(Detalle), await ModeloDetalleAsync(visita, new CobroFormulario { FormaPago = visita.FormaPago }, ct, agregar));
-    }
-
-    [HttpPost]
-    public async Task<IActionResult> QuitarProducto(int id, int lineaId, CancellationToken ct)
-    {
-        var resultado = await visitas.QuitarProductoAsync(id, lineaId, ct);
-        if (resultado.Exito)
-            this.AvisarExito("Producto quitado de la visita.");
-        else
-            this.AvisarError(resultado.Error!.Mensaje);
-
-        return RedirectToAction(nameof(Detalle), new { id });
+        return View(nameof(Detalle), await ModeloDetalleAsync(visita, formulario, ct));
     }
 
     [HttpPost]
@@ -224,6 +250,65 @@ public sealed class VisitasController(
         return File(TicketEscPos.Construir(modelo, impresora.Value, imagen), "application/octet-stream");
     }
 
+    /// <summary>
+    /// Un cambio en una visita pendiente desde su pantalla: guarda los precios escritos y hace el cambio, todo a la vez. Si algo
+    /// no vale, vuelve a la visita con lo escrito y el error; <paramref name="abierto"/> dice qué se estaba añadiendo.
+    /// </summary>
+    private async Task<IActionResult> EditarAsync(int id, VisitaFormulario formulario, Func<PreciosVisita, Task<Resultado>> cambio, string exito,
+        string? abierto, CancellationToken ct, params string[] campos)
+    {
+        var visita = await visitas.ObtenerAsync(id, ct);
+        if (visita is null)
+            return NotFound();
+
+        if (LeerPrecios(formulario, visita, campos) is { } precios)
+        {
+            var resultado = await cambio(precios);
+            if (resultado.Exito)
+            {
+                this.AvisarExito(exito);
+                return RedirectToAction(nameof(Detalle), new { id });
+            }
+
+            ModelState.AgregarError(resultado.Error!);
+        }
+
+        return View(nameof(Detalle), await ModeloDetalleAsync(visita, formulario, ct, abierto));
+    }
+
+    /// <summary>
+    /// Los precios escritos en pantalla, o null si alguno no vale (con su error). Antes quita de ModelState lo que no es de
+    /// esta acción ni un precio: por ejemplo, unidades a medio escribir para añadir un producto no impiden cobrar.
+    /// </summary>
+    private PreciosVisita? LeerPrecios(VisitaFormulario formulario, Visita visita, params string[] campos)
+    {
+        foreach (var clave in ModelState.Keys.Where(c => !c.StartsWith(PreciosServicios, StringComparison.Ordinal)
+                     && !c.StartsWith(PreciosProductos, StringComparison.Ordinal) && !campos.Contains(c)).ToList())
+            ModelState.Remove(clave);
+
+        // Un mensaje por precio, con el nombre de lo que se cobra
+        foreach (var linea in visita.Lineas)
+            ComprobarPrecio(PreciosServicios, linea.Id, linea.Nombre, formulario.PreciosServicios);
+        foreach (var linea in visita.Productos.Where(p => !p.Incluido))
+            ComprobarPrecio(PreciosProductos, linea.Id, linea.Nombre, formulario.PreciosProductos);
+        if (!ModelState.IsValid)
+            return null;
+
+        return new PreciosVisita(
+            formulario.PreciosServicios.Where(p => p.Value is not null).ToDictionary(p => p.Key, p => p.Value!.Value),
+            formulario.PreciosProductos.Where(p => p.Value is not null).ToDictionary(p => p.Key, p => p.Value!.Value));
+    }
+
+    private void ComprobarPrecio(string prefijo, int lineaId, string nombre, Dictionary<int, decimal?> precios)
+    {
+        var clave = $"{prefijo}{lineaId}]";
+        var noVale = ModelState.TryGetValue(clave, out var entrada) && entrada.Errors.Count > 0;
+        if (noVale)
+            entrada!.Errors.Clear();
+        if (noVale || (precios.TryGetValue(lineaId, out var precio) && precio is null))
+            ModelState.AddModelError(clave, $"Escribe el precio de «{nombre}», por ejemplo 12,50.");
+    }
+
     private async Task<NuevaVisitaModelo> ModeloNuevaAsync(NuevaVisitaFormulario formulario, CancellationToken ct)
     {
         var cliente = formulario.ClienteId is { } id ? await clientes.ObtenerAsync(id, ct) : null;
@@ -231,8 +316,15 @@ public sealed class VisitasController(
         return new NuevaVisitaModelo(formulario, cliente, servicios, await productos.ParaVentaAsync(ct));
     }
 
-    private async Task<VisitaDetalleModelo> ModeloDetalleAsync(Domain.Visitas.Visita visita, CobroFormulario cobro, CancellationToken ct, AgregarProductoFormulario? agregar = null) =>
-        visita.EstaCobrada
-            ? new(visita, cobro, [], agregar, await visitas.UsadosAsync(visita.Id, ct))
-            : new(visita, cobro, await productos.ParaVentaAsync(ct), agregar);
+    private async Task<VisitaDetalleModelo> ModeloDetalleAsync(Visita visita, VisitaFormulario formulario, CancellationToken ct, string? abierto = null)
+    {
+        // Secuencial: el contexto de base de datos no admite consultas simultáneas
+        var cita = visita.ReservaId is { } reservaId ? await visitas.CitaAsync(reservaId, ct) : null;
+        if (visita.EstaCobrada)
+            return new(visita, formulario, [], [], cita, await visitas.UsadosAsync(visita.Id, ct));
+
+        var paraVenta = await productos.ParaVentaAsync(ct);
+        var servicios = await catalogo.ListarAsync(null, incluirArchivados: false, ct);
+        return new(visita, formulario, paraVenta, servicios, cita, Abierto: abierto);
+    }
 }

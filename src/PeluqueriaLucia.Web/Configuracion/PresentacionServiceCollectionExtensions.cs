@@ -59,6 +59,7 @@ public static class PresentacionServiceCollectionExtensions
         // Nombre, teléfono, dirección y logo del salón para los avisos a clientes (plantilla de correo y textos)
         services.AddMemoryCache();
         services.AddScoped<TelefonosPublicos>();
+        services.AddScoped<SorteosPublicos>();
         services.AddScoped<PeluqueriaLucia.Application.Agenda.IDatosSalon, DatosSalonWeb>();
         services.Configure<OpcionesBaseDeDatos>(configuration.GetSection(OpcionesBaseDeDatos.Seccion));
         services.PostConfigure<OpcionesImagenes>(o => o.Carpeta = string.IsNullOrWhiteSpace(o.Carpeta)

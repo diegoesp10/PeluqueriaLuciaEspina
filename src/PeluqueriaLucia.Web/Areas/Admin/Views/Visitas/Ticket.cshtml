@@ -53,7 +53,7 @@
                 }
                 @foreach (var producto in v.Productos)
                 {
-                    <tr><td class="uds">@producto.Cantidad</td><td>@producto.Nombre@if (producto.Cantidad > 1) { <span class="ticket-tenue"> (@Importe(producto.PrecioUnitario) c/u)</span> }</td><td class="importe">@Importe(producto.Importe)</td></tr>
+                    <tr><td class="uds">@producto.Cantidad</td><td>@producto.Nombre@if (producto.Incluido) { <span class="ticket-tenue"> (incluido en el servicio)</span> } else if (producto.Cantidad > 1) { <span class="ticket-tenue"> (@Importe(producto.PrecioUnitario) c/u)</span> }</td><td class="importe">@Importe(producto.Importe)</td></tr>
                 }
             </tbody>
             <tfoot>

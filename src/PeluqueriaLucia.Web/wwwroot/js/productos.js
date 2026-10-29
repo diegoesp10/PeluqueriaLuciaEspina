@@ -17,13 +17,16 @@
     });
   });
 
-  // ── Movimiento de stock: la ayuda cambia con el tipo elegido ──
+  // ── Movimiento de stock: la ayuda cambia con el tipo elegido; el coste solo se pide en las entradas ──
   const movimiento = document.querySelector('[data-movimiento-stock]');
   if (movimiento) {
     const ayuda = movimiento.querySelector('[data-movimiento-ayuda]');
+    const coste = movimiento.querySelector('[data-solo-entrada]');
     movimiento.querySelectorAll('input[name="Tipo"]').forEach((radio) =>
       radio.addEventListener('change', () => {
-        if (radio.checked) ayuda.textContent = radio.dataset.ayuda;
+        if (!radio.checked) return;
+        ayuda.textContent = radio.dataset.ayuda;
+        if (coste) coste.hidden = radio.value !== 'Entrada';
       }),
     );
   }

@@ -5,8 +5,8 @@ using PeluqueriaLucia.Domain.Visitas;
 namespace PeluqueriaLucia.Infrastructure.Exportacion;
 
 /// <summary>
-/// Libro de Excel con una fila por visita y una fila de totales, listo para la gestoría. Si se vendieron productos,
-/// una segunda hoja los detalla: una fila por producto y visita.
+/// Libro de Excel con una fila por visita y una fila de totales, listo para la gestoría. Si hubo productos (vendidos o
+/// usados en el servicio, que van incluidos a 0,00 €), una segunda hoja los detalla: una fila por producto y visita.
 /// </summary>
 internal sealed class ExportadorExcelVisitas(TimeProvider reloj) : IExportadorVisitas
 {
@@ -16,7 +16,7 @@ internal sealed class ExportadorExcelVisitas(TimeProvider reloj) : IExportadorVi
         ["Fecha", "Hora", "Cliente", "Servicios", "Productos", "Total", "Estado", "Forma de pago", "Efectivo", "Tarjeta"];
 
     private static readonly string[] CabecerasProductos =
-        ["Fecha", "Hora", "Cliente", "Referencia", "Producto", "Uds", "Precio", "Importe", "Estado"];
+        ["Fecha", "Hora", "Cliente", "Referencia", "Producto", "Uds", "Precio", "Importe", "Estado", "Uso"];
 
     public ArchivoGenerado Exportar(IReadOnlyList<Visita> visitas, string descripcionPeriodo)
     {
@@ -37,7 +37,7 @@ internal sealed class ExportadorExcelVisitas(TimeProvider reloj) : IExportadorVi
             hoja.Cell(fila, 2).Value = v.Fecha.ToString("HH:mm");
             hoja.Cell(fila, 3).Value = v.Cliente?.NombreCompleto ?? "—";
             hoja.Cell(fila, 4).Value = string.Join(", ", v.Lineas.Select(l => l.Nombre));
-            hoja.Cell(fila, 5).Value = string.Join(", ", v.Productos.Select(p => p.Cantidad == 1 ? p.Nombre : $"{p.Cantidad} × {p.Nombre}"));
+            hoja.Cell(fila, 5).Value = string.Join(", ", v.Productos.Select(p => (p.Cantidad == 1 ? p.Nombre : $"{p.Cantidad} × {p.Nombre}") + (p.Incluido ? " (incluido)" : "")));
             hoja.Cell(fila, 6).Value = v.Total;
             hoja.Cell(fila, 7).Value = v.EstaCobrada ? "Cobrada" : "Pendiente";
             hoja.Cell(fila, 8).Value = v.EstaCobrada ? v.FormaPago.ToString() : string.Empty;
@@ -79,7 +79,7 @@ internal sealed class ExportadorExcelVisitas(TimeProvider reloj) : IExportadorVi
     private static void HojaProductos(XLWorkbook libro, IReadOnlyList<Visita> visitas, string descripcionPeriodo)
     {
         var hoja = libro.Worksheets.Add("Productos");
-        hoja.Cell(1, 1).Value = $"Productos vendidos · {descripcionPeriodo}";
+        hoja.Cell(1, 1).Value = $"Productos de las visitas · {descripcionPeriodo}";
         hoja.Cell(1, 1).Style.Font.SetBold().Font.SetFontSize(14);
 
         const int filaCabecera = 3;
@@ -100,6 +100,12 @@ internal sealed class ExportadorExcelVisitas(TimeProvider reloj) : IExportadorVi
                 hoja.Cell(fila, 7).Value = p.PrecioUnitario;
                 hoja.Cell(fila, 8).Value = p.Importe;
                 hoja.Cell(fila, 9).Value = v.EstaCobrada ? "Cobrada" : "Pendiente";
+                hoja.Cell(fila, 10).Value = p.Uso switch
+                {
+                    UsoProducto.ServicioTerminado => "En el servicio (terminado)",
+                    UsoProducto.ServicioEnUso => "En el servicio (sigue en uso)",
+                    _ => "Venta",
+                };
                 fila++;
             }
         }

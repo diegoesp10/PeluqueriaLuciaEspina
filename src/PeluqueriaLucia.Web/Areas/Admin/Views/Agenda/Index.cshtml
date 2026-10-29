@@ -64,8 +64,10 @@
         {
             var caducada = AgendaCalendario.Caducada(c, Model.Utc);
             var web = c.Origen == OrigenCita.Web; var bloqueo = c.Origen == OrigenCita.Bloqueo;
-            var estado = AgendaCalendario.TextoEstado(c, Model.Utc);
             var cerrada = AgendaCalendario.GrupoDe(c, Model.Utc) == FiltroCitas.Canceladas;
+            // La cita confirmada ya es su visita: se completa al cobrarla
+            var visita = AgendaCalendario.Cobrable(c) ? Model.VisitaDe(c) : null;
+            var estado = visita is { EstaCobrada: true } && c.Estado == EstadoCita.Completada ? "Completada y cobrada" : AgendaCalendario.TextoEstado(c, Model.Utc);
             <article class="card agenda-cita@(bloqueo ? " agenda-bloqueo" : "")"><div class="agenda-cita-hora"><strong>@c.Inicio.ToString("HH:mm")</strong><span>hasta @c.Fin.ToString("HH:mm")</span><span class="badge">@estado</span>@if (c.Origen == OrigenCita.Panel) { <span class="badge">Dada en el salón</span> }@if (c.Dualidad) { <span class="badge" title="Servicio con dualidad: puede coincidir con otras citas">Dualidad</span> }</div><div class="agenda-cita-datos">
             @if (bloqueo) { <h3>@c.Nombre</h3> }
             else
@@ -75,7 +77,19 @@
                 @if (web) { <p>@c.Correo · @c.Canal</p> }
                 @if (c.AceptadaUtc is not null) { <p class="nota">Aceptada por el cliente.</p> }
             }
-            @if (c.Cliente is not null) { <div class="agenda-botones"><a class="btn btn-gray" href="/admin/clientes/Detalle/@c.ClienteId">Ficha de cliente · @c.Cliente.NumeroFaltas faltas</a>@if (c.Estado is EstadoCita.Confirmada or EstadoCita.Completada) { <a class="btn btn-gray" href="/admin/Visitas/Nueva?clienteId=@c.ClienteId">Registrar visita</a> }@if (c.Cliente.PendienteCompletar) { <span class="badge">Ficha incompleta</span> }</div> }
+            @if (AgendaCalendario.Cobrable(c) || c.Cliente is not null)
+            {
+                <div class="agenda-botones">
+                    @if (AgendaCalendario.Cobrable(c))
+                    {
+                        @* «Completar y cobrar» abre (o crea) la visita de la cita y lleva a ella; la cita queda completada al cobrarla *@
+                        if (visita is { EstaCobrada: true }) { <a class="btn btn-gray" href="/admin/Visitas/Ticket/@visita.Id"><icono nombre="check" tamano="16" /> Cobrada · @Formato.Euros(visita.Total)</a> }
+                        else if (visita is not null) { <a class="btn btn-success" href="/admin/Visitas/Detalle/@visita.Id"><icono nombre="euro" tamano="16" /> Cobrar · @Formato.Euros(visita.Total)</a> }
+                        else { <form method="post" action="/admin/Visitas/DesdeCita">@Html.AntiForgeryToken()<input type="hidden" name="reservaId" value="@c.Id" /><input type="hidden" name="volver" value="@Ruta(Model.Dia)" /><button class="btn btn-success"><icono nombre="euro" tamano="16" /> @(c.Estado == EstadoCita.Completada ? "Cobrar" : "Completar y cobrar")</button></form> }
+                    }
+                    @if (c.Cliente is not null) { <a class="btn btn-gray" href="/admin/clientes/Detalle/@c.ClienteId">Ficha de cliente · @c.Cliente.NumeroFaltas faltas</a>@if (c.Cliente.PendienteCompletar) { <span class="badge">Ficha incompleta</span> } }
+                </div>
+            }
             @if (c.Estado == EstadoCita.Confirmada && c.ClienteId is not null) { <form method="post" action="/admin/agenda/falta">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@c.Id" /><input type="hidden" name="version" value="@Convert.ToBase64String(c.Version)" /><div class="agenda-gestion"><label>Nota sobre la inasistencia (solo administración)<input name="nota" maxlength="500" /></label></div><div class="agenda-botones"><button class="btn btn-gray">Registrar falta de asistencia</button></div></form> }
             @if (c.Estado is EstadoCita.Pendiente or EstadoCita.Confirmada or EstadoCita.PendienteAceptacion && !caducada)
             {
@@ -83,11 +97,11 @@
                     <div class="agenda-gestion"><label>Duración (min)<input type="number" name="minutos" min="5" max="600" step="1" value="@((int)(c.Fin - c.Inicio).TotalMinutes)" required /></label><label>Nota interna<input name="nota" maxlength="500" value="@c.NotaInterna" /></label></div>
                     @if (web)
                     {
-                        <label class="agenda-consentimiento"><input type="checkbox" name="telefonoValidado" value="true" checked="@c.TelefonoValidado" /> He contactado con este teléfono y validado la cita.</label><div class="agenda-botones"><button class="btn btn-primary" name="estado" value="Confirmada">@(c.Estado == EstadoCita.Confirmada ? "Actualizar duración" : c.Estado == EstadoCita.PendienteAceptacion ? "Guardar ajustes" : "Preparar propuesta")</button>@if (c.Estado != EstadoCita.Confirmada) { <button class="btn btn-gray" name="estado" value="Confirmada" formaction="/admin/agenda/gestionar?confirmarDirecto=true" title="Ya la has acordado con el cliente: queda confirmada sin esperar a que acepte el enlace.">Confirmar ya (acordada por teléfono)</button> }<button class="btn btn-gray" name="estado" value="@(c.Estado == EstadoCita.Pendiente ? "Rechazada" : "Cancelada")">@(c.Estado == EstadoCita.Pendiente ? "Rechazar" : "Cancelar cita")</button>@if (c.Estado == EstadoCita.Confirmada) { <button class="btn btn-gray" name="estado" value="Completada">Completar</button> }</div>
+                        <label class="agenda-consentimiento"><input type="checkbox" name="telefonoValidado" value="true" checked="@c.TelefonoValidado" /> He contactado con este teléfono y validado la cita.</label><div class="agenda-botones"><button class="btn btn-primary" name="estado" value="Confirmada">@(c.Estado == EstadoCita.Confirmada ? "Actualizar duración" : c.Estado == EstadoCita.PendienteAceptacion ? "Guardar ajustes" : "Preparar propuesta")</button>@if (c.Estado != EstadoCita.Confirmada) { <button class="btn btn-gray" name="estado" value="Confirmada" formaction="/admin/agenda/gestionar?confirmarDirecto=true" title="Ya la has acordado con el cliente: queda confirmada sin esperar a que acepte el enlace.">Confirmar ya (acordada por teléfono)</button> }<button class="btn btn-gray" name="estado" value="@(c.Estado == EstadoCita.Pendiente ? "Rechazada" : "Cancelada")">@(c.Estado == EstadoCita.Pendiente ? "Rechazar" : "Cancelar cita")</button></div>
                     }
                     else
                     {
-                        <input type="hidden" name="telefonoValidado" value="true" /><div class="agenda-botones"><button class="btn btn-primary" name="estado" value="Confirmada">Guardar cambios</button><button class="btn btn-gray" name="estado" value="Cancelada">@(bloqueo ? "Quitar bloqueo" : "Cancelar cita")</button>@if (!bloqueo) { <button class="btn btn-gray" name="estado" value="Completada">Completar</button> }</div>
+                        <input type="hidden" name="telefonoValidado" value="true" /><div class="agenda-botones"><button class="btn btn-primary" name="estado" value="Confirmada">Guardar cambios</button><button class="btn btn-gray" name="estado" value="Cancelada">@(bloqueo ? "Quitar bloqueo" : "Cancelar cita")</button></div>
                     }
                 </form>
             }

@@ -40,6 +40,12 @@ public sealed class PeluqueriaDbContext(DbContextOptions<PeluqueriaDbContext> op
 
     public DbSet<MovimientoStock> MovimientosStock => Set<MovimientoStock>();
 
+    public DbSet<CosteProducto> CostesProductos => Set<CosteProducto>();
+
+    public DbSet<PeluqueriaLucia.Domain.Sorteos.Sorteo> Sorteos => Set<PeluqueriaLucia.Domain.Sorteos.Sorteo>();
+
+    public DbSet<PeluqueriaLucia.Domain.Sorteos.AnuncioSorteo> AnunciosSorteos => Set<PeluqueriaLucia.Domain.Sorteos.AnuncioSorteo>();
+
     public DbSet<Administrador> Administradores => Set<Administrador>();
 
     public DbSet<SesionAdministrador> SesionesAdministrador => Set<SesionAdministrador>();

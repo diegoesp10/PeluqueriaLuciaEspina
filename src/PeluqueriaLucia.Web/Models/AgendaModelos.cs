@@ -35,9 +35,24 @@ public sealed record DiaCalendario(DateOnly Dia, int Abiertas, int Canceladas, i
 }
 
 /// <summary>Calendario mensual del panel con el detalle del día elegido y las solicitudes pendientes de cualquier fecha.</summary>
+/// <param name="Visitas">Las visitas del día elegido, para saber cuáles son de sus citas.</param>
 public sealed record AgendaCalendario(DateOnly Dia, DateOnly Hoy, IReadOnlyList<DiaCalendario> Dias, IReadOnlyList<ReservaCita> CitasDia,
-    IReadOnlyList<ReservaCita> Pendientes, FiltroCitas Filtro, AvisoAgenda Avisos, DateTime Utc)
+    IReadOnlyList<ReservaCita> Pendientes, FiltroCitas Filtro, AvisoAgenda Avisos, DateTime Utc,
+    IReadOnlyList<PeluqueriaLucia.Domain.Visitas.Visita>? Visitas = null)
 {
+    /// <summary>
+    /// La visita con la que se cobra una cita: la suya o, si no la tiene, la que su cliente tenga ese día registrada aparte (la
+    /// más cercana a la hora de la cita). Al pulsar «Cobrar» se enlaza esa misma, así que nunca se cobra dos veces.
+    /// </summary>
+    public PeluqueriaLucia.Domain.Visitas.Visita? VisitaDe(ReservaCita c) =>
+        Visitas?.FirstOrDefault(v => v.ReservaId == c.Id)
+        ?? (c.ClienteId is null ? null : Visitas?.Where(v => v.ReservaId is null && v.ClienteId == c.ClienteId)
+            .OrderBy(v => Math.Abs((v.Fecha - c.Inicio).Ticks)).FirstOrDefault());
+
+    /// <summary>Las citas que se cobran: confirmadas o completadas (las que no tienen ficha la reciben al cobrarlas).</summary>
+    public static bool Cobrable(ReservaCita c) =>
+        c.Origen != OrigenCita.Bloqueo && c.Estado is EstadoCita.Confirmada or EstadoCita.Completada;
+
     public DateOnly InicioMes => new(Dia.Year, Dia.Month, 1);
 
     public DateOnly MesAnterior => InicioMes.AddMonths(-1);

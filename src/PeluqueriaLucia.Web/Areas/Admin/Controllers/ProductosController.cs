@@ -67,7 +67,7 @@ public sealed class ProductosController(ProductosService productos) : AdminContr
         {
             try
             {
-                var resultado = await productos.EditarAsync(id, formulario.AFicha(), formulario.ACategoria(), formulario.ACambios(), ct);
+                var resultado = await productos.EditarAsync(id, formulario.AFicha(), formulario.ACategoria(), formulario.ACambios(), ct, AdministradorId);
                 if (resultado.Exito)
                 {
                     this.AvisarExito("Cambios guardados. Las visitas anteriores conservan el nombre y el precio que tenían.");
@@ -94,7 +94,30 @@ public sealed class ProductosController(ProductosService productos) : AdminContr
         if (producto is null)
             return NotFound();
 
-        return View(new ProductoFichaModelo(producto, await productos.MovimientosAsync(id, pagina, ct), new MovimientoFormulario()));
+        return View(new ProductoFichaModelo(producto, await productos.MovimientosAsync(id, pagina, ct), new MovimientoFormulario(), await productos.CostesAsync(id, ct)));
+    }
+
+    /// <summary>Anota lo que ha costado el producto desde una fecha; si es lo más reciente, pasa a ser su coste.</summary>
+    [HttpPost]
+    public async Task<IActionResult> RegistrarCoste(int id, CosteFormulario anotacion, CancellationToken ct)
+    {
+        if (ModelState.IsValid)
+        {
+            var resultado = await productos.RegistrarCosteAsync(id, anotacion.Coste, anotacion.Desde, anotacion.NotaCoste, AdministradorId, ct);
+            if (resultado.Exito)
+            {
+                this.AvisarExito("Coste anotado en el historial.");
+                return Redirect(Url.Action(nameof(Ficha), new { id }) + "#costes");
+            }
+
+            ModelState.AgregarError(resultado.Error!);
+        }
+
+        var producto = await productos.ObtenerAsync(id, ct);
+        if (producto is null)
+            return NotFound();
+        return View(nameof(Ficha), new ProductoFichaModelo(producto, await productos.MovimientosAsync(id, 1, ct), new MovimientoFormulario(),
+            await productos.CostesAsync(id, ct), anotacion));
     }
 
     /// <summary>Entrada de mercancía, uso en el salón o recuento.</summary>
@@ -105,7 +128,8 @@ public sealed class ProductosController(ProductosService productos) : AdminContr
         {
             try
             {
-                var resultado = await productos.RegistrarMovimientoAsync(id, movimiento.Tipo, movimiento.Cantidad!.Value, movimiento.Nota, AdministradorId, ct);
+                var resultado = await productos.RegistrarMovimientoAsync(id, movimiento.Tipo, movimiento.Cantidad!.Value, movimiento.Nota, AdministradorId, ct,
+                    movimiento.Tipo == MovimientoManual.Entrada ? movimiento.Coste : null);
                 if (resultado.Exito)
                 {
                     this.AvisarExito($"{TextoMovimiento(movimiento.Tipo)} registrado. Stock actual: {FormatoProductos.Unidades(resultado.Valor)}.");
@@ -124,7 +148,7 @@ public sealed class ProductosController(ProductosService productos) : AdminContr
         var producto = await productos.ObtenerAsync(id, ct);
         if (producto is null)
             return NotFound();
-        return View(nameof(Ficha), new ProductoFichaModelo(producto, await productos.MovimientosAsync(id, 1, ct), movimiento));
+        return View(nameof(Ficha), new ProductoFichaModelo(producto, await productos.MovimientosAsync(id, 1, ct), movimiento, await productos.CostesAsync(id, ct)));
     }
 
     [HttpPost]

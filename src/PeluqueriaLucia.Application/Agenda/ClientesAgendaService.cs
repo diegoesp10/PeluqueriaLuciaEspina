@@ -60,6 +60,8 @@ public sealed class ClientesAgendaService(IRepositorioAgenda datos, TimeProvider
                 return new Error("Solo puedes registrar una falta de una cita confirmada, vinculada a un cliente y ya terminada. Actualiza la agenda si ha cambiado.");
             if (await datos.ExisteAsync<FaltaAsistencia>(x => x.ReservaId == id && x.AnuladaUtc == null, ct))
                 return new Error("Esta cita ya tiene una falta registrada.");
+            if (await datos.ExisteAsync<PeluqueriaLucia.Domain.Visitas.Visita>(x => x.ReservaId == id, ct))
+                return new Error("Esta cita ya tiene su visita abierta para cobrarla. Si el cliente no vino, elimina antes la visita.");
             datos.Agregar(new FaltaAsistencia { ClienteId = r.ClienteId.Value, ReservaId = id, InicioCita = r.Inicio,
                 RegistradaUtc = reloj.GetUtcNow().UtcDateTime, AdministradorId = administradorId, Nota = nota?.Trim() ?? "" });
             r.Estado = EstadoCita.NoPresentada; r.AdministradorId = administradorId; r.ActualizadaUtc = reloj.GetUtcNow().UtcDateTime;

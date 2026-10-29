@@ -22,11 +22,18 @@ public sealed class LineaVisita
 
     public decimal Precio { get; private set; }
 
-    internal static LineaVisita Desde(Servicio servicio, decimal? precio = null)
+    internal static LineaVisita Desde(Servicio servicio, decimal? precio = null) =>
+        new() { ServicioId = servicio.Id, Nombre = servicio.Nombre, Precio = PrecioValido(precio ?? servicio.Precio, servicio.Nombre) };
+
+    /// <summary>El precio de este servicio en la visita, que puede ser distinto del catálogo. Se cambia hasta cobrarla.</summary>
+    internal void CambiarPrecio(decimal precio) => Precio = PrecioValido(precio, Nombre);
+
+    /// <summary>El precio redondeado a céntimos, entre 0,01 y el máximo del catálogo.</summary>
+    internal static decimal PrecioValido(decimal precio, string nombre)
     {
-        var aplicado = decimal.Round(precio ?? servicio.Precio,2,MidpointRounding.AwayFromZero);
+        var aplicado = decimal.Round(precio, 2, MidpointRounding.AwayFromZero);
         if (aplicado <= 0 || aplicado > Servicio.PrecioMaximo)
-            throw new Comun.ReglaDeNegocioException($"Indica un precio entre 0,01 y 9.999,99 € para «{servicio.Nombre}».", "Servicios");
-        return new() { ServicioId = servicio.Id, Nombre = servicio.Nombre, Precio = decimal.Round(aplicado,2,MidpointRounding.AwayFromZero) };
+            throw new Comun.ReglaDeNegocioException($"Indica un precio entre 0,01 y 9.999,99 € para «{nombre}».", "Servicios");
+        return aplicado;
     }
 }

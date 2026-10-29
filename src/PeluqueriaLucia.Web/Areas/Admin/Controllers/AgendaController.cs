@@ -2,13 +2,14 @@ using Microsoft.AspNetCore.Mvc;
 using PeluqueriaLucia.Application.Agenda;
 using PeluqueriaLucia.Application.Clientes;
 using PeluqueriaLucia.Application.Comun;
+using PeluqueriaLucia.Application.Visitas;
 using PeluqueriaLucia.Domain.Agenda;
 using PeluqueriaLucia.Web.Infraestructura;
 using PeluqueriaLucia.Web.Models;
 
 namespace PeluqueriaLucia.Web.Areas.Admin.Controllers;
 
-public sealed class AgendaController(IAgendaService agenda, ClientesAgendaService clientesAgenda, ClientesService clientes) : AdminController
+public sealed class AgendaController(IAgendaService agenda, ClientesAgendaService clientesAgenda, ClientesService clientes, VisitasService visitas) : AdminController
 {
     /// <summary>Calendario del mes con el detalle del día elegido. «estado» filtra el día: abiertas, canceladas, completadas o todas.</summary>
     [HttpGet("/admin/agenda")]
@@ -40,7 +41,9 @@ public sealed class AgendaController(IAgendaService agenda, ClientesAgendaServic
         var candidatos = new Dictionary<Guid, List<PeluqueriaLucia.Domain.Clientes.Cliente>>();
         foreach(var conflicto in conflictos) candidatos[conflicto.Id] = await clientesAgenda.CandidatosAsync(conflicto,ct);
         ViewData["CandidatosClientes"] = candidatos;
-        return View(new AgendaCalendario(d, agenda.Hoy, dias, delDia, pendientes, estado, await agenda.AvisosAsync(ct), utc));
+        // Las visitas del día dicen qué citas confirmadas ya se han abierto para cobrar o están cobradas
+        var visitasDia = await visitas.DelDiaAsync(d, ct);
+        return View(new AgendaCalendario(d, agenda.Hoy, dias, delDia, pendientes, estado, await agenda.AvisosAsync(ct), utc, visitasDia));
     }
     [HttpPost("/admin/agenda/eliminar")]
     public async Task<IActionResult> Eliminar(Guid id, DateOnly? dia, FiltroCitas estado, CancellationToken ct)

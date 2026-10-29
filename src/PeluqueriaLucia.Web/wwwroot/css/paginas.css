@@ -560,6 +560,40 @@
   background: color-mix(in oklab, var(--orange) 12%, var(--surface)); color: var(--orange-text); font-weight: 600; line-height: 1.4; }
 .aviso-stock > svg { flex: none; margin-top: 1px; }
 
+/* Visita pendiente: cada línea con su precio, que se puede cambiar hasta cobrar, y el botón de quitar */
+.linea-visita .row-sub { white-space: normal; }
+.linea-visita > .importe-visita { flex: none; width: 128px; }
+.linea-visita > .row-amount { flex: none; width: 128px; padding-right: 22px; text-align: right; }
+.linea-incluida { color: var(--label-2); font-weight: 500; font-variant-numeric: tabular-nums; }
+.visita-agregar { display: grid; gap: 16px; }
+.visita-agregar > .btn { justify-self: start; }
+.visita-uso { display: grid; gap: 10px; min-width: 0; }
+.cobro > .btn-gray.btn-block { margin-top: -8px; }
+
+/* Nueva visita: venta o usado en el servicio (y si se ha terminado) para el producto que se añade */
+.producto-selector-uso { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; }
+.producto-selector-terminado { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.producto-selector-terminado[hidden] { display: none; }
+.producto-linea .importe-visita .linea-incluida { margin-left: auto; }
+.producto-linea[data-uso="ServicioTerminado"] .row-sub, .producto-linea[data-uso="ServicioEnUso"] .row-sub { white-space: normal; }
+
+/* Coste de compra: historial con la variación respecto al anterior */
+.coste-fila .row-title { display: flex; align-items: center; gap: 8px; }
+.coste-actual { font-size: 11px; }
+.coste-cifras { display: grid; justify-items: end; gap: 2px; }
+.coste-cifras strong { color: var(--label); font-size: 16px; }
+.coste-variacion { font-size: 12.5px; font-weight: 600; color: var(--label-2); }
+.coste-variacion.is-sube { color: var(--red); }
+.coste-variacion.is-baja { color: var(--green-text); }
+.coste-formulario { display: grid; gap: 16px; align-content: start; }
+.coste-formulario h3 { margin: 0; font-size: 17px; }
+.coste-formulario > .btn { justify-self: start; }
+/* En tarjetas estrechas, las fechas (el selector mide al menos 200 px) van una debajo de otra */
+.coste-formulario .fields-2, .sorteo-anunciar .fields-2, .sorteo-visitas .fields-2 { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+
+/* Visitas del día: las citas confirmadas que quedan por cobrar */
+.cita-por-cobrar > form { flex: none; margin: 0; }
+
 @media (max-width: 560px) {
   /* Buscador a lo ancho; debajo, unidades y «Añadir» */
   .producto-selector-fila { grid-template-columns: 96px minmax(0, 1fr); }
@@ -572,6 +606,11 @@
   .producto-linea > [data-linea-quitar] { grid-area: quitar; justify-self: end; }
   .producto-linea > .producto-linea-cantidad { grid-area: cantidad; }
   .producto-linea > .importe-visita { grid-area: precio; }
+  /* Cada línea de la visita en dos filas: nombre y quitar arriba; el precio debajo, a la derecha */
+  .linea-visita { display: grid; grid-template-columns: minmax(0, 1fr) 36px; grid-template-areas: "info quitar" "precio precio"; gap: 8px 12px; }
+  .linea-visita > .row-main { grid-area: info; }
+  .linea-visita > .btn-icono { grid-area: quitar; }
+  .linea-visita > .importe-visita, .linea-visita > .row-amount { grid-area: precio; justify-self: end; }
   .producto-stock-cifra { font-size: 36px; }
   .fotos-producto { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   /* Barra del total: los botones no se parten; si no caben junto a la cifra, pasan debajo */
@@ -580,3 +619,80 @@
 }
 /* Opciones que no se pueden elegir en un control segmentado (p. ej. avisar por correo a una ficha sin email) */
 .segmented > label:has(input:disabled) { opacity: .4; cursor: not-allowed; }
+
+/* ── Sorteos ─────────────────────────────────────────────────────────────── */
+.sorteo-tarjeta-sello, .sorteo-premio-sello, .sorteo-sortear-sello, .sorteo-historial-sello, .alerta-sorteo-sello {
+  display: grid; flex: none; place-items: center; border-radius: 16px; color: #fff;
+  background: linear-gradient(135deg, var(--pink), var(--accent)); box-shadow: 0 8px 20px -10px var(--accent); }
+.sorteo-tarjeta-sello { width: 52px; height: 52px; }
+.sorteo-sello-grande { width: 64px; height: 64px; border-radius: 20px; }
+.sorteos-tarjetas { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; margin-top: 8px; }
+.sorteo-tarjeta { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px 16px; padding: 20px; color: inherit; transition: transform .2s, box-shadow .2s; }
+.sorteo-tarjeta:hover { transform: translateY(-2px); box-shadow: var(--card-shadow), 0 14px 30px -18px var(--accent); }
+.sorteo-tarjeta-cuerpo { display: grid; gap: 4px; min-width: 0; }
+.sorteo-tarjeta-titulo { font-size: 17px; font-weight: 700; overflow-wrap: anywhere; }
+.sorteo-tarjeta-premio { color: var(--label-2); font-size: 14px; }
+.sorteo-tarjeta-premio svg, .sorteo-tarjeta-datos svg { vertical-align: -2px; }
+.sorteo-tarjeta-datos { grid-column: 1 / -1; display: grid; gap: 6px; padding-top: 12px; border-top: 1px solid var(--separator); color: var(--label-2); font-size: 13.5px; }
+.sorteo-historial-sello { width: 38px; height: 38px; border-radius: 12px; }
+.sorteo-historial-sello.tint-gray { background: var(--fill); color: var(--label-2); box-shadow: none; }
+.sorteo-historial .row-sub { white-space: normal; }
+.alerta-sorteo { display: flex; align-items: center; gap: 14px; margin: 0 0 14px; padding: 14px 18px; border-radius: 18px; color: inherit;
+  background: linear-gradient(120deg, color-mix(in oklab, var(--pink) 16%, var(--surface)), color-mix(in oklab, var(--accent) 12%, var(--surface)));
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) 22%, transparent); animation: alerta-sorteo-latido 2.4s ease-in-out infinite; }
+.alerta-sorteo > span:nth-child(2) { display: grid; flex: 1; min-width: 0; gap: 2px; }
+.alerta-sorteo-sello { width: 40px; height: 40px; border-radius: 12px; }
+@keyframes alerta-sorteo-latido { 0%, 100% { box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) 22%, transparent); } 50% { box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent) 14%, transparent); } }
+
+.sorteo-premio { display: flex; gap: 16px; align-items: flex-start; }
+.sorteo-premio-sello { width: 54px; height: 54px; }
+.sorteo-premio p { margin: 0 0 4px; }
+.sorteo-premio .etiqueta { font-size: 11px; letter-spacing: .12em; font-weight: 700; color: var(--accent); text-transform: uppercase; }
+.sorteo-premio-nombre { font-size: 21px; font-weight: 700; }
+.sorteo-agregar { display: grid; gap: 12px; margin-bottom: 12px; }
+.sorteo-agregar form { margin: 0; }
+.sorteo-mas > summary { cursor: pointer; color: var(--accent); font-weight: 600; font-size: 14px; }
+.sorteo-mas[open] > summary { margin-bottom: 12px; }
+.sorteo-visitas, .sorteo-elegir, .sorteo-repetir, .sorteo-repetir form, .sorteo-anunciar, .sorteo-aviso { display: grid; gap: 14px; }
+.sorteo-visitas > .btn, .sorteo-elegir > .btn, .sorteo-repetir .btn, .sorteo-anunciar > .btn { justify-self: start; }
+.sorteo-repetir form + form { padding-top: 16px; border-top: 1px solid var(--separator); }
+.sorteo-participantes .row form { margin: 0; }
+.sorteo-participantes .row.is-ganador { background: color-mix(in oklab, var(--green) 10%, transparent); }
+.sorteo-participantes a.row-title { color: inherit; }
+
+.sorteo-sortear { display: grid; gap: 14px; justify-items: center; text-align: center; }
+.sorteo-sortear h2 { margin: 0; font-size: 22px; }
+.sorteo-sortear p { margin: 0; }
+.sorteo-sortear form { width: 100%; margin: 0; }
+.sorteo-sortear .sorteo-mas { justify-self: stretch; text-align: left; }
+.sorteo-sortear-sello { width: 72px; height: 72px; border-radius: 24px; animation: sorteo-flotar 3s ease-in-out infinite; }
+.sorteo-boton { background: linear-gradient(135deg, var(--pink), var(--accent)); border: 0; }
+.sorteo-cancelar summary { color: var(--red); }
+@keyframes sorteo-flotar { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-6px) rotate(3deg); } }
+
+/* Ganador: tarjeta de celebración; recién sorteado, ruleta de nombres y confeti */
+.sorteo-ganador { position: relative; overflow: hidden; display: grid; justify-items: center; text-align: center; min-height: 230px;
+  background: radial-gradient(circle at 50% 0%, color-mix(in oklab, var(--pink) 18%, var(--surface)), var(--surface) 70%); }
+.sorteo-ganador-contenido { display: grid; gap: 10px; justify-items: center; }
+.sorteo-ganador-contenido p { margin: 0; }
+.sorteo-ganador .etiqueta { font-size: 12px; letter-spacing: .14em; font-weight: 700; color: var(--accent); text-transform: uppercase; }
+.sorteo-ganador h2 { margin: 0; font-size: 28px; overflow-wrap: anywhere; }
+.sorteo-ganador.is-revelado .sorteo-ganador-contenido { animation: sorteo-aparecer .6s cubic-bezier(.2, .9, .3, 1.3); }
+.sorteo-ruleta { display: grid; place-items: center; min-height: 200px; width: 100%; }
+.sorteo-ruleta span { font-size: 26px; font-weight: 700; color: var(--accent); }
+.sorteo-ruleta span.is-paso { animation: sorteo-paso .12s ease-out; }
+.sorteo-confeti { position: absolute; inset: 0; pointer-events: none; }
+.sorteo-confeti i { position: absolute; top: -12px; left: var(--x); width: 8px; height: 14px; border-radius: 2px; opacity: 0;
+  animation: sorteo-confeti var(--caida) var(--retraso) ease-in forwards; }
+@keyframes sorteo-aparecer { from { opacity: 0; transform: scale(.85); } to { opacity: 1; transform: scale(1); } }
+@keyframes sorteo-paso { from { opacity: .3; transform: translateY(-10px); } to { opacity: 1; transform: none; } }
+@keyframes sorteo-confeti { 0% { opacity: 1; transform: translateY(0) rotate(0); } 100% { opacity: 0; transform: translateY(260px) rotate(var(--giro)); } }
+.sorteo-otra-vez { margin-top: 16px; }
+.sorteo-anuncios .row form { margin: 0; }
+.sorteo-anuncios .row-title, .sorteo-anuncios .row-sub { white-space: normal; }
+.sorteo-anunciar { margin-top: 12px; }
+.sorteo-extraccion.is-anterior { opacity: .7; }
+.sorteo-extraccion .row-sub { white-space: normal; }
+@media (prefers-reduced-motion: reduce) {
+  .alerta-sorteo, .sorteo-sortear-sello { animation: none; }
+}

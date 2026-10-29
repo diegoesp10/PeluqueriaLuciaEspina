@@ -44,8 +44,12 @@ public sealed class ServicioFormulario
     public ArchivoImagen? AArchivo() =>
         Imagen is { Length: > 0 } f ? new ArchivoImagen(f.OpenReadStream(), f.FileName, f.Length) : null;
 
-    public static ServicioFormulario Desde(Servicio s) => new() { Nombre = s.Nombre, Precio = s.Precio, Sexo = s.Sexo,
-        CategoriaPublicaId=s.CategoriaPublicaId, DescripcionPublica=s.DescripcionPublica, TipoPrecioPublico=s.TipoPrecioPublico,
+    /// <summary>
+    /// El formulario con lo guardado, también los textos en inglés: si llegaran vacíos, guardar sin tocarlos borraría la
+    /// traducción.
+    /// </summary>
+    public static ServicioFormulario Desde(Servicio s) => new() { Nombre = s.Nombre, NombreEn = s.NombreEn, Precio = s.Precio, Sexo = s.Sexo,
+        CategoriaPublicaId=s.CategoriaPublicaId, DescripcionPublica=s.DescripcionPublica, DescripcionPublicaEn=s.DescripcionPublicaEn, TipoPrecioPublico=s.TipoPrecioPublico,
         DuracionMinutos=s.DuracionMinutos, OrdenPublico=s.OrdenPublico, Publicado=s.Publicado, Destacado=s.Destacado, Dualidad=s.Dualidad };
 }
 

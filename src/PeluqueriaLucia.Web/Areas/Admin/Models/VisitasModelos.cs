@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using PeluqueriaLucia.Application.Comun;
 using PeluqueriaLucia.Application.Visitas;
+using PeluqueriaLucia.Domain.Agenda;
 using PeluqueriaLucia.Domain.Catalogo;
 using PeluqueriaLucia.Domain.Clientes;
 using PeluqueriaLucia.Domain.Productos;
@@ -17,8 +18,12 @@ public enum Periodo
     Anio,
 }
 
-public sealed record VisitasIndiceModelo(Periodo Periodo, DateOnly Fecha, DateOnly Hoy, Pagina<Visita> Pagina, ResumenVisitas Resumen)
+/// <param name="PorCobrar">En la vista de un día, las citas confirmadas de la agenda que aún no tienen visita.</param>
+public sealed record VisitasIndiceModelo(Periodo Periodo, DateOnly Fecha, DateOnly Hoy, Pagina<Visita> Pagina, ResumenVisitas Resumen,
+    IReadOnlyList<ReservaCita>? PorCobrar = null)
 {
+    public IReadOnlyList<ReservaCita> CitasPorCobrar => PorCobrar ?? [];
+
     public static FiltroVisitas Filtro(Periodo periodo, DateOnly fecha) => periodo switch
     {
         Periodo.Dia => FiltroVisitas.Dia(fecha),
@@ -95,7 +100,7 @@ public sealed class NuevaVisitaFormulario
     public string? Accion { get; set; }
 }
 
-/// <summary>Una fila de producto en «Nueva visita». Sin precio, el de venta de la ficha.</summary>
+/// <summary>Una fila de producto en «Nueva visita»: vendido (sin precio, el de venta de la ficha) o usado en el servicio.</summary>
 public sealed class ProductoVisitaFormulario
 {
     public int ProductoId { get; set; }
@@ -104,60 +109,92 @@ public sealed class ProductoVisitaFormulario
     public int Cantidad { get; set; } = 1;
 
     public decimal? Precio { get; set; }
-}
 
-/// <summary>Añadir un producto a una visita pendiente desde su detalle.</summary>
-public sealed class AgregarProductoFormulario
-{
-    [Required(ErrorMessage = "Elige un producto de la lista.")]
-    public int? ProductoId { get; set; }
-
-    [Range(1, Domain.Visitas.LineaProductoVisita.CantidadMaxima, ErrorMessage = "Indica entre {1} y {2} unidades.")]
-    public int Cantidad { get; set; } = 1;
-
-    public decimal? Precio { get; set; }
+    public UsoProducto Uso { get; set; }
 }
 
 public sealed record NuevaVisitaModelo(NuevaVisitaFormulario Formulario, Cliente? Cliente, IReadOnlyList<Servicio> Servicios, IReadOnlyList<Producto> Productos);
 
-public sealed class CobroFormulario
+/// <summary>
+/// La pantalla de una visita pendiente es un único formulario: los precios de cada línea, lo que se va a añadir y la forma de
+/// pago. Cualquier botón (añadir, quitar, guardar o cobrar) guarda antes los precios escritos, así no se pierden. Cada acción
+/// comprueba solo sus campos: lo escrito para añadir un producto no impide cobrar.
+/// </summary>
+public sealed class VisitaFormulario
 {
+    /// <summary>Precio de cada servicio de la visita, por número de línea.</summary>
+    public Dictionary<int, decimal?> PreciosServicios { get; set; } = [];
+
+    /// <summary>Precio por unidad de cada producto vendido, por número de línea.</summary>
+    public Dictionary<int, decimal?> PreciosProductos { get; set; } = [];
+
     public FormaPago FormaPago { get; set; } = FormaPago.Efectivo;
 
     public decimal? Efectivo { get; set; }
 
     public decimal? Tarjeta { get; set; }
 
-    /// <summary>Productos gastados en el servicio (tintes, oxidantes…): no se cobran, pero salen del stock al cobrar.</summary>
-    public List<ProductoUsadoFormulario> Usados { get; set; } = [];
-}
+    /// <summary>Servicio del catálogo que se añade; sin precio, el del catálogo.</summary>
+    public int? ServicioId { get; set; }
 
-/// <summary>Una fila de «Productos utilizados» en el cobro.</summary>
-public sealed class ProductoUsadoFormulario
-{
-    public int ProductoId { get; set; }
+    public decimal? PrecioServicio { get; set; }
 
-    [Range(1, Domain.Visitas.LineaProductoVisita.CantidadMaxima, ErrorMessage = "Indica entre {1} y {2} unidades de cada producto utilizado.")]
+    /// <summary>Producto que se añade: vendido (sin precio, el de la ficha) o usado en el servicio.</summary>
+    public int? ProductoId { get; set; }
+
     public int Cantidad { get; set; } = 1;
+
+    public decimal? Precio { get; set; }
+
+    /// <summary>Usado en el servicio en lugar de vendido: va incluido, a 0,00 €.</summary>
+    public bool EnServicio { get; set; }
+
+    /// <summary>Si se ha usado en el servicio, si se ha terminado (sale del stock) o sigue en uso. Hay que contestarlo.</summary>
+    public bool? Terminado { get; set; }
+
+    /// <summary>Cómo sale el producto que se añade; null si es de uso en el servicio y falta decir si se ha terminado.</summary>
+    public UsoProducto? Uso => !EnServicio ? UsoProducto.Venta
+        : Terminado switch { true => UsoProducto.ServicioTerminado, false => UsoProducto.ServicioEnUso, null => null };
 }
 
-/// <param name="ParaVenta">Productos activos, para añadirlos o indicarlos como usados mientras la visita está pendiente.</param>
-/// <param name="Usados">Productos gastados en el servicio de una visita ya cobrada.</param>
-public sealed record VisitaDetalleModelo(Visita Visita, CobroFormulario Cobro, IReadOnlyList<Producto> ParaVenta, AgregarProductoFormulario? Agregar = null,
-    IReadOnlyList<MovimientoStock>? Usados = null)
+/// <param name="ParaVenta">Productos activos, para añadirlos mientras la visita está pendiente.</param>
+/// <param name="Servicios">Servicios del catálogo, para añadirlos mientras la visita está pendiente.</param>
+/// <param name="Cita">La cita de la agenda que se cobra con esta visita, si la hay.</param>
+/// <param name="Usados">Movimientos de uso de una visita ya cobrada (ver <see cref="UsadosAntiguos"/>).</param>
+/// <param name="Abierto">Qué se estaba añadiendo cuando hubo un error («servicio» o «producto»), para mostrarlo abierto.</param>
+public sealed record VisitaDetalleModelo(Visita Visita, VisitaFormulario Formulario, IReadOnlyList<Producto> ParaVenta, IReadOnlyList<Servicio> Servicios,
+    ReservaCita? Cita = null, IReadOnlyList<MovimientoStock>? Usados = null, string? Abierto = null)
 {
     /// <summary>Unidades en stock de un producto, o null si ya no está a la venta.</summary>
     public int? Stock(int productoId) => ParaVenta.FirstOrDefault(p => p.Id == productoId)?.Stock;
 
-    /// <summary>Lo que quedará en stock de un producto después de vender las unidades de esta visita (puede ser negativo).</summary>
+    /// <summary>Lo que quedará en stock de un producto después de cobrar esta visita (puede ser negativo).</summary>
     public int Disponibles(int productoId) =>
-        (Stock(productoId) ?? 0) - Visita.Productos.Where(l => l.ProductoId == productoId).Sum(l => l.Cantidad);
+        (Stock(productoId) ?? 0) - Visita.Productos.Where(l => l.ProductoId == productoId && l.DescuentaStock).Sum(l => l.Cantidad);
 
-    /// <summary>Productos vendidos en la visita cuyo stock quedará en negativo al cobrar: nombre y cuántas faltarán.</summary>
+    /// <summary>Productos de la visita cuyo stock quedará en negativo al cobrar: nombre y cuántas faltarán.</summary>
     public IEnumerable<(string Nombre, int Faltan)> QuedaranEnNegativo() => Visita.Productos
+        .Where(l => l.DescuentaStock)
         .GroupBy(l => l.ProductoId)
         .Select(g => (Nombre: g.First().Nombre, Faltan: -Disponibles(g.Key)))
         .Where(x => x.Faltan > 0);
+
+    /// <summary>Unidades que salen del stock al cobrar: lo vendido y lo usado que se ha terminado.</summary>
+    public int UnidadesQueSalen => Visita.Productos.Where(l => l.DescuentaStock).Sum(l => l.Cantidad);
+
+    /// <summary>
+    /// En las visitas cobradas antes de poner lo usado en la visita, los productos usados solo están en los movimientos de
+    /// stock. En las demás ya salen en la lista, incluidos en el servicio.
+    /// </summary>
+    public IReadOnlyList<MovimientoStock> UsadosAntiguos => Visita.Productos.Any(p => p.Incluido) ? [] : Usados ?? [];
+
+    /// <summary>El precio escrito en un campo: lo que llegó en el formulario (aunque no valga, para corregirlo) o el guardado.</summary>
+    public static string Valor(Microsoft.AspNetCore.Mvc.ModelBinding.ModelStateDictionary estado, string campo, decimal guardado) =>
+        estado.TryGetValue(campo, out var entrada) && entrada.AttemptedValue is { } escrito ? escrito : Formato.Importe(guardado);
+
+    /// <summary>El campo llegó con un valor que no vale (se marca en rojo).</summary>
+    public static bool NoVale(Microsoft.AspNetCore.Mvc.ModelBinding.ModelStateDictionary estado, string campo) =>
+        estado.TryGetValue(campo, out var entrada) && entrada.Errors.Count > 0;
 }
 
 public sealed record TicketModelo(Visita Visita, DatosNegocio Negocio, string? CodigoOpinion = null, Infraestructura.Impresion.ImpresoraTickets? Impresora = null)

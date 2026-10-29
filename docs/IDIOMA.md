@@ -69,6 +69,7 @@ Todo lo que el salón escribe para la web se guarda en español e inglés, en co
 Reglas:
 
 - **Registro nuevo:** el inglés es obligatorio (nombre del servicio, nombre de la categoría, respuesta nueva a una reseña, y descripción en inglés si se escribe la española). Lo comprueban `CatalogoService.CrearAsync`, `ContenidoService.GuardarCategoriaAsync` y `ResenasService.ModerarAsync`, y los formularios del panel lo marcan como requerido.
+- **Al editar** un servicio, el formulario trae su nombre y su descripción en inglés guardados (`ServicioFormulario.Desde`): guardar sin tocarlos los conserva.
 - **Registro anterior al inglés:** se puede editar sin traducir. La web inglesa muestra el español hasta que se rellene el campo en inglés (`NombreEnIdioma`, `DescripcionEnIdioma`, `RespuestaEnIdioma`). Para las categorías sin traducción se usa, antes del español, la traducción fija de `textos.en.json` si existe.
 - Los textos del ticket, las visitas y los mensajes a clientes siguen en español: son internos o van al cliente del salón.
 4. **`/api/tratamientos`**: devolver el precio como número más su tipo (`fijo`, `desde`, `consultar`) en lugar de una cadena formateada.

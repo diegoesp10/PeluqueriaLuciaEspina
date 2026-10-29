@@ -119,9 +119,20 @@ internal sealed class ProductoRepositorio(PeluqueriaDbContext db) : IProductoRep
         return new Pagina<MovimientoStock>(elementos, pagina, tamano, total);
     }
 
+    public async Task<IReadOnlyList<CosteProducto>> CostesAsync(int productoId, CancellationToken ct) =>
+        await db.CostesProductos.AsNoTracking()
+            .Where(c => c.ProductoId == productoId)
+            .OrderByDescending(c => c.Desde).ThenByDescending(c => c.RegistradoEn).ThenByDescending(c => c.Id)
+            .ToListAsync(ct);
+
+    public async Task<DateOnly?> UltimoCosteAsync(int productoId, CancellationToken ct) =>
+        await db.CostesProductos.Where(c => c.ProductoId == productoId).MaxAsync(c => (DateOnly?)c.Desde, ct);
+
     public void Agregar(Producto producto) => db.Productos.Add(producto);
 
     public void AgregarMovimientos(IEnumerable<MovimientoStock> movimientos) => db.MovimientosStock.AddRange(movimientos);
+
+    public void AgregarCoste(CosteProducto coste) => db.CostesProductos.Add(coste);
 
     public void Eliminar(Producto producto) => db.Productos.Remove(producto);
 

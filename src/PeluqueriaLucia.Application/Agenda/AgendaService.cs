@@ -157,9 +157,14 @@ public sealed class AgendaService(IRepositorioAgenda datos, IProtectorSecretos s
         var r = await datos.BuscarAsync<ReservaCita>(x => x.Id == d.Id, ct);
         if (r is null) return new Error("La reserva no existe.");
         if (Convert.ToBase64String(r.Version) != d.Version) return new Error("La reserva ha cambiado en otra pestaña. Actualiza la agenda.");
+        // Completar es cobrar: la cita queda completada cuando se cobra su visita (VisitasService), nunca sin cobrarla
+        if (d.Estado == EstadoCita.Completada) return new Error("Una cita se completa al cobrarla: pulsa «Completar y cobrar» y cobra su visita.");
         if (d.Nota?.Length > 500 || !Enum.IsDefined(d.Estado) || d.Estado is EstadoCita.Pendiente or EstadoCita.PendienteAceptacion or EstadoCita.NoPresentada) return new Error("Revisa los datos de la gestión.");
         if (r.Estado is EstadoCita.Rechazada or EstadoCita.Cancelada or EstadoCita.Completada or EstadoCita.NoPresentada) return new Error("Esta reserva ya está cerrada.");
         if (await datos.ExisteAsync<MensajeCita>(x => x.ReservaId == r.Id && x.Estado == EstadoNotificacion.Enviando, ct)) return new Error("Se está enviando el aviso. Espera unos segundos antes de cambiar la cita.");
+        // La visita abierta para cobrarla no se borra sola: si la cita no se hace, se elimina la visita a propósito
+        if (d.Estado is EstadoCita.Cancelada or EstadoCita.Rechazada && await datos.ExisteAsync<PeluqueriaLucia.Domain.Visitas.Visita>(x => x.ReservaId == r.Id, ct))
+            return new Error("Esta cita ya tiene su visita abierta para cobrarla. Si no se va a hacer, elimina antes la visita.");
         var fin = r.Fin;
         var web = r.Origen == OrigenCita.Web;
         if (d.Estado == EstadoCita.Confirmada)
@@ -178,7 +183,6 @@ public sealed class AgendaService(IRepositorioAgenda datos, IProtectorSecretos s
                 !await datos.ExisteAsync<TramoAgenda>(x => x.Dia == dia.DayOfWeek && x.Desde <= TimeOnly.FromDateTime(r.Inicio) && x.Hasta >= TimeOnly.FromDateTime(fin), ct)))) return new Error("La duración queda fuera del horario de apertura.");
             if ((await OcupadasAsync(r.Inicio, fin, ct, r.Dualidad, r.Origen == OrigenCita.Bloqueo)).Any(x => x.Id != r.Id)) return new Error("La duración se solapa con otra reserva. Ajusta el tiempo o rechaza la solicitud.");
         }
-        else if (d.Estado == EstadoCita.Completada && (r.Estado != EstadoCita.Confirmada || r.Inicio > Ahora)) return new Error("Solo puedes completar una cita confirmada que ya haya comenzado.");
         else if (d.Estado == EstadoCita.Rechazada && r.Estado != EstadoCita.Pendiente) return new Error("Una cita propuesta o confirmada se cancela, no se rechaza.");
 
         if (!web)

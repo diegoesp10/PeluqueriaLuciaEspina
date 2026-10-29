@@ -23,6 +23,7 @@ public static class DependencyInjection
         services.AddScoped<MfaService>();
         services.AddScoped<Publico.ContenidoService>();
         services.AddScoped<Publico.ResenasService>();
+        services.AddScoped<Sorteos.SorteosService>();
         return services;
     }
 }

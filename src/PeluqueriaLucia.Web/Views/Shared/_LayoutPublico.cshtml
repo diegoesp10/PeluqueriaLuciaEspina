@@ -1,8 +1,11 @@
 @inject Microsoft.Extensions.Options.IOptionsSnapshot<ContenidoPublico> Publico
 @inject TelefonosPublicos TelefonosContacto
+@inject SorteosPublicos SorteosAnunciados
 @{
     var n = Publico.Value;
     var telefonos = await TelefonosContacto.ListarAsync();
+    // Sorteos que el salón anuncia hoy: enlace en el menú y aviso flotante (salvo en la propia página de sorteos)
+    var sorteos = await SorteosAnunciados.ListarAsync();
     var accion = ViewContext.RouteData.Values["action"]?.ToString();
     var controlador = ViewContext.RouteData.Values["controller"]?.ToString();
     var enServicios = accion == "Servicios";
@@ -91,6 +94,10 @@
             <a asp-area="" asp-controller="Inicio" asp-action="Servicios" aria-current="@(enServicios ? "page" : null)">@T["Servicios"]</a>
             <a asp-area="" asp-controller="Opiniones" asp-action="Index" aria-current="@(controlador == "Opiniones" ? "page" : null)">@T["Opiniones"]</a>
             <a asp-area="" asp-controller="Agenda" asp-action="Index" aria-current="@(controlador == "Agenda" ? "page" : null)">@T["Citas"]</a>
+            @if (sorteos.Count > 0 || controlador == "SorteosWeb")
+            {
+                <a class="menu-sorteos" asp-area="" asp-controller="SorteosWeb" asp-action="Index" aria-current="@(controlador == "SorteosWeb" ? "page" : null)"><icono nombre="regalo" tamano="15" /> @T["Sorteos"]</a>
+            }
             <a href="@(raiz)#contacto">@T["Contacto"]</a>
             <div class="menu-publico-pie">
                 <a class="btn btn-primary btn-block" asp-area="" asp-controller="Agenda" asp-action="Index">@T["Reservar cita"] <icono nombre="flecha-salir" tamano="14" /></a>
@@ -128,6 +135,10 @@
         </div>
     </header>
     <main class="fondo-identidad" id="contenido">@RenderBody()</main>
+    @if (sorteos.Count > 0 && controlador != "SorteosWeb")
+    {
+        <partial name="_AvisoSorteo" model="sorteos" />
+    }
     <footer class="pie-publico">
         <div class="firma-pie"><img src="~/Img/Icono.jpg" alt="" width="76" height="76" /><div><strong>Lucía</strong><p>@T["Peluquería ecológica"] · @n.Ciudad</p></div></div>
         <div><div class="pie-telefonos">@foreach (var t in telefonos) { <a href="@t.Enlace">@t.Numero</a> }</div><p>@n.Direccion · @n.CodigoPostal @n.Ciudad</p></div>
@@ -149,6 +160,10 @@
     <script src="~/lib/gsap/SplitText.min.js" asp-append-version="true" defer></script>
     <script src="~/lib/lenis/lenis.min.js" asp-append-version="true" defer></script>
     <script src="~/js/movimiento.js" asp-append-version="true" defer></script>
+    @if (sorteos.Count > 0 && controlador != "SorteosWeb")
+    {
+        <script src="~/js/aviso-sorteo.js" asp-append-version="true" defer></script>
+    }
     @if (ViewData["ControlSesion"] is true) { <partial name="_ControlSesion" /> }
     @await RenderSectionAsync("Scripts", required: false)
 </body>

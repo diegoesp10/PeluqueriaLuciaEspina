@@ -93,6 +93,33 @@
         </div>
     </section>
 
+    @if (Model.CitasPorCobrar.Count > 0)
+    {
+        <section class="section">
+            <div class="section-head">
+                <h2>Citas por cobrar</h2>
+                <a href="/admin/agenda?dia=@fecha"><icono nombre="calendario" tamano="14" /> Agenda</a>
+            </div>
+            <div class="list list-avatars">
+                @foreach (var cita in Model.CitasPorCobrar)
+                {
+                    <div class="row cita-por-cobrar">
+                        <span class="avatar @(cita.Cliente is null ? "tint-gray" : Formato.Tinte(cita.Cliente.Sexo))">@(cita.Cliente?.Iniciales ?? "?")</span>
+                        <span class="row-main">
+                            <span class="row-title">@(cita.Cliente?.NombreCompleto ?? (cita.Nombre + " " + cita.Apellido).Trim())</span>
+                            <span class="row-sub"><span class="num">@Formato.Hora(cita.Inicio)</span> · @cita.ServicioNombre</span>
+                        </span>
+                        <form method="post" asp-action="DesdeCita" asp-route-reservaId="@cita.Id">
+                            <input type="hidden" name="volver" value="@Url.Action("Index", new { fecha })" />
+                            <button class="btn btn-success btn-sm"><icono nombre="euro" tamano="16" /> Cobrar</button>
+                        </form>
+                    </div>
+                }
+            </div>
+            <p class="section-foot">Citas confirmadas de la agenda. «Cobrar» abre su visita con el servicio de la cita: puedes cambiar el precio y añadir servicios o productos antes de cobrar.</p>
+        </section>
+    }
+
     @if (Model.Pagina.TotalElementos == 0)
     {
         <div class="section estado-vacio">

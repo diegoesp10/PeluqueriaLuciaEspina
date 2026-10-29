@@ -121,9 +121,28 @@ La migración DatosClienteYVerificacionPublica amplía Nombre sin recortar datos
 
 En una solicitud de la web, **Confirmar ya (acordada por teléfono)** confirma la cita sin esperar al enlace de aceptación, una vez validado el teléfono. Crea o vincula la ficha igual que la aceptación y deja en Comunicaciones un aviso informativo sin enlace. También sirve para reservas antiguas sin correo.
 
-Las citas confirmadas o completadas con ficha muestran **Registrar visita**, que abre Nueva visita con el cliente elegido.
+Las citas confirmadas o completadas con ficha **ya son su visita**: se cobran desde la agenda sin registrarla aparte (ver «Cobrar una cita»).
 
 La migración `OrigenDeLasCitas` añade la columna `Origen` a `ReservasCitas` (0 web, 1 salón, 2 bloqueo). Las reservas existentes quedan como web. No borra ni modifica datos.
+
+## Cobrar una cita
+
+**Completar es cobrar.** Una cita confirmada muestra en la agenda **Completar y cobrar** (ya no hay un «Completar» que la cierre sin cobrar; el servidor también lo rechaza). El botón crea en el servidor la visita de la cita, con su servicio a su precio del catálogo, la deja enlazada (`ServiciosClientes.ReservaId`) y lleva directamente a ella para cobrarla. La cita sigue confirmada hasta que se cobra; al cobrar queda **completada** y la agenda la muestra como «Completada y cobrada». A partir del primer paso el botón dice **Cobrar · importe** y lleva a esa misma visita; cobrada, **Cobrada · importe**, que lleva al ticket. Una cita solo tiene una visita (índice único). Las citas que se completaron antes sin cobrar muestran **Cobrar**.
+
+- Si el cliente ya tenía ese día una visita registrada aparte (en **Nueva visita**), se enlaza esa en lugar de crear otra, así no se cobra dos veces. Si estaba cobrada, la cita pasa a completada.
+- Si la cita no tiene un servicio del catálogo con precio (una consulta, un servicio archivado o con el precio por definir), la visita empieza vacía, con *Añadir un servicio* abierto y el servicio de la cita elegido.
+- En **Visitas**, la vista de un día lista arriba las **Citas por cobrar**: las confirmadas o completadas de ese día que aún no tienen visita, con el mismo botón.
+- Mientras la cita tenga su visita abierta no se puede cancelar ni marcar como falta: si al final no se hace, se elimina antes la visita (la cita sigue en la agenda).
+- Una cita dada en el salón sin ficha (solo nombre y, quizá, teléfono) recibe una al cobrarla: la única ficha con ese teléfono o, si no la hay, una nueva **por completar** con su nombre, como las que crea la web (aparece en «fichas pendientes de completar»). Las solicitudes de la web con varias fichas parecidas se vinculan antes a mano.
+
+## La visita hasta cobrarla
+
+La pantalla de una visita pendiente es un único formulario:
+
+- Cada **servicio** y cada **producto vendido** tiene su **precio en un campo**, que se puede cambiar hasta el momento de cobrar (el total y el botón «Cobrar» se actualizan al escribir). Lo usado en el servicio va a 0,00 € y no tiene precio.
+- **Añadir un servicio** (con el precio del catálogo propuesto, que se puede cambiar) y **Añadir un producto** (venta o usado en el servicio; ver [PRODUCTOS.md](PRODUCTOS.md)). Cada línea se puede quitar; la visita no puede quedarse vacía (si sobra, se elimina).
+- Cualquier botón (añadir, quitar, *Guardar los precios sin cobrar* o **Cobrar**) guarda antes los precios escritos, así no se pierden al añadir algo. Enter en un precio los guarda. Si algún precio no vale, no se cambia ninguno y se dice cuál.
+- Una visita cobrada ya no cambia.
 
 ## Dualidad de servicio
 
@@ -146,6 +165,8 @@ Cada ficha de **Clientes** tiene **Avisos de sus citas**: *Sin preferencia*, *Co
 - **Sin preferencia, se elige a mano**: en la web, el cliente marca correo o WhatsApp como hasta ahora; en Nueva cita, *Sin aviso*, *Correo* o *WhatsApp* (solo los canales de los que la ficha tiene el dato; sin ficha, WhatsApp necesita un móvil).
 - Si una cita del salón se avisó al darla y después se cancela, se avisa también de la cancelación por el mismo canal y el aviso de confirmación que no había salido queda obsoleto.
 - Los avisos quedan en **Comunicaciones**: el correo se envía desde allí (o solo, con el envío automático) y WhatsApp con su enlace, como el resto.
+
+La migración `VisitasDeCitasYProductosDelServicio` añade a `ServiciosClientes` la columna `ReservaId` (la cita que se cobra con la visita; admite nulos, índice único filtrado y clave ajena con `ON DELETE SET NULL`, así que borrar una cita de la agenda conserva su visita) y a `ProductosVisitas` la columna `Uso` (ver [PRODUCTOS.md](PRODUCTOS.md)). No borra ni modifica datos.
 
 La migración `PreferenciaDeAviso` añade a `Clientes` la columna `CanalPreferido` (`int` que admite nulos: 0 correo, 1 WhatsApp; la restricción `CK_Clientes_CanalPreferido` no admite otros valores). Todas las fichas empiezan sin preferencia.
 

@@ -117,7 +117,10 @@
     <section class="section" id="movimiento">
         <div class="section-head"><h2>Registrar un movimiento</h2></div>
         <form class="card card-pad producto-movimiento" method="post" asp-action="Movimiento" asp-route-id="@p.Id" novalidate data-movimiento-stock>
-            <div asp-validation-summary="All"></div>
+            @if (Model.Coste is null)
+            {
+                <div asp-validation-summary="All"></div>
+            }
             <fieldset class="field">
                 <legend class="sr-only">Tipo de movimiento</legend>
                 <div class="segmented segmented-lg segmented-block">
@@ -143,8 +146,80 @@
                     @Html.ValidationMessage("Nota")
                 </div>
             </div>
+            <div class="field" data-solo-entrada hidden="@(m.Tipo != MovimientoManual.Entrada)">
+                <label for="Coste">Coste de cada unidad <span class="muted">(opcional)</span></label>
+                <div class="input-affix input-precio">
+                    <input class="input num" id="Coste" name="Coste" inputmode="decimal" autocomplete="off" value="@Formato.Importe(m.Coste)" placeholder="@(p.PrecioCoste is { } actual ? Formato.Importe(actual) : "0,00")" />
+                    <span>€</span>
+                </div>
+                <p class="field-hint">Si lo escribes, queda en el historial de costes y pasa a ser el coste del producto.</p>
+            </div>
             <button class="btn btn-primary">Registrar</button>
         </form>
+    </section>
+
+    @{ var costes = Model.HistorialCostes; var fc = Model.FormularioCoste; }
+    <section class="section" id="costes">
+        <div class="section-head"><h2>Coste de compra</h2><span class="muted small">Lo que te ha ido costando</span></div>
+        <div class="detalle-grid">
+            <div>
+                @if (costes.Count == 0)
+                {
+                    <p class="card card-pad muted small">Todavía no hay costes anotados. Anótalos al registrar una entrada de mercancía, en la ficha del producto o aquí mismo.</p>
+                }
+                else
+                {
+                    <div class="list costes-lista">
+                        @for (var i = 0; i < costes.Count; i++)
+                        {
+                            var c = costes[i];
+                            var variacion = Model.Variacion(i);
+                            <div class="row coste-fila">
+                                <span class="row-main">
+                                    <span class="row-title">@Formato.Mes(c.Desde)@if (i == 0) { <span class="pill tint-purple coste-actual">Actual</span> }</span>
+                                    <span class="row-sub">Desde el @c.Desde.ToString("dd/MM/yyyy")@(c.Nota is null ? "" : " · " + c.Nota)</span>
+                                </span>
+                                <span class="row-end coste-cifras">
+                                    <strong class="num">@Formato.Euros(c.Coste)</strong>
+                                    @if (variacion is { } v)
+                                    {
+                                        <span class="coste-variacion @(v.Diferencia > 0 ? "is-sube" : v.Diferencia < 0 ? "is-baja" : "")">
+                                            @(v.Diferencia > 0 ? "+" : v.Diferencia < 0 ? "−" : "")@Formato.Euros(Math.Abs(v.Diferencia))@(v.Porcentaje is { } pct ? $" · {(pct > 0 ? "+" : pct < 0 ? "−" : "")}{Math.Abs(pct):P0}" : "")
+                                        </span>
+                                    }
+                                </span>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+            <form class="card card-pad coste-formulario" method="post" asp-action="RegistrarCoste" asp-route-id="@p.Id" novalidate>
+                <h3>Anotar un coste</h3>
+                @if (ViewData.ModelState.ContainsKey("Coste") || ViewData.ModelState.ContainsKey("Desde") || ViewData.ModelState.ContainsKey("NotaCoste"))
+                {
+                    <div asp-validation-summary="All"></div>
+                }
+                <div class="fields-2">
+                    <div class="field">
+                        <label for="coste-importe">Coste de cada unidad</label>
+                        <div class="input-affix input-precio">
+                            <input class="input num" id="coste-importe" name="Coste" inputmode="decimal" autocomplete="off" value="@Formato.Importe(fc.Coste)" placeholder="0,00" required />
+                            <span>€</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="coste-desde">Desde</label>
+                        <input class="input" type="date" id="coste-desde" name="Desde" value="@((fc.Desde ?? DateOnly.FromDateTime(DateTime.Today)).ToString("yyyy-MM-dd"))" max="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="coste-nota">Nota <span class="muted">(opcional)</span></label>
+                    <input class="input" id="coste-nota" name="NotaCoste" value="@fc.NotaCoste" maxlength="@CosteProducto.LongitudNota" autocomplete="off" placeholder="Proveedor, pedido…" />
+                </div>
+                <p class="field-hint">Si es el más reciente, pasa a ser el coste del producto; uno de un mes pasado solo completa el historial.</p>
+                <button class="btn btn-primary">Anotar coste</button>
+            </form>
+        </div>
     </section>
 
     <section class="section">

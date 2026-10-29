@@ -22,7 +22,7 @@ public sealed class SaludWebTests(SeguridadWebFixture fixture) : IClassFixture<S
     [Fact]
     public async Task Si_a_la_base_le_falta_una_migracion_responde_503_con_el_motivo()
     {
-        await using var bd = await BaseDeDatosPrueba.CrearAsync("20261022083304_PreferenciaDeAviso");
+        await using var bd = await BaseDeDatosPrueba.CrearAsync("20261029095912_VisitasDeCitasYProductosDelServicio");
         using var fabrica = new FabricaWeb(bd.Cadena);
         using var cliente = fabrica.Cliente();
 
