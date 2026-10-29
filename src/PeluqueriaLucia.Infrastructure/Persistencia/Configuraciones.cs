@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using PeluqueriaLucia.Domain.Agenda;
 using PeluqueriaLucia.Domain.Catalogo;
 using PeluqueriaLucia.Domain.Clientes;
 using PeluqueriaLucia.Domain.Visitas;
@@ -72,6 +73,13 @@ internal sealed class VisitaConfiguracion : IEntityTypeConfiguration<Visita>
             .HasForeignKey(l => l.VisitaId)
             .OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(v => v.Productos).HasField("_productos").UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        // Una cita se cobra con una sola visita. Si la cita se borra de la agenda, la visita se conserva sin ella
+        builder.HasOne<ReservaCita>()
+            .WithMany()
+            .HasForeignKey(v => v.ReservaId)
+            .OnDelete(DeleteBehavior.SetNull);
+        builder.HasIndex(v => v.ReservaId).IsUnique().HasFilter("[ReservaId] IS NOT NULL");
 
         builder.HasIndex(v => v.Fecha);
     }

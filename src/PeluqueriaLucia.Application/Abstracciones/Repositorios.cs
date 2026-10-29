@@ -1,5 +1,6 @@
 using PeluqueriaLucia.Application.Comun;
 using PeluqueriaLucia.Application.Visitas;
+using PeluqueriaLucia.Domain.Agenda;
 using PeluqueriaLucia.Domain.Catalogo;
 using PeluqueriaLucia.Domain.Clientes;
 using PeluqueriaLucia.Domain.Comun;
@@ -21,6 +22,9 @@ public interface IClienteRepositorio
     Task<bool> TieneVisitasAsync(int id, CancellationToken ct = default);
 
     Task<List<Cliente>> BuscarPorContactoAsync(string telefono, string correo, CancellationToken ct = default);
+
+    /// <summary>Fichas con ese teléfono, escrito con o sin espacios, guiones, paréntesis o prefijo de España.</summary>
+    Task<List<Cliente>> PorTelefonoAsync(string telefono, CancellationToken ct = default);
 
     Task<bool> TieneCitasAsync(int id, CancellationToken ct = default);
 
@@ -63,6 +67,21 @@ public interface IVisitaRepositorio
 
     /// <summary>Totales calculados en la base de datos, sin cargar las visitas.</summary>
     Task<ResumenVisitas> ResumirAsync(FiltroVisitas filtro, CancellationToken ct = default);
+
+    /// <summary>Una cita de la agenda, para cobrarla con su visita.</summary>
+    Task<ReservaCita?> CitaAsync(Guid id, CancellationToken ct = default);
+
+    /// <summary>La visita con la que se cobra una cita, con su cliente, sus servicios y sus productos.</summary>
+    Task<Visita?> DeCitaAsync(Guid reservaId, CancellationToken ct = default);
+
+    /// <summary>De las visitas de un cliente registradas sin cita el día de <paramref name="hora"/>, la más cercana a esa hora.</summary>
+    Task<Visita?> SinCitaDelDiaAsync(int clienteId, DateTime hora, CancellationToken ct = default);
+
+    /// <summary>
+    /// Citas confirmadas o completadas de un día que aún no tienen visita: ni la suya ni otra del mismo cliente ese día
+    /// registrada aparte.
+    /// </summary>
+    Task<IReadOnlyList<ReservaCita>> CitasPorCobrarAsync(DateOnly dia, CancellationToken ct = default);
 
     void Agregar(Visita visita);
 

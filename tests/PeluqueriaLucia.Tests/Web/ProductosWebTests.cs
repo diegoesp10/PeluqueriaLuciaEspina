@@ -103,22 +103,25 @@ public sealed class ProductosWebTests(SeguridadWebFixture fixture) : IClassFixtu
         var visitaId = detalle[(detalle.LastIndexOf('/') + 1)..];
         var pendiente = WebUtility.HtmlDecode(await admin.GetStringAsync(detalle));
         Assert.Contains("Al cobrar quedará en negativo: «Mascarilla de prueba» (−1)", pendiente);
-        Assert.Contains("¿Qué productos has utilizado?", pendiente);
-        Assert.Contains("/js/cobro-productos.js", pendiente);
+        Assert.Contains("¿Se vende o se usa en el servicio?", pendiente);
+        Assert.Contains("/js/visita-editor.js", pendiente);
 
-        // Al cobrar se indican los productos utilizados en el servicio: no se cobran, pero salen del stock
-        var invalido = await admin.PostAsync($"/admin/Visitas/Cobrar/{visitaId}", Formulario(await TokenAsync(admin, detalle),
-            ("FormaPago", "Efectivo"), ("Usados[0].ProductoId", tinteId.ToString(System.Globalization.CultureInfo.InvariantCulture)), ("Usados[0].Cantidad", "0")));
+        // Lo usado en el servicio se añade a la visita: no se cobra y, si se ha terminado, sale del stock al cobrar
+        var invalido = await admin.PostAsync($"/admin/Visitas/AgregarProducto/{visitaId}", Formulario(await TokenAsync(admin, detalle),
+            ("ProductoId", tinteId.ToString(System.Globalization.CultureInfo.InvariantCulture)), ("Cantidad", "0"), ("EnServicio", "true"), ("Terminado", "true")));
         Assert.Equal(HttpStatusCode.OK, invalido.StatusCode);
-        Assert.Contains("Indica entre 1 y 99 unidades de cada producto utilizado.", WebUtility.HtmlDecode(await invalido.Content.ReadAsStringAsync()));
+        Assert.Contains("Indica entre 1 y 99 unidades.", WebUtility.HtmlDecode(await invalido.Content.ReadAsStringAsync()));
+        var usado = await admin.PostAsync($"/admin/Visitas/AgregarProducto/{visitaId}", Formulario(await TokenAsync(admin, detalle),
+            ("ProductoId", tinteId.ToString(System.Globalization.CultureInfo.InvariantCulture)), ("Cantidad", "4"), ("EnServicio", "true"), ("Terminado", "true")));
+        Assert.Equal(HttpStatusCode.Redirect, usado.StatusCode);
         Assert.Equal(3, await StockAsync(tinteId));
+        Assert.Contains("Al cobrar quedará en negativo: «Mascarilla de prueba» (−1), «Tinte de prueba» (−1)", WebUtility.HtmlDecode(await admin.GetStringAsync(detalle)));
 
-        var cobro = await admin.PostAsync($"/admin/Visitas/Cobrar/{visitaId}", Formulario(await TokenAsync(admin, detalle),
-            ("FormaPago", "Efectivo"), ("Usados[0].ProductoId", tinteId.ToString(System.Globalization.CultureInfo.InvariantCulture)), ("Usados[0].Cantidad", "4")));
+        var cobro = await admin.PostAsync($"/admin/Visitas/Cobrar/{visitaId}", Formulario(await TokenAsync(admin, detalle), ("FormaPago", "Efectivo")));
         Assert.Equal(HttpStatusCode.Redirect, cobro.StatusCode);
         Assert.Equal((-1, -1), (await StockAsync(productoId), await StockAsync(tinteId)));
         var cobrada = WebUtility.HtmlDecode(await admin.GetStringAsync(detalle));
-        Assert.Contains("Productos utilizados", cobrada);
+        Assert.Contains("Incluido en el servicio · terminado, sale del stock", cobrada);
         Assert.Contains("Tinte de prueba", cobrada);
         Assert.Contains("Faltan 1 por reponer", WebUtility.HtmlDecode(await admin.GetStringAsync($"/admin/Productos/Ficha/{tinteId}")));
         Assert.Contains("−1 ud", WebUtility.HtmlDecode(await admin.GetStringAsync("/admin/Productos?estado=PorReponer")));

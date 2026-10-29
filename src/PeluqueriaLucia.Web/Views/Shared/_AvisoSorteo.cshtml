@@ -1,0 +1,18 @@
+@model IReadOnlyList<PeluqueriaLucia.Application.Sorteos.AnuncioPublico>
+@* Aviso flotante de sorteo en la web pública: el primero que se anuncia hoy. aviso-sorteo.js lo enseña con una animación y,
+   si se cierra, no vuelve a salir para ese anuncio. Sin JavaScript no aparece (el sorteo sigue en el menú). *@
+@{
+    var a = Model[0];
+    var ingles = Idioma.EsIngles(Context);
+    var fecha = a.FechaSorteo.ToString(T["d 'de' MMMM"], ingles ? Idioma.CulturaIngles : Idioma.CulturaEspanol);
+}
+<aside class="aviso-sorteo glass" data-aviso-sorteo="@a.AnuncioId" aria-label="@T["Sorteo"]" hidden>
+    <span class="aviso-sorteo-sello" aria-hidden="true"><icono nombre="regalo" tamano="22" /></span>
+    <div class="aviso-sorteo-texto">
+        <span class="aviso-sorteo-etiqueta">@(a.Realizado ? T["SORTEO REALIZADO"] : T["SORTEO"])@(Model.Count > 1 ? T.F(" · y {0} más", Model.Count - 1) : "")</span>
+        <strong>@a.TituloEnIdioma(ingles)</strong>
+        <span>@(a.Realizado ? T["¡Ya tenemos ganador!"] : T.F("Se sortea {0} el {1}", a.PremioEnIdioma(ingles), fecha))</span>
+    </div>
+    <a class="btn btn-primary btn-sm aviso-sorteo-ver" asp-area="" asp-controller="SorteosWeb" asp-action="Index">@T["Ver sorteo"]</a>
+    <button type="button" class="aviso-sorteo-cerrar" data-aviso-sorteo-cerrar aria-label="@T["Cerrar aviso"]"><icono nombre="cerrar" tamano="16" /></button>
+</aside>

@@ -41,7 +41,7 @@ public sealed record FiltroVisitas(DateOnly? Desde, DateOnly? Hasta, int? Client
 }
 
 /// <summary>Cifras de caja de un periodo. Facturado y cobrado incluyen servicios y productos.</summary>
-/// <param name="Productos">Unidades de productos vendidas (en visitas cobradas o pendientes).</param>
+/// <param name="Productos">Unidades de productos vendidas (en visitas cobradas o pendientes); lo usado en el servicio no cuenta.</param>
 public sealed record ResumenVisitas(
     int Visitas,
     int Servicios,
@@ -58,8 +58,14 @@ public sealed record ResumenVisitas(
 
 public sealed record NuevaVisita(int ClienteId, DateTime Fecha, Domain.Visitas.FormaPago FormaPago, IReadOnlyCollection<int> ServicioIds, IReadOnlyDictionary<int,decimal>? Precios = null, IReadOnlyList<ProductoNuevaVisita>? Productos = null);
 
-/// <summary>Unidades de un producto en una visita nueva; sin precio, el de venta de la ficha.</summary>
-public sealed record ProductoNuevaVisita(int ProductoId, int Cantidad, decimal? PrecioUnitario = null);
+/// <summary>
+/// Unidades de un producto en una visita nueva: vendidas (sin precio, el de venta de la ficha) o usadas en el servicio
+/// (incluidas, a 0,00 €).
+/// </summary>
+public sealed record ProductoNuevaVisita(int ProductoId, int Cantidad, decimal? PrecioUnitario = null, Domain.Visitas.UsoProducto Uso = Domain.Visitas.UsoProducto.Venta);
 
-/// <summary>Unidades de un producto gastadas en el servicio, que se indican al cobrar (no se cobran).</summary>
-public sealed record ProductoUsadoCobro(int ProductoId, int Cantidad);
+/// <summary>
+/// Precios escritos en la pantalla de una visita pendiente, por número de línea: el de cada servicio y el de cada unidad de
+/// los productos vendidos. Se guardan con cualquier cambio de la visita y al cobrarla.
+/// </summary>
+public sealed record PreciosVisita(IReadOnlyDictionary<int, decimal> Servicios, IReadOnlyDictionary<int, decimal> Productos);

@@ -1,0 +1,98 @@
+@using PeluqueriaLucia.Application.Sorteos
+@using PeluqueriaLucia.Domain.Sorteos
+@model SorteosIndiceModelo
+@{
+    ViewData["Title"] = "Sorteos";
+    var hoy = Model.Hoy;
+    var tocan = Model.Vista == VistaSorteos.Activos ? Model.Sorteos.Where(s => FormatoSorteos.TocaSortear(s, hoy)).ToList() : [];
+}
+
+<div>
+    <header class="page-head">
+        <div>
+            <h1>Sorteos</h1>
+            <p class="subtitle">Sortea servicios y productos entre tus clientes, avisa a quien gane y anúncialo en la web.</p>
+        </div>
+        <div class="acciones">
+            <a class="btn btn-primary" asp-action="Nuevo"><icono nombre="mas" tamano="18" /> Nuevo sorteo</a>
+        </div>
+    </header>
+
+    <div class="toolbar">
+        <nav class="segmented" aria-label="Sorteos">
+            <a class="@(Model.Vista == VistaSorteos.Activos ? "is-active" : "")" asp-action="Index" asp-route-vista="Activos">En marcha</a>
+            <a class="@(Model.Vista == VistaSorteos.Historial ? "is-active" : "")" asp-action="Index" asp-route-vista="Historial">Historial</a>
+        </nav>
+    </div>
+
+    @foreach (var s in tocan)
+    {
+        <a class="alerta-sorteo" asp-action="Detalle" asp-route-id="@s.Id">
+            <span class="alerta-sorteo-sello"><icono nombre="regalo" tamano="20" /></span>
+            <span><strong>@(DateOnly.FromDateTime(s.FechaSorteo) == hoy ? "Hoy toca sortear" : "Pendiente de sortear"): @s.Titulo</strong><span class="muted small">@s.Premio · @s.Participantes.Count participantes</span></span>
+            <span class="btn btn-sm btn-primary">Sortear</span>
+        </a>
+    }
+
+    @if (Model.Sorteos.Count == 0)
+    {
+        <div class="section estado-vacio">
+            <span class="estado-icono tint-pink"><icono nombre="regalo" tamano="30" /></span>
+            <h2>@(Model.Vista == VistaSorteos.Activos ? "No hay sorteos en marcha" : "Aún no se ha hecho ningún sorteo")</h2>
+            <p>Elige un servicio o un producto como premio, apunta a los participantes y sortéalo cuando toque. Todo queda en el historial.</p>
+            <div class="acciones"><a class="btn btn-primary" asp-action="Nuevo"><icono nombre="mas" tamano="18" /> Nuevo sorteo</a></div>
+        </div>
+    }
+    else if (Model.Vista == VistaSorteos.Activos)
+    {
+        <div class="sorteos-tarjetas">
+            @foreach (var s in Model.Sorteos)
+            {
+                <a class="card sorteo-tarjeta" asp-action="Detalle" asp-route-id="@s.Id">
+                    <span class="sorteo-tarjeta-sello"><icono nombre="regalo" tamano="26" /></span>
+                    <span class="sorteo-tarjeta-cuerpo">
+                        <span class="sorteo-tarjeta-titulo">@s.Titulo</span>
+                        <span class="sorteo-tarjeta-premio"><icono nombre="@FormatoSorteos.IconoPremio(s.TipoPremio)" tamano="15" /> @s.Premio</span>
+                    </span>
+                    <span class="sorteo-tarjeta-datos">
+                        <span class="@(FormatoSorteos.TocaSortear(s, hoy) ? "texto-aviso" : "")"><icono nombre="calendario" tamano="14" /> @FormatoSorteos.Cuando(s, hoy)</span>
+                        <span><icono nombre="clientes" tamano="14" /> @(s.Participantes.Count == 1 ? "1 participante" : $"{s.Participantes.Count} participantes")</span>
+                        <span><icono nombre="hoja" tamano="14" /> @FormatoSorteos.Web(s, hoy)</span>
+                    </span>
+                </a>
+            }
+        </div>
+    }
+    else
+    {
+        <section class="section">
+            <div class="list">
+                @foreach (var s in Model.Sorteos)
+                {
+                    var ganador = s.Ganador;
+                    <a class="row sorteo-historial" asp-action="Detalle" asp-route-id="@s.Id">
+                        <span class="sorteo-historial-sello @FormatoSorteos.Tinte(s)"><icono nombre="regalo" tamano="18" /></span>
+                        <span class="row-main">
+                            <span class="row-title">@s.Titulo</span>
+                            <span class="row-sub">
+                                @s.Premio ·
+                                @if (ganador is not null)
+                                {
+                                    <text>@ganador.Fecha.ToString("dd/MM/yyyy HH:mm") · <strong>@ganador.Ganador</strong> · @SorteosService.Como(ganador) · @FormatoSorteos.Aviso(ganador)@(s.Extracciones.Count > 1 ? $" · {s.Extracciones.Count} extracciones" : "")</text>
+                                }
+                                else
+                                {
+                                    <text>Cancelado@(s.MotivoCancelacion is null ? "" : ": " + s.MotivoCancelacion)</text>
+                                }
+                            </span>
+                        </span>
+                        <span class="row-end">
+                            <span class="pill @FormatoSorteos.Tinte(s)">@FormatoSorteos.Estado(s)</span>
+                            <span class="row-chevron"><icono nombre="siguiente" tamano="16" /></span>
+                        </span>
+                    </a>
+                }
+            </div>
+        </section>
+    }
+</div>

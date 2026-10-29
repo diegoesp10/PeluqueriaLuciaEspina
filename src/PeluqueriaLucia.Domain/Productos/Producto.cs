@@ -60,7 +60,10 @@ public sealed class Producto
     /// <summary>Precio de venta al público, con impuestos incluidos, como los servicios.</summary>
     public decimal PrecioVenta { get; private set; }
 
-    /// <summary>Lo que cuesta al salón; sirve para valorar el inventario y ver el margen.</summary>
+    /// <summary>
+    /// Lo que cuesta al salón ahora; sirve para valorar el inventario y ver el margen. Cada coste que se anota queda en el
+    /// historial (<see cref="CosteProducto"/>), y este es el del más reciente.
+    /// </summary>
     public decimal? PrecioCoste { get; private set; }
 
     public int Stock { get; private set; }
@@ -195,6 +198,40 @@ public sealed class Producto
         return Mover(TipoMovimientoStock.Ajuste, recuento - Stock, nota, null, ahora, administradorId);
     }
 
+    /// <summary>
+    /// Anota lo que ha costado comprar el producto a partir de <paramref name="desde"/> («en enero, 100 €»). Si es el registro
+    /// más reciente del historial (no hay ninguno o <paramref name="ultimoDesde"/> no es posterior), pasa a ser su precio de
+    /// coste actual; uno de un mes pasado solo completa el historial.
+    /// </summary>
+    public CosteProducto RegistrarCoste(decimal coste, DateOnly desde, string? nota, DateOnly? ultimoDesde, DateTime ahora, int? administradorId)
+    {
+        var importe = decimal.Round(coste, 2, MidpointRounding.AwayFromZero);
+        if (importe is < 0 or > PrecioMaximo)
+            throw new ReglaDeNegocioException("El coste tiene que estar entre 0 y 9.999,99 €.", "Coste");
+        if (desde > DateOnly.FromDateTime(ahora))
+            throw new ReglaDeNegocioException("La fecha del coste no puede ser futura.", "Desde");
+        if (desde < CosteProducto.Primera)
+            throw new ReglaDeNegocioException("Revisa la fecha del coste.", "Desde");
+        var limpia = Texto.Opcional(nota);
+        if (limpia?.Length > CosteProducto.LongitudNota)
+            throw new ReglaDeNegocioException($"La nota admite hasta {CosteProducto.LongitudNota} caracteres.", "NotaCoste");
+
+        if (ultimoDesde is null || desde >= ultimoDesde)
+        {
+            PrecioCoste = importe;
+            ActualizadoEn = ahora;
+        }
+
+        return new CosteProducto(this, importe, desde, limpia, ahora, administradorId);
+    }
+
+    /// <summary>
+    /// El registro del historial de costes cuando la ficha cambia el precio de coste (al dar de alta o al editarla): desde
+    /// hoy, el nuevo. Null si no ha cambiado o se ha quitado.
+    /// </summary>
+    public CosteProducto? CosteDeLaFicha(decimal? anterior, string? nota, DateTime ahora, int? administradorId) =>
+        PrecioCoste is { } coste && coste != anterior ? new CosteProducto(this, coste, DateOnly.FromDateTime(ahora), nota, ahora, administradorId) : null;
+
     /// <summary>Sale con el cobro de una visita. Si no quedaban, el stock queda en negativo.</summary>
     public MovimientoStock Vender(int unidades, int visitaId, DateTime ahora, int? administradorId)
     {
@@ -323,6 +360,53 @@ public sealed class FotoProducto
     public DateTime SubidaEn { get; private set; }
 
     internal void Colocar(int orden) => Orden = orden;
+}
+
+/// <summary>
+/// Lo que costó comprar un producto a partir de una fecha: el historial de precios de compra («en enero, 100 €; en
+/// febrero, 120 €»). Se anota al dar de alta el producto, al cambiar su coste en la ficha, al registrar una entrada con su
+/// coste o a mano en la ficha.
+/// </summary>
+public sealed class CosteProducto
+{
+    public const int LongitudNota = 200;
+
+    /// <summary>Fecha más antigua que se admite.</summary>
+    public static readonly DateOnly Primera = new(2000, 1, 1);
+
+    private CosteProducto()
+    {
+    }
+
+    internal CosteProducto(Producto producto, decimal coste, DateOnly desde, string? nota, DateTime registradoEn, int? administradorId)
+    {
+        Producto = producto;
+        Coste = coste;
+        Desde = desde;
+        Nota = nota;
+        RegistradoEn = registradoEn;
+        AdministradorId = administradorId;
+    }
+
+    public long Id { get; private set; }
+
+    public int ProductoId { get; private set; }
+
+    public Producto? Producto { get; private set; }
+
+    /// <summary>Precio de compra de cada unidad.</summary>
+    public decimal Coste { get; private set; }
+
+    /// <summary>Desde cuándo costaba eso.</summary>
+    public DateOnly Desde { get; private set; }
+
+    /// <summary>Proveedor, pedido…</summary>
+    public string? Nota { get; private set; }
+
+    /// <summary>Cuándo se anotó (hora local del salón).</summary>
+    public DateTime RegistradoEn { get; private set; }
+
+    public int? AdministradorId { get; private set; }
 }
 
 /// <summary>Los valores numéricos están guardados en la base de datos: no cambiarlos.</summary>

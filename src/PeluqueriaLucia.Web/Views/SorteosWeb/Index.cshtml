@@ -1,0 +1,52 @@
+@model IReadOnlyList<PeluqueriaLucia.Application.Sorteos.AnuncioPublico>
+@{
+    ViewData["Title"] = T["Sorteos"];
+    ViewData["Descripcion"] = T["Sorteos de servicios y productos para los clientes del salón Lucía, en Oviedo."];
+    var ingles = Idioma.EsIngles(Context);
+    var cultura = ingles ? Idioma.CulturaIngles : Idioma.CulturaEspanol;
+}
+<section class="seccion-publica sorteos-portada">
+    <div>
+        <p class="etiqueta" data-anima="subir"><icono nombre="regalo" tamano="16" /> @T["SORTEOS DEL SALÓN"]</p>
+        <h1 data-dividir>@T["Un detalle"]<br /><em>@T["para ti."]</em></h1>
+        <p class="intro" data-anima="subir">@T["De vez en cuando sorteamos servicios y productos entre nuestras clientas y clientes. Aquí tienes lo que se sortea y cuándo."]</p>
+    </div>
+</section>
+<section class="seccion-publica sorteos-lista">
+    @if (Model.Count == 0)
+    {
+        <div class="sorteos-vacio" data-anima="subir">
+            <span class="sorteo-sello" aria-hidden="true"><icono nombre="regalo" tamano="34" /></span>
+            <p>@T["Ahora mismo no hay ningún sorteo en marcha. ¡Vuelve pronto!"]</p>
+        </div>
+    }
+    else
+    {
+        <div class="sorteos-grid" data-anima-grupo>
+            @foreach (var a in Model)
+            {
+                var fecha = a.FechaSorteo.ToString(T["d 'de' MMMM 'a las' HH:mm"], cultura);
+                <article class="sorteo-publico @(a.Realizado ? "is-realizado" : "")" id="sorteo-@a.SorteoId">
+                    <span class="sorteo-sello" aria-hidden="true"><icono nombre="regalo" tamano="30" /></span>
+                    <p class="etiqueta">@(a.Realizado ? T["SORTEO REALIZADO"] : T["SE SORTEA"])</p>
+                    <h2>@a.TituloEnIdioma(ingles)</h2>
+                    <p class="sorteo-publico-premio"><icono nombre="@(a.TipoPremio == PeluqueriaLucia.Domain.Sorteos.TipoPremio.Servicio ? "tijeras" : "producto")" tamano="18" /> @a.PremioEnIdioma(ingles)</p>
+                    <p class="sorteo-publico-fecha"><icono nombre="calendario" tamano="16" /> @(a.Realizado ? T.F("Sorteado el {0}", fecha) : T.F("Sorteo el {0}", fecha))</p>
+                    <p class="sorteo-publico-texto">@a.TextoEnIdioma(ingles)</p>
+                    @if (a.DescripcionEnIdioma(ingles) is { Length: > 0 } descripcion)
+                    {
+                        <p class="sorteo-publico-detalle">@descripcion</p>
+                    }
+                    @if (a.Realizado)
+                    {
+                        <p class="sorteo-publico-ganador"><icono nombre="estrella" tamano="16" /> @T["¡Ya tenemos ganador! El salón se pone en contacto directamente con quien ha ganado."]</p>
+                    }
+                </article>
+            }
+        </div>
+    }
+    <div class="botones" data-anima="subir">
+        <a class="btn btn-primary" asp-controller="Agenda" asp-action="Index" data-magnetico>@T["Reserva tu próxima cita"] <icono nombre="flecha-salir" tamano="14" /></a>
+        <a class="enlace-flecha" asp-controller="Inicio" asp-action="Servicios">@T["Nuestros servicios"] <icono nombre="flecha" tamano="14" /></a>
+    </div>
+</section>

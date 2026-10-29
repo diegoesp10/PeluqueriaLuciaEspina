@@ -3,8 +3,9 @@
 @{
     var f = Model.Formulario;
 }
-@* Productos de «Nueva visita»: se eligen con el buscador (también con el lector de códigos de barras) y nueva-visita.js
-   añade una fila por producto con sus unidades y su precio. Tras un error de validación, las filas vuelven del servidor. *@
+@* Productos de «Nueva visita»: se eligen con el buscador (también con el lector de códigos de barras), se dice si se venden o
+   se han usado en el servicio (y entonces, si se han terminado) y nueva-visita.js añade una fila por producto con sus
+   unidades y, si se vende, su precio. Tras un error de validación, las filas vuelven del servidor. *@
 <section data-productos-visita>
     <div class="section-head">
         <h2>Productos</h2>
@@ -37,7 +38,21 @@
                 </div>
                 <button type="button" class="btn btn-gray producto-selector-boton" data-producto-anadir><icono nombre="mas" tamano="17" /> Añadir</button>
             </div>
-            <p class="field-hint" data-producto-aviso aria-live="polite">El stock se descuenta al cobrar la visita. Si se acaba, queda en negativo para reponerlo.</p>
+            @* Solo sirven para preparar la fila: lo que se envía es el uso de cada fila *@
+            <div class="producto-selector-uso">
+                <div class="segmented" role="radiogroup" aria-label="¿Se vende o se usa en el servicio?">
+                    <label><input type="radio" name="producto-uso" value="Venta" checked data-producto-uso /> Venta</label>
+                    <label><input type="radio" name="producto-uso" value="Servicio" data-producto-uso /> Usado en el servicio</label>
+                </div>
+                <div class="producto-selector-terminado" data-producto-terminado hidden>
+                    <span class="field-label" id="producto-terminado-pregunta">¿Se ha terminado?</span>
+                    <div class="segmented" role="radiogroup" aria-labelledby="producto-terminado-pregunta">
+                        <label><input type="radio" name="producto-terminado" value="ServicioTerminado" /> Sí, sale del stock</label>
+                        <label><input type="radio" name="producto-terminado" value="ServicioEnUso" /> No, sigue en uso</label>
+                    </div>
+                </div>
+            </div>
+            <p class="field-hint" data-producto-aviso aria-live="polite">El stock se descuenta al cobrar la visita. Si se acaba, queda en negativo para reponerlo. Lo usado en el servicio va incluido (0,00 €).</p>
         </div>
 
         <div class="list producto-lineas" data-productos-lista hidden="@(f.Productos.Count == 0)">
@@ -45,7 +60,8 @@
             {
                 var linea = f.Productos[i];
                 var p = Model.Productos.FirstOrDefault(x => x.Id == linea.ProductoId);
-                <div class="row producto-linea" data-producto-linea data-producto-id="@linea.ProductoId" data-stock="@(p?.Stock ?? 0)">
+                var incluido = linea.Uso != UsoProducto.Venta;
+                <div class="row producto-linea" data-producto-linea data-producto-id="@linea.ProductoId" data-stock="@(p?.Stock ?? 0)" data-uso="@linea.Uso">
                     <span class="producto-miniatura producto-miniatura-sm">
                         <icono nombre="producto" tamano="18" />
                         @if (p?.FotoPrincipal is { } foto)
@@ -55,17 +71,25 @@
                     </span>
                     <span class="row-main">
                         <span class="row-title" data-linea-nombre>@(p?.Nombre ?? "Producto que ya no está a la venta")</span>
-                        <span class="row-sub"><span class="producto-ref" data-linea-referencia>@p?.Referencia</span> · <span data-linea-stock>@(p is null ? "sin stock" : FormatoProductos.Disponible(p.Stock))</span></span>
+                        <span class="row-sub"><span class="producto-ref" data-linea-referencia>@p?.Referencia</span> · <span data-linea-stock>@(p is null ? "sin stock" : FormatoProductos.Disponible(p.Stock))</span><span data-linea-uso>@(incluido ? " · " + Formato.Texto(linea.Uso) : "")</span></span>
                     </span>
                     <input type="hidden" name="Productos[@i].ProductoId" value="@linea.ProductoId" data-linea-id />
+                    <input type="hidden" name="Productos[@i].Uso" value="@linea.Uso" data-linea-uso-valor />
                     <span class="producto-linea-cantidad">
                         <input class="input num" type="number" name="Productos[@i].Cantidad" min="1" max="@LineaProductoVisita.CantidadMaxima" step="1" value="@linea.Cantidad"
                                inputmode="numeric" aria-label="Unidades de @(p?.Nombre ?? "este producto")" data-linea-cantidad />
                         <span>uds</span>
                     </span>
-                    <span class="importe-visita">
-                        <input class="input num" name="Productos[@i].Precio" inputmode="decimal" value="@Formato.Importe(linea.Precio ?? p?.PrecioVenta)"
-                               aria-label="Precio por unidad de @(p?.Nombre ?? "este producto")" data-linea-precio /><span>€</span>
+                    <span class="importe-visita" data-linea-importe>
+                        @if (incluido)
+                        {
+                            <span class="linea-incluida" title="Incluido en el servicio: no se cobra">0,00 €</span>
+                        }
+                        else
+                        {
+                            <input class="input num" name="Productos[@i].Precio" inputmode="decimal" value="@Formato.Importe(linea.Precio ?? p?.PrecioVenta)"
+                                   aria-label="Precio por unidad de @(p?.Nombre ?? "este producto")" data-linea-precio /><span>€</span>
+                        }
                     </span>
                     <button type="button" class="btn btn-gray btn-icono" aria-label="Quitar @(p?.Nombre ?? "este producto")" data-linea-quitar><icono nombre="cerrar" tamano="16" /></button>
                 </div>
@@ -73,18 +97,19 @@
         </div>
 
         <template data-producto-plantilla>
-            <div class="row producto-linea" data-producto-linea data-producto-id="" data-stock="0">
+            <div class="row producto-linea" data-producto-linea data-producto-id="" data-stock="0" data-uso="Venta">
                 <span class="producto-miniatura producto-miniatura-sm"><icono nombre="producto" tamano="18" /></span>
                 <span class="row-main">
                     <span class="row-title" data-linea-nombre></span>
-                    <span class="row-sub"><span class="producto-ref" data-linea-referencia></span> · <span data-linea-stock></span></span>
+                    <span class="row-sub"><span class="producto-ref" data-linea-referencia></span> · <span data-linea-stock></span><span data-linea-uso></span></span>
                 </span>
                 <input type="hidden" name="Productos[0].ProductoId" value="" data-linea-id />
+                <input type="hidden" name="Productos[0].Uso" value="Venta" data-linea-uso-valor />
                 <span class="producto-linea-cantidad">
                     <input class="input num" type="number" name="Productos[0].Cantidad" min="1" max="@LineaProductoVisita.CantidadMaxima" step="1" value="1" inputmode="numeric" data-linea-cantidad />
                     <span>uds</span>
                 </span>
-                <span class="importe-visita">
+                <span class="importe-visita" data-linea-importe>
                     <input class="input num" name="Productos[0].Precio" inputmode="decimal" value="" data-linea-precio /><span>€</span>
                 </span>
                 <button type="button" class="btn btn-gray btn-icono" data-linea-quitar><icono nombre="cerrar" tamano="16" /></button>

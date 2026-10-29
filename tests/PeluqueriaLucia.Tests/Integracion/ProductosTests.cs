@@ -207,25 +207,36 @@ public sealed class ProductosTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Los_productos_usados_al_cobrar_se_descuentan_con_su_visita_y_no_se_cobran()
+    public async Task Lo_usado_en_el_servicio_va_en_la_visita_a_cero_y_al_cobrar_solo_sale_del_stock_lo_terminado()
     {
         var (clienteId, servicioId) = await ClienteYServicioAsync();
         var tinte = (await Servicios().Productos.CrearAsync(Datos(ProductoTests.Ficha("TI-73", "Tinte 7.3", 12m), 1), [], null)).Valor;
         var oxidante = (await Servicios().Productos.CrearAsync(Datos(ProductoTests.Ficha("OX-20", "Oxidante 20 vol", 8m), 10), [], null)).Valor;
-        var visita = (await Servicios().Visitas.RegistrarAsync(new NuevaVisita(clienteId, DateTime.Today, FormaPago.Efectivo, [servicioId]))).Valor;
+        var champu = (await Servicios().Productos.CrearAsync(Datos(ProductoTests.Ficha("CH-1", precio: 10m), 5), [], null)).Valor;
+        var visita = (await Servicios().Visitas.RegistrarAsync(new NuevaVisita(clienteId, DateTime.Today, FormaPago.Efectivo, [servicioId],
+            Productos: [new ProductoNuevaVisita(tinte, 2, Uso: UsoProducto.ServicioTerminado), new ProductoNuevaVisita(champu, 1)]))).Valor;
 
-        var inexistente = await Servicios().Visitas.CobrarAsync(visita, FormaPago.Efectivo, null, null, usados: [new ProductoUsadoCobro(999999, 1)]);
-        var cobro = await Servicios().Visitas.CobrarAsync(visita, FormaPago.Efectivo, null, null, administradorId: 2,
-            usados: [new ProductoUsadoCobro(tinte, 2), new ProductoUsadoCobro(oxidante, 1)]);
+        var inexistente = await Servicios().Visitas.AgregarProductoAsync(visita, 999999, 1, null, UsoProducto.ServicioEnUso);
+        var enUso = await Servicios().Visitas.AgregarProductoAsync(visita, oxidante, 1, 50m, UsoProducto.ServicioEnUso);
+        var cobro = await Servicios().Visitas.CobrarAsync(visita, FormaPago.Efectivo, null, null, administradorId: 2);
 
-        Assert.Equal("Usados", inexistente.Error?.Campo);
+        Assert.Equal("ProductoId", inexistente.Error?.Campo);
+        Assert.True(enUso.Exito, enUso.Error?.Mensaje);
         Assert.True(cobro.Exito, cobro.Error?.Mensaje);
         var cobrada = (await Servicios().Visitas.ObtenerAsync(visita))!;
-        Assert.Equal((18m, 18m), (cobrada.Total, cobrada.TotalEfectivo!.Value));
-        Assert.Equal((-1, 9), ((await Servicios().Productos.ObtenerAsync(tinte))!.Stock, (await Servicios().Productos.ObtenerAsync(oxidante))!.Stock));
+        Assert.Equal((28m, 28m), (cobrada.Total, cobrada.TotalEfectivo!.Value));
+        Assert.Equal([("Tinte 7.3", UsoProducto.ServicioTerminado, 0m), ("Champú de argán", UsoProducto.Venta, 10m), ("Oxidante 20 vol", UsoProducto.ServicioEnUso, 0m)],
+            cobrada.Productos.Select(p => (p.Nombre, p.Uso, p.Importe)));
+        Assert.Equal((-1, 10, 4), ((await Servicios().Productos.ObtenerAsync(tinte))!.Stock, (await Servicios().Productos.ObtenerAsync(oxidante))!.Stock,
+            (await Servicios().Productos.ObtenerAsync(champu))!.Stock));
         var usados = await Servicios().Visitas.UsadosAsync(visita);
-        Assert.Equal([("Tinte 7.3", -2, -1), ("Oxidante 20 vol", -1, 9)], usados.Select(u => (u.Producto!.Nombre, u.Cantidad, u.StockResultante)));
+        Assert.Equal([("Tinte 7.3", -2, -1)], usados.Select(u => (u.Producto!.Nombre, u.Cantidad, u.StockResultante)));
         Assert.All(usados, u => Assert.Equal((TipoMovimientoStock.UsoInterno, (int?)visita, (int?)2), (u.Tipo, u.VisitaId, u.AdministradorId)));
+        // En la caja solo cuenta como producto vendido el champú
+        Assert.Equal((1, 28m), ((await Servicios().Visitas.ResumirAsync(FiltroVisitas.Dia(DateOnly.FromDateTime(DateTime.Today)))).Productos,
+            (await Servicios().Visitas.ResumirAsync(FiltroVisitas.Dia(DateOnly.FromDateTime(DateTime.Today)))).Cobrado));
+        // La base de datos tampoco admite un producto usado con precio
+        await Assert.ThrowsAsync<Microsoft.Data.SqlClient.SqlException>(() => _bd.EjecutarAsync($"UPDATE ProductosVisitas SET PrecioUnitario = 1, Importe = 1 WHERE ProductoId = {oxidante}"));
     }
 
     [Fact]
@@ -264,21 +275,23 @@ public sealed class ProductosTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task La_exportacion_detalla_los_productos_vendidos_en_otra_hoja()
+    public async Task La_exportacion_detalla_los_productos_vendidos_y_usados_en_otra_hoja()
     {
         var (clienteId, servicioId) = await ClienteYServicioAsync();
         var champu = (await Servicios().Productos.CrearAsync(Datos(ProductoTests.Ficha("CH-1", precio: 10m), 5), [], null)).Valor;
+        var tinte = (await Servicios().Productos.CrearAsync(Datos(ProductoTests.Ficha("TI-73", "Tinte 7.3", 12m), 5), [], null)).Valor;
         await Servicios().Visitas.RegistrarAsync(new NuevaVisita(clienteId, new DateTime(2026, 10, 17, 9, 0, 0), FormaPago.Efectivo, [servicioId],
-            Productos: [new ProductoNuevaVisita(champu, 3)]));
+            Productos: [new ProductoNuevaVisita(champu, 3), new ProductoNuevaVisita(tinte, 1, Uso: UsoProducto.ServicioTerminado)]));
 
         var archivo = await Servicios().Visitas.ExportarAsync(FiltroVisitas.Mes(2026, 10));
 
         using var libro = new XLWorkbook(new MemoryStream(archivo.Valor!.Contenido));
         var visita = libro.Worksheet("Visitas").Table("Visitas").DataRange.Rows().Single();
-        Assert.Equal("3 × Champú de argán", visita.Cell(5).GetString());
+        Assert.Equal("3 × Champú de argán, Tinte 7.3 (incluido)", visita.Cell(5).GetString());
         Assert.Equal(48m, visita.Cell(6).GetValue<decimal>());
-        var linea = libro.Worksheet("Productos").Table("Productos").DataRange.Rows().Single();
-        Assert.Equal(("CH-1", 3, 30m), (linea.Cell(4).GetString(), linea.Cell(6).GetValue<int>(), linea.Cell(8).GetValue<decimal>()));
+        var lineas = libro.Worksheet("Productos").Table("Productos").DataRange.Rows().ToList();
+        Assert.Equal([("CH-1", 3, 30m, "Venta"), ("TI-73", 1, 0m, "En el servicio (terminado)")],
+            lineas.Select(l => (l.Cell(4).GetString(), l.Cell(6).GetValue<int>(), l.Cell(8).GetValue<decimal>(), l.Cell(10).GetString())));
     }
 
     [Fact]

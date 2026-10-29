@@ -6,7 +6,7 @@ using PeluqueriaLucia.Domain.Visitas;
 
 namespace PeluqueriaLucia.Tests.Dominio;
 
-/// <summary>Productos vendidos en visitas: se comprueba el stock al añadirlos y se descuenta al cobrar.</summary>
+/// <summary>Productos de las visitas, vendidos o usados en el servicio: se comprueba el stock al añadirlos y se descuenta al cobrar.</summary>
 public sealed class VisitaProductosTests
 {
     private static readonly DateTime Ahora = new(2026, 10, 17, 11, 0, 0);
@@ -102,33 +102,66 @@ public sealed class VisitaProductosTests
     }
 
     [Fact]
-    public void Los_productos_usados_en_el_servicio_salen_del_stock_al_cobrar_sin_cobrarse()
+    public void Lo_usado_en_el_servicio_va_incluido_a_cero_y_solo_sale_del_stock_si_se_ha_terminado()
     {
         var tinte = ProductoTests.Guardado(1, stock: 1, nombre: "Tinte 7.3", precio: 12m);
         var oxidante = ProductoTests.Guardado(2, stock: 10, nombre: "Oxidante 20 vol", precio: 8m);
-        var visita = Visita.Registrar(Ana(), Ahora, FormaPago.Efectivo, [Corte()]);
+        var champu = ProductoTests.Guardado(3, stock: 4);
+        var visita = Visita.Registrar(Ana(), Ahora, FormaPago.Efectivo, [Corte()],
+            productos: [new(tinte, 1, Uso: UsoProducto.ServicioTerminado), new(oxidante, 1, 99m, UsoProducto.ServicioEnUso), new(champu, 1)]);
+        visita.AgregarProducto(tinte, 1, uso: UsoProducto.ServicioTerminado);
 
-        var movimientos = visita.Cobrar(FormaPago.Tarjeta, null, null, [tinte, oxidante], Ahora.AddHours(1), 3,
-            [new(tinte, 1), new(oxidante, 1), new(tinte, 1)]);
+        var movimientos = visita.Cobrar(FormaPago.Tarjeta, null, null, [tinte, oxidante, champu], Ahora.AddHours(1), 3);
 
-        Assert.Equal((18m, 18m), (visita.Total, visita.TotalTarjeta));
-        Assert.Empty(visita.Productos);
-        Assert.Equal((-1, 9), (tinte.Stock, oxidante.Stock));
-        Assert.Equal([(TipoMovimientoStock.UsoInterno, -2), (TipoMovimientoStock.UsoInterno, -1)], movimientos.Select(m => (m.Tipo, m.Cantidad)));
-        Assert.All(movimientos, m => Assert.Equal((visita.Id, 3, "Usado en el servicio"), (m.VisitaId!.Value, m.AdministradorId!.Value, m.Nota)));
+        // Solo se cobra el corte y el champú vendido; el tinte y el oxidante van incluidos, a 0,00 €
+        Assert.Equal((18m + 14.90m, 18m + 14.90m), (visita.Total, visita.TotalTarjeta!.Value));
+        Assert.Equal([(UsoProducto.ServicioTerminado, 2, 0m, 0m), (UsoProducto.ServicioEnUso, 1, 0m, 0m), (UsoProducto.Venta, 1, 14.90m, 14.90m)],
+            visita.Productos.Select(p => (p.Uso, p.Cantidad, p.PrecioUnitario, p.Importe)));
+        Assert.Equal([true, true, false], visita.Productos.Select(p => p.Incluido));
+        // El tinte terminado sale del stock (en negativo si no hay); el oxidante sigue en uso y no se mueve
+        Assert.Equal((-1, 10, 3), (tinte.Stock, oxidante.Stock, champu.Stock));
+        Assert.Equal([(TipoMovimientoStock.UsoInterno, -2, "Usado en el servicio"), (TipoMovimientoStock.Venta, -1, null)],
+            movimientos.Select(m => (m.Tipo, m.Cantidad, m.Nota)));
+        Assert.All(movimientos, m => Assert.Equal((visita.Id, 3), (m.VisitaId!.Value, m.AdministradorId!.Value)));
     }
 
     [Fact]
-    public void Unidades_usadas_no_validas_no_cobran_nada()
+    public void Lo_que_sigue_en_uso_no_hace_falta_cargarlo_para_cobrar()
     {
-        var tinte = ProductoTests.Guardado(1, stock: 3, nombre: "Tinte 7.3");
+        var oxidante = ProductoTests.Guardado(2, stock: 10, nombre: "Oxidante 20 vol");
+        var visita = Visita.Registrar(Ana(), Ahora, FormaPago.Efectivo, [Corte()], productos: [new(oxidante, 1, Uso: UsoProducto.ServicioEnUso)]);
+
+        var movimientos = visita.Cobrar(FormaPago.Efectivo, null, null);
+
+        Assert.Empty(movimientos);
+        Assert.Equal(18m, visita.TotalEfectivo);
+    }
+
+    [Fact]
+    public void Un_uso_desconocido_no_se_admite()
+    {
+        var champu = ProductoTests.Guardado(1, stock: 5);
         var visita = Visita.Registrar(Ana(), Ahora, FormaPago.Efectivo, [Corte()]);
 
-        var ex = Assert.Throws<ReglaDeNegocioException>(() => visita.Cobrar(FormaPago.Efectivo, null, null, [tinte], usados: [new(tinte, 0)]));
+        var ex = Assert.Throws<ReglaDeNegocioException>(() => visita.AgregarProducto(champu, 1, uso: (UsoProducto)7));
 
-        Assert.Equal("Usados", ex.Campo);
-        Assert.False(visita.EstaCobrada);
-        Assert.Equal(3, tinte.Stock);
+        Assert.Equal("Productos", ex.Campo);
+        Assert.Empty(visita.Productos);
+    }
+
+    [Fact]
+    public void El_mismo_producto_vendido_y_usado_va_en_lineas_distintas()
+    {
+        var champu = ProductoTests.Guardado(1, stock: 10);
+        var visita = Visita.Registrar(Ana(), Ahora, FormaPago.Efectivo, [Corte()]);
+
+        visita.AgregarProducto(champu, 1);
+        visita.AgregarProducto(champu, 1, uso: UsoProducto.ServicioEnUso);
+        visita.AgregarProducto(champu, 2, uso: UsoProducto.ServicioEnUso);
+        visita.AgregarProducto(champu, 1, uso: UsoProducto.ServicioTerminado);
+
+        Assert.Equal([(UsoProducto.Venta, 1), (UsoProducto.ServicioEnUso, 3), (UsoProducto.ServicioTerminado, 1)], visita.Productos.Select(p => (p.Uso, p.Cantidad)));
+        Assert.Equal(18m + 14.90m, visita.Total);
     }
 
     [Fact]

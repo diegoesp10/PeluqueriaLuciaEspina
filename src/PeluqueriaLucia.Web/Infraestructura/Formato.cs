@@ -45,6 +45,14 @@ public static class Formato
         _ => "Mixto",
     };
 
+    /// <summary>Cómo sale un producto en una visita, bajo su nombre.</summary>
+    public static string Texto(UsoProducto uso) => uso switch
+    {
+        UsoProducto.ServicioTerminado => "Incluido en el servicio · terminado, sale del stock",
+        UsoProducto.ServicioEnUso => "Incluido en el servicio · sigue en uso, no sale del stock",
+        _ => "Venta",
+    };
+
     public static string Icono(FormaPago forma) => forma switch
     {
         FormaPago.Efectivo => "efectivo",

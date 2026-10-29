@@ -56,7 +56,7 @@ public sealed class Cliente
     }
 
     public static Cliente CrearDesdeReserva(string apodo, string email, string telefono, DateTime ahora, string? apellido = null, Sexo? sexo = null) => new()
-    { Nombre = Texto.Obligatorio(apodo, LongitudNombre, "El nombre", nameof(Nombre)), Apodo = apodo.Trim().Length <= 80 ? apodo.Trim() : null, Email = email, Telefono = telefono, Apellido = Texto.Opcional(apellido) ?? "", Sexo = sexo is { } valor && Enum.IsDefined(valor) ? valor : Sexo.Otro, FechaCreacion = ahora, PendienteCompletar = true };
+    { Nombre = Texto.Obligatorio(apodo, LongitudNombre, "El nombre", nameof(Nombre)), Apodo = apodo.Trim().Length <= 80 ? apodo.Trim() : null, Email = Texto.Opcional(email), Telefono = Texto.Opcional(telefono), Apellido = Texto.Opcional(apellido) ?? "", Sexo = sexo is { } valor && Enum.IsDefined(valor) ? valor : Sexo.Otro, FechaCreacion = ahora, PendienteCompletar = true };
 
     public string NombreCompleto => $"{Nombre} {Apellido}".Trim();
 

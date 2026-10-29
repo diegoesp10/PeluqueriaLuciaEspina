@@ -270,3 +270,53 @@ html { scroll-behavior:smooth; scroll-padding-top:120px; }
 /* Adornos que antes eran caracteres (✳ ↗ →) y ahora son SVG: tamaño y separación en su contexto */
 .etiqueta > svg { margin-right: 6px; vertical-align: -3px; }
 .franja-pista > svg { width: 22px; height: 22px; color: var(--olive); flex: none; }
+
+/* ── Sorteos: aviso flotante y página ─────────────────────────────────────── */
+.menu-sorteos svg { vertical-align: -2px; margin-right: 2px; color: var(--accent); }
+.aviso-sorteo { position: fixed; z-index: 40; left: max(16px, env(safe-area-inset-left)); bottom: max(16px, env(safe-area-inset-bottom));
+  display: flex; align-items: center; gap: 14px; width: min(440px, calc(100vw - 32px)); padding: 14px 16px 14px 14px; border-radius: 22px;
+  box-shadow: 0 18px 40px -18px rgb(40 20 70 / .45), 0 0 0 1px color-mix(in oklab, var(--accent) 22%, transparent);
+  opacity: 0; transform: translateY(24px) scale(.96); transition: opacity .35s ease, transform .45s cubic-bezier(.2, .9, .3, 1.2); }
+.aviso-sorteo.is-visible { opacity: 1; transform: none; }
+.aviso-sorteo[hidden] { display: none; }
+.aviso-sorteo-sello { position: relative; display: grid; flex: none; place-items: center; width: 46px; height: 46px; border-radius: 15px; color: #fff;
+  background: linear-gradient(135deg, var(--pink), var(--accent)); }
+.aviso-sorteo.is-visible .aviso-sorteo-sello { animation: aviso-sorteo-saludo 2.8s ease-in-out .6s infinite; }
+.aviso-sorteo-sello::after { content: ''; position: absolute; inset: -5px; border-radius: 19px; border: 2px solid color-mix(in oklab, var(--pink) 60%, transparent);
+  opacity: 0; animation: aviso-sorteo-onda 2.8s ease-out 1s infinite; }
+.aviso-sorteo-texto { display: grid; flex: 1; gap: 2px; min-width: 0; font-size: 14px; line-height: 1.35; }
+.aviso-sorteo-texto strong { font-size: 15px; overflow-wrap: anywhere; }
+.aviso-sorteo-etiqueta { font-size: 10px; letter-spacing: .16em; font-weight: 700; color: var(--accent); }
+.aviso-sorteo-ver { flex: none; white-space: nowrap; }
+.aviso-sorteo-cerrar { position: absolute; top: -8px; right: -8px; display: grid; place-items: center; width: 28px; height: 28px; padding: 0;
+  border: 0; border-radius: 50%; background: var(--surface); color: var(--label-2); box-shadow: 0 2px 8px rgb(0 0 0 / .18); cursor: pointer; }
+@keyframes aviso-sorteo-saludo { 0%, 70%, 100% { transform: rotate(0); } 76% { transform: rotate(-12deg); } 82% { transform: rotate(10deg); } 88% { transform: rotate(-6deg); } 94% { transform: rotate(3deg); } }
+@keyframes aviso-sorteo-onda { 0% { opacity: .9; transform: scale(.9); } 70%, 100% { opacity: 0; transform: scale(1.25); } }
+@media (max-width: 520px) {
+  .aviso-sorteo { flex-wrap: wrap; }
+  .aviso-sorteo-ver { width: 100%; justify-content: center; }
+}
+
+.sorteos-portada { padding-bottom: 20px; }
+.sorteos-portada .intro { max-width: 640px; }
+.sorteos-lista { padding-top: 20px; }
+.sorteos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 24px; }
+.sorteo-sello { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 22px; color: #fff;
+  background: linear-gradient(135deg, var(--pink), var(--accent)); box-shadow: 0 12px 26px -14px var(--accent); }
+.sorteo-publico { position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 12px; padding: 32px; border-radius: var(--r-card);
+  background: radial-gradient(circle at 100% 0%, color-mix(in oklab, var(--pink) 14%, var(--surface)), var(--surface) 60%); box-shadow: var(--card-shadow); }
+.sorteo-publico .etiqueta { margin: 6px 0 0; color: var(--accent); }
+.sorteo-publico h2 { margin: 0; font: clamp(1.6rem, 2.4vw, 2rem) var(--font-display); }
+.sorteo-publico p { margin: 0; }
+.sorteo-publico-premio { font-size: 18px; font-weight: 600; }
+.sorteo-publico-premio svg, .sorteo-publico-fecha svg, .sorteo-publico-ganador svg { vertical-align: -3px; margin-right: 4px; color: var(--accent); }
+.sorteo-publico-fecha { color: var(--label-2); }
+.sorteo-publico-detalle { color: var(--label-2); font-size: 15px; }
+.sorteo-publico-ganador { margin-top: auto !important; padding-top: 14px; border-top: 1px solid var(--separator); font-weight: 600; }
+.sorteo-publico.is-realizado .sorteo-sello { background: linear-gradient(135deg, var(--green), var(--accent)); }
+.sorteos-vacio { display: grid; justify-items: center; gap: 16px; padding: 48px 24px; text-align: center; border-radius: var(--r-card); background: var(--surface); box-shadow: var(--card-shadow); }
+.sorteos-vacio p { margin: 0; max-width: 420px; }
+@media (prefers-reduced-motion: reduce) {
+  .aviso-sorteo { transition: none; }
+  .aviso-sorteo-sello, .aviso-sorteo-sello::after { animation: none !important; }
+}

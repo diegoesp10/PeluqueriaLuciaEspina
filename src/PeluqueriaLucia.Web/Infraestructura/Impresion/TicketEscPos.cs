@@ -86,8 +86,10 @@ public static class TicketEscPos
         Negrita(false);
         foreach (var linea in v.Lineas)
             Linea(TresColumnas("1", anchoUds, linea.Nombre, anchoDescripcion, Importe(linea.Precio), anchoTotal));
+        // Lo usado en el servicio sale a 0,00 y marcado como incluido
         foreach (var producto in v.Productos)
-            Linea(TresColumnas(producto.Cantidad.ToString(Formato.Espanol), anchoUds, producto.Nombre, anchoDescripcion, Importe(producto.Importe), anchoTotal));
+            Linea(TresColumnas(producto.Cantidad.ToString(Formato.Espanol), anchoUds, producto.Incluido ? producto.Nombre + " (incl.)" : producto.Nombre,
+                anchoDescripcion, Importe(producto.Importe), anchoTotal));
         Linea(Separador());
         Negrita(true);
         Linea(DosColumnas("TOTAL", Importe(v.Total) + " EUR"));

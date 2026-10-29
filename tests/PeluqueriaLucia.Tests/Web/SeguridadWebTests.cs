@@ -150,7 +150,9 @@ public sealed class SeguridadWebTests(SeguridadWebFixture fixture) : IClassFixtu
             {["__RequestVerificationToken"]=token,["Dia"]=dia,["Hora"]=hora!,["Minutos"]="45",["ClienteId"]=ficha.Id.ToString(),["Bloqueo"]="false"}));
         Assert.Equal(HttpStatusCode.Redirect,guardada.StatusCode);
         var agenda=await cliente.GetStringAsync("/admin/agenda?dia="+dia);
-        Assert.Contains("Lola"+sufijo,agenda);Assert.Contains("Dada en el salón",agenda);Assert.Contains($"/admin/Visitas/Nueva?clienteId={ficha.Id}",agenda);
+        Assert.Contains("Lola"+sufijo,agenda);Assert.Contains("Dada en el salón",agenda);
+        // Confirmada, la cita ya es su visita: se cobra desde la agenda
+        Assert.Contains("action=\"/admin/Visitas/DesdeCita\"",agenda);
     }
 
     [Fact]

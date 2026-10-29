@@ -55,9 +55,17 @@ public interface IProductoRepositorio
     /// <summary>Historial de stock de un producto, lo más reciente primero.</summary>
     Task<Pagina<MovimientoStock>> MovimientosAsync(int productoId, int pagina, int tamano, CancellationToken ct = default);
 
+    /// <summary>Historial de costes de compra de un producto, lo más reciente primero.</summary>
+    Task<IReadOnlyList<CosteProducto>> CostesAsync(int productoId, CancellationToken ct = default);
+
+    /// <summary>Desde cuándo vale el coste anotado más reciente; null si no hay ninguno.</summary>
+    Task<DateOnly?> UltimoCosteAsync(int productoId, CancellationToken ct = default);
+
     void Agregar(Producto producto);
 
     void AgregarMovimientos(IEnumerable<MovimientoStock> movimientos);
+
+    void AgregarCoste(CosteProducto coste);
 
     /// <summary>Borra el producto con sus fotos y su historial de stock.</summary>
     void Eliminar(Producto producto);

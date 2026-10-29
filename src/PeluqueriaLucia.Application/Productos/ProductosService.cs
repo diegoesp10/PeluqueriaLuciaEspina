@@ -116,6 +116,7 @@ public sealed class ProductosService(
                 return categoria.Error!;
             var producto = Producto.Crear(datos.Ficha, categoria.Valor!, Ahora);
             var alta = producto.Alta(datos.StockInicial, Ahora, administradorId);
+            var coste = producto.CosteDeLaFicha(null, "Al dar de alta el producto", Ahora, administradorId);
 
             var subidas = new List<Guid>();
             try
@@ -127,6 +128,8 @@ public sealed class ProductosService(
                 productos.Agregar(producto);
                 if (alta is not null)
                     productos.AgregarMovimientos([alta]);
+                if (coste is not null)
+                    productos.AgregarCoste(coste);
                 await unidadDeTrabajo.GuardarCambiosAsync(ct);
             }
             catch
@@ -139,7 +142,8 @@ public sealed class ProductosService(
             return Resultado.Ok(producto.Id);
         });
 
-    public Task<Resultado<int>> EditarAsync(int id, FichaProducto ficha, CategoriaElegida categoriaElegida, CambiosFotos cambios, CancellationToken ct = default) =>
+    public Task<Resultado<int>> EditarAsync(int id, FichaProducto ficha, CategoriaElegida categoriaElegida, CambiosFotos cambios, CancellationToken ct = default,
+        int? administradorId = null) =>
         Resultado.ProtegerAsync<int>(async () =>
         {
             var producto = await productos.ObtenerAsync(id, ct);
@@ -163,7 +167,11 @@ public sealed class ProductosService(
                 if (await SubirAsync(cambios.Nuevas, subidas, ct) is { } errorSubida)
                     return errorSubida;
 
+                var costeAnterior = producto.PrecioCoste;
                 producto.Editar(ficha, categoria.Valor!, Ahora);
+                // Un coste distinto en la ficha queda en el historial, desde hoy
+                if (producto.CosteDeLaFicha(costeAnterior, null, Ahora, administradorId) is { } coste)
+                    productos.AgregarCoste(coste);
                 foreach (var foto in quitar)
                     producto.QuitarFoto(foto, Ahora);
                 subidas.ForEach(foto => producto.AgregarFoto(foto, Ahora));
@@ -221,16 +229,45 @@ public sealed class ProductosService(
         return Resultado.Ok(Eliminacion.Eliminado);
     }
 
-    /// <summary>Entrada de mercancía, uso en el salón o recuento. Devuelve el stock con el que queda.</summary>
+    /// <summary>Historial de costes de compra, lo más reciente primero.</summary>
+    public Task<IReadOnlyList<CosteProducto>> CostesAsync(int id, CancellationToken ct = default) => productos.CostesAsync(id, ct);
+
+    /// <summary>
+    /// Anota lo que ha costado el producto desde una fecha («en enero me costó 100»). Si es lo más reciente, pasa a ser su
+    /// coste actual.
+    /// </summary>
+    public async Task<Resultado> RegistrarCosteAsync(int id, decimal? coste, DateOnly? desde, string? nota, int? administradorId, CancellationToken ct = default)
+    {
+        if (coste is null)
+            return new Error("Indica lo que ha costado.", "Coste");
+        var producto = await productos.ObtenerAsync(id, ct);
+        if (producto is null)
+            return Error.NoEncontrado("El producto");
+        var ultimo = await productos.UltimoCosteAsync(id, ct);
+
+        return await Resultado.ProtegerAsync(async () =>
+        {
+            productos.AgregarCoste(producto.RegistrarCoste(coste.Value, desde ?? DateOnly.FromDateTime(Ahora), nota, ultimo, Ahora, administradorId));
+            await unidadDeTrabajo.GuardarCambiosAsync(ct);
+        });
+    }
+
+    /// <summary>
+    /// Entrada de mercancía, uso en el salón o recuento. Devuelve el stock con el que queda. En una entrada se puede indicar
+    /// lo que ha costado cada unidad: queda en el historial de costes.
+    /// </summary>
     public async Task<Resultado<int>> RegistrarMovimientoAsync(
-        int id, MovimientoManual tipo, int cantidad, string? nota, int? administradorId, CancellationToken ct = default)
+        int id, MovimientoManual tipo, int cantidad, string? nota, int? administradorId, CancellationToken ct = default, decimal? coste = null)
     {
         var producto = await productos.ObtenerAsync(id, ct);
         if (producto is null)
             return Error.NoEncontrado("El producto");
+        var ultimo = tipo == MovimientoManual.Entrada && coste is not null ? await productos.UltimoCosteAsync(id, ct) : null;
 
         return await Resultado.ProtegerAsync<int>(async () =>
         {
+            if (tipo == MovimientoManual.Entrada && coste is { } importe)
+                productos.AgregarCoste(producto.RegistrarCoste(importe, DateOnly.FromDateTime(Ahora), nota ?? $"Entrada de {cantidad} uds", ultimo, Ahora, administradorId));
             var movimiento = tipo switch
             {
                 MovimientoManual.Entrada => producto.RegistrarEntrada(cantidad, nota, Ahora, administradorId),

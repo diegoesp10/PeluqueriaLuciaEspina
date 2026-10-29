@@ -93,6 +93,28 @@ public static class PlantillaCorreoCita
             salon?.Logo is { Length: > 0 } logo ? [new ImagenIncrustada(IdLogo, "logo.jpg", logo, salon.TipoLogo)] : null);
     }
 
+    /// <summary>
+    /// Aviso al ganador de un sorteo, con la misma imagen que los avisos de cita: el texto revisado por el salón y el premio
+    /// destacado. Para recogerlo, el teléfono del salón.
+    /// </summary>
+    public static CorreoSaliente ComponerPremio(string destinatario, string texto, string premio, DatosSalon? salon)
+    {
+        var nombre = salon?.Nombre is { Length: > 0 } n ? n : "la peluquería";
+        var asunto = $"¡Has ganado el sorteo de {nombre}!";
+        var plano = new StringBuilder(texto.Trim()).Append("\n\nTu premio: ").Append(premio);
+        if (salon is not null)
+        {
+            plano.Append("\n\n--\n").Append(salon.Nombre);
+            if (salon.Telefonos.Count > 0) plano.Append("\nTel. ").Append(string.Join(" · ", salon.Telefonos));
+        }
+        var telefono = salon is { Telefonos.Count: > 0 } ? salon : null;
+        var html = Html(asunto, "SORTEO", "¡Enhorabuena!", texto, null, null, Tipo.Confirmada, salon, telefono, destacado: premio,
+            contacto: telefono is null ? "Responde a este correo para acordar cuándo recogerlo." : null,
+            notaPie: "Te escribimos porque has participado en un sorteo de la peluquería.");
+        return new CorreoSaliente(destinatario, asunto, plano.ToString(), html,
+            salon?.Logo is { Length: > 0 } logo ? [new ImagenIncrustada(IdLogo, "logo.jpg", logo, salon.TipoLogo)] : null);
+    }
+
     private static string Html(string asunto, string etiqueta, string titulo, string texto, string? enlace, ReservaCita? reserva, Tipo tipo, DatosSalon? salon, DatosSalon? telefono,
         string? destacado = null, string? contacto = null, string? notaPie = null)
     {

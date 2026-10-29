@@ -66,7 +66,7 @@
     if (sinServicios) sinServicios.hidden = visibles > 0;
   }
 
-  // Filas de producto (ver más abajo): unidades × precio de cada una
+  // Filas de producto (ver más abajo): unidades × precio de cada una; lo usado en el servicio no tiene precio (0,00 €)
   const lineasProducto = () => [...form.querySelectorAll('[data-producto-linea]')];
   const importe = (campo) => {
     const valor = leerImporte(campo.value);
@@ -80,7 +80,8 @@
     const productos = lineasProducto().reduce((suma, fila) => {
       const cantidad = Math.max(0, Math.trunc(Number(fila.querySelector('[data-linea-cantidad]').value) || 0));
       unidades += cantidad;
-      return suma + cantidad * importe(fila.querySelector('[data-linea-precio]'));
+      const precio = fila.querySelector('[data-linea-precio]');
+      return suma + (precio ? cantidad * importe(precio) : 0);
     }, 0);
     textoTotal.textContent = euros.format((servicios + productos) / 100);
     const partes = [marcados.length === 1 ? '1 servicio' : `${marcados.length} servicios`];
@@ -105,16 +106,31 @@
     precio.addEventListener('input',recalcular);
   });
   // ── Productos ────────────────────────────────────────────────────────────
-  // El buscador (select-buscable.js, también con el lector de códigos) elige el producto; «Añadir» crea su fila.
-  // Elegir uno que ya está suma unidades. Pedir más de lo que hay no se impide: se avisa de que el stock quedará en negativo.
+  // El buscador (select-buscable.js, también con el lector de códigos) elige el producto; «Añadir» crea su fila, vendida
+  // o usada en el servicio (entonces hay que decir si se ha terminado). Elegir uno que ya está igual suma unidades. Pedir
+  // más de lo que hay no se impide: se avisa de que el stock quedará en negativo.
   const elegirProducto = form.querySelector('[data-producto-elegir]');
   const cantidadNueva = form.querySelector('[data-producto-cantidad]');
   const listaProductos = form.querySelector('[data-productos-lista]');
   const plantilla = form.querySelector('[data-producto-plantilla]');
   const aviso = form.querySelector('[data-producto-aviso]');
   const textoAviso = aviso?.textContent;
+  const preguntaTerminado = form.querySelector('[data-producto-terminado]');
 
   const enStock = (n) => (n > 0 ? `${n} en stock` : n === 0 ? 'agotado' : `en negativo (−${-n})`);
+  const textosUso = {
+    ServicioTerminado: ' · Incluido en el servicio · terminado, sale del stock',
+    ServicioEnUso: ' · Incluido en el servicio · sigue en uso, no sale del stock',
+  };
+
+  /** «Venta», «ServicioTerminado», «ServicioEnUso», o null si es de uso en el servicio y falta decir si se ha terminado. */
+  const usoElegido = () => {
+    if (form.querySelector('[data-producto-uso]:checked')?.value !== 'Servicio') return 'Venta';
+    return form.querySelector('[name="producto-terminado"]:checked')?.value ?? null;
+  };
+  const alternarUso = () => {
+    if (preguntaTerminado) preguntaTerminado.hidden = form.querySelector('[data-producto-uso]:checked')?.value !== 'Servicio';
+  };
 
   /** Sin texto vuelve la ayuda; «is-error» para errores y «is-aviso» para avisos que no impiden seguir. */
   const avisar = (texto, tipo = 'is-error') => {
@@ -134,10 +150,11 @@
     if (listaProductos) listaProductos.hidden = lineasProducto().length === 0;
   };
 
-  // Si se piden más de las que hay, al cobrar el stock quedará en negativo: se avisa, sin impedirlo
+  // Si se piden más de las que hay, al cobrar el stock quedará en negativo: se avisa, sin impedirlo. Lo que sigue en uso no
+  // sale del stock
   const revisarStock = () => {
     const porProducto = new Map();
-    lineasProducto().forEach((fila) => {
+    lineasProducto().filter((fila) => fila.dataset.uso !== 'ServicioEnUso').forEach((fila) => {
       const actual = porProducto.get(fila.dataset.productoId)
         ?? { nombre: fila.querySelector('[data-linea-nombre]').textContent, stock: Number(fila.dataset.stock), pedidas: 0 };
       actual.pedidas += Math.max(0, Math.trunc(Number(fila.querySelector('[data-linea-cantidad]').value)) || 0);
@@ -150,7 +167,7 @@
 
   const prepararFila = (fila) => {
     fila.querySelector('[data-linea-cantidad]').addEventListener('input', () => { revisarStock(); recalcular(); });
-    fila.querySelector('[data-linea-precio]').addEventListener('input', recalcular);
+    fila.querySelector('[data-linea-precio]')?.addEventListener('input', recalcular);
     fila.querySelector('[data-linea-quitar]').addEventListener('click', () => {
       fila.remove();
       renumerar();
@@ -167,10 +184,16 @@
       elegirProducto?.buscable?.enfocar();
       return;
     }
+    const uso = usoElegido();
+    if (!uso) {
+      avisar('¿Se ha terminado? Elige si sale del stock o sigue en uso.');
+      preguntaTerminado?.querySelector('input')?.focus();
+      return;
+    }
     const cantidad = Math.max(1, Math.trunc(Number(cantidadNueva.value) || 1));
     const stock = Number(opcion.dataset.stock);
-    const existente = lineasProducto().find((f) => f.dataset.productoId === opcion.value
-      && importe(f.querySelector('[data-linea-precio]')) === Math.round(Number(opcion.dataset.precio) * 100));
+    const existente = lineasProducto().find((f) => f.dataset.productoId === opcion.value && f.dataset.uso === uso
+      && (uso !== 'Venta' || importe(f.querySelector('[data-linea-precio]')) === Math.round(Number(opcion.dataset.precio) * 100)));
 
     if (existente) {
       const campo = existente.querySelector('[data-linea-cantidad]');
@@ -185,9 +208,21 @@
       fila.querySelector('[data-linea-id]').value = opcion.value;
       fila.querySelector('[data-linea-cantidad]').value = String(cantidad);
       fila.querySelector('[data-linea-cantidad]').setAttribute('aria-label', `Unidades de ${opcion.dataset.nombre}`);
+      fila.dataset.uso = uso;
+      fila.querySelector('[data-linea-uso-valor]').value = uso;
       const precio = fila.querySelector('[data-linea-precio]');
-      precio.value = importeCampo(Number(opcion.dataset.precio));
-      precio.setAttribute('aria-label', `Precio por unidad de ${opcion.dataset.nombre}`);
+      if (uso === 'Venta') {
+        precio.value = importeCampo(Number(opcion.dataset.precio));
+        precio.setAttribute('aria-label', `Precio por unidad de ${opcion.dataset.nombre}`);
+      } else {
+        // Usado en el servicio: va incluido, sin precio que cobrar
+        const incluido = document.createElement('span');
+        incluido.className = 'linea-incluida';
+        incluido.title = 'Incluido en el servicio: no se cobra';
+        incluido.textContent = euros.format(0);
+        fila.querySelector('[data-linea-importe]').replaceChildren(incluido);
+        fila.querySelector('[data-linea-uso]').textContent = textosUso[uso];
+      }
       fila.querySelector('[data-linea-quitar]').setAttribute('aria-label', `Quitar ${opcion.dataset.nombre}`);
       if (opcion.dataset.foto) {
         const imagen = document.createElement('img');
@@ -205,6 +240,8 @@
 
     revisarStock();
     cantidadNueva.value = '1';
+    // Si el siguiente también se usa en el servicio, se vuelve a preguntar si se ha terminado
+    form.querySelectorAll('[name="producto-terminado"]').forEach((radio) => { radio.checked = false; });
     // Listo para el siguiente producto (o el siguiente código del lector)
     elegirProducto.value = '';
     elegirProducto.dispatchEvent(new Event('change', { bubbles: true }));
@@ -216,6 +253,8 @@
     lineasProducto().forEach(prepararFila);
     revisarStock();
     form.querySelector('[data-producto-anadir]').addEventListener('click', anadirProducto);
+    form.querySelectorAll('[data-producto-uso]').forEach((radio) => radio.addEventListener('change', alternarUso));
+    alternarUso();
     // Con el lector de códigos: el código elige el producto (Enter en el buscador), el foco pasa a las unidades y Enter lo añade
     elegirProducto.addEventListener('change', () => {
       if (elegirProducto.value) cantidadNueva.focus();
