@@ -1,5 +1,4 @@
 using PeluqueriaLucia.Domain.Agenda;
-using PeluqueriaLucia.Domain.Catalogo;
 using PeluqueriaLucia.Domain.Clientes;
 using PeluqueriaLucia.Domain.Comun;
 using PeluqueriaLucia.Domain.Productos;
@@ -8,8 +7,9 @@ using PeluqueriaLucia.Domain.Sorteos;
 namespace PeluqueriaLucia.Tests.Dominio;
 
 /// <summary>
-/// Sorteos: datos en los dos idiomas, participantes, extracción al azar o elegida por el salón, repeticiones con motivo,
-/// avisos al ganador y anuncios en la web. Y el historial de costes de compra de los productos.
+/// Sorteos: datos en los dos idiomas, premios (servicios, productos de la tienda y productos de sorteo), participantes,
+/// extracción al azar o elegida por el salón, repeticiones con motivo, avisos y entrega del premio, y anuncios en la web.
+/// Y el historial de costes de compra de los productos.
 /// </summary>
 public sealed class SorteoTests
 {
@@ -19,7 +19,12 @@ public sealed class SorteoTests
     private static DatosSorteo Datos(string? tituloEn = "Christmas giveaway", string? descripcion = null, string? descripcionEn = null) =>
         new("Sorteo de Navidad", tituloEn, descripcion, descripcionEn, new DateTime(2026, 12, 20, 18, 0, 30));
 
-    private static PremioSorteo Premio() => new(TipoPremio.Servicio, 7, "Tinte ecológico", "Organic dye");
+    private static DatosPremio Tinte() => new(TipoPremio.Servicio, 7, "Tinte ecológico", "Organic dye");
+
+    private static DatosPremio Champu() => new(TipoPremio.Producto, 3, "Champú de argán", null);
+
+    private static DatosPremio Cena(string nombre = "Cena para dos") =>
+        new(TipoPremio.ProductoSorteo, 5, nombre, "Dinner for two", "En Casa Ramón, hasta marzo", "At Casa Ramón, until March");
 
     /// <summary>Cliente con identificador, como si viniera de la base de datos.</summary>
     private static Cliente Cliente(int id, string nombre)
@@ -31,31 +36,119 @@ public sealed class SorteoTests
 
     private static Sorteo ConParticipantes(params string[] nombres)
     {
-        var sorteo = Sorteo.Crear(Datos(), Premio(), Ahora);
+        var sorteo = Sorteo.Crear(Datos(), Ahora);
+        sorteo.AgregarPremio(Tinte(), 1, Ahora);
         sorteo.AgregarParticipantes(nombres.Select((n, i) => Cliente(i + 1, n)), Ahora);
         return sorteo;
     }
 
     [Fact]
-    public void Se_crea_abierto_con_el_premio_del_momento_y_los_textos_en_los_dos_idiomas()
+    public void Se_crea_abierto_sin_premios_y_con_los_textos_en_los_dos_idiomas()
     {
-        var sorteo = Sorteo.Crear(Datos(descripcion: "Entre las clientas de diciembre", descripcionEn: "Among December clients"), Premio(), Ahora);
+        var sorteo = Sorteo.Crear(Datos(descripcion: "Entre las clientas de diciembre", descripcionEn: "Among December clients"), Ahora);
 
-        Assert.Equal((EstadoSorteo.Abierto, "Sorteo de Navidad", "Christmas giveaway", 7, (int?)null), (sorteo.Estado, sorteo.Titulo, sorteo.TituloEn, sorteo.ServicioId!.Value, sorteo.ProductoId));
-        Assert.Equal(("Tinte ecológico", "Organic dye", "Organic dye"), (sorteo.Premio, sorteo.PremioEn, sorteo.PremioEnIdioma(true)));
+        Assert.Equal((EstadoSorteo.Abierto, "Sorteo de Navidad", "Christmas giveaway", "Among December clients"),
+            (sorteo.Estado, sorteo.Titulo, sorteo.TituloEn, sorteo.DescripcionEnIdioma(true)));
         Assert.Equal(new DateTime(2026, 12, 20, 18, 0, 0), sorteo.FechaSorteo);
+        Assert.Empty(sorteo.Premios);
+        Assert.Equal("", sorteo.PremiosEnTexto());
         Assert.Null(sorteo.Ganador);
     }
 
     [Fact]
     public void Lo_que_se_publica_va_en_ingles_tambien()
     {
-        var sinTitulo = Assert.Throws<ReglaDeNegocioException>(() => Sorteo.Crear(Datos(tituloEn: " "), Premio(), Ahora));
-        var sinDescripcion = Assert.Throws<ReglaDeNegocioException>(() => Sorteo.Crear(Datos(descripcion: "Para clientas"), Premio(), Ahora));
-        var sinPremio = Assert.Throws<ReglaDeNegocioException>(() => Sorteo.Crear(Datos(), new PremioSorteo((TipoPremio)9, 1, "x", null), Ahora));
+        var sinTitulo = Assert.Throws<ReglaDeNegocioException>(() => Sorteo.Crear(Datos(tituloEn: " "), Ahora));
+        var sinDescripcion = Assert.Throws<ReglaDeNegocioException>(() => Sorteo.Crear(Datos(descripcion: "Para clientas"), Ahora));
+        var raro = Assert.Throws<ReglaDeNegocioException>(() => Sorteo.Crear(Datos(), Ahora).AgregarPremio(new DatosPremio((TipoPremio)9, 1, "x", null), 1, Ahora));
 
-        Assert.Equal(("TituloEn", "DescripcionEn", "Premio"), (sinTitulo.Campo, sinDescripcion.Campo, sinPremio.Campo));
+        Assert.Equal(("TituloEn", "DescripcionEn", "Premio"), (sinTitulo.Campo, sinDescripcion.Campo, raro.Campo));
     }
+
+    [Fact]
+    public void Un_sorteo_puede_tener_varios_premios_de_la_peluqueria_y_productos_de_sorteo()
+    {
+        var sorteo = Sorteo.Crear(Datos(), Ahora);
+
+        sorteo.AgregarPremio(Tinte(), 1, Ahora);
+        var champu = sorteo.AgregarPremio(Champu(), 1, Ahora);
+        var cena = sorteo.AgregarPremio(Cena(), 1, Ahora);
+        // El mismo otra vez suma la cantidad
+        var otraVez = sorteo.AgregarPremio(Champu(), 1, Ahora);
+
+        Assert.Same(champu, otraVez);
+        Assert.Equal([(TipoPremio.Servicio, 7, 1), (TipoPremio.Producto, 3, 2), (TipoPremio.ProductoSorteo, 5, 1)],
+            sorteo.Premios.Select(p => (p.Tipo, p.ArticuloId!.Value, p.Cantidad)));
+        Assert.Equal(((int?)null, (int?)null, (int?)5), (cena.ServicioId, cena.ProductoId, cena.ProductoSorteoId));
+        Assert.Equal(("En Casa Ramón, hasta marzo", "At Casa Ramón, until March"), (cena.Descripcion, cena.DescripcionEnIdioma(true)));
+        Assert.Equal("Tinte ecológico, 2 × Champú de argán y Cena para dos", sorteo.PremiosEnTexto());
+        // El producto de la tienda no tiene nombre en inglés: sale el español
+        Assert.Equal("Organic dye, 2 × Champú de argán and Dinner for two", sorteo.PremiosEnTexto(ingles: true));
+    }
+
+    [Fact]
+    public void La_cantidad_va_de_1_a_99_y_un_sorteo_admite_hasta_veinte_premios()
+    {
+        var sorteo = Sorteo.Crear(Datos(), Ahora);
+
+        var cero = Assert.Throws<ReglaDeNegocioException>(() => sorteo.AgregarPremio(Tinte(), 0, Ahora));
+        sorteo.AgregarPremio(Tinte(), 98, Ahora);
+        var demasiados = Assert.Throws<ReglaDeNegocioException>(() => sorteo.AgregarPremio(Tinte(), 2, Ahora));
+        for (var i = 1; i < Sorteo.MaximoPremios; i++)
+            sorteo.AgregarPremio(new DatosPremio(TipoPremio.ProductoSorteo, 100 + i, $"Regalo {i}", $"Gift {i}"), 1, Ahora);
+        var veintiuno = Assert.Throws<ReglaDeNegocioException>(() => sorteo.AgregarPremio(Cena(), 1, Ahora));
+
+        Assert.Equal(("Cantidad", "Cantidad", "Premio"), (cero.Campo, demasiados.Campo, veintiuno.Campo));
+        Assert.Equal(98, sorteo.Premios[0].Cantidad);
+        Assert.Equal(Sorteo.MaximoPremios, sorteo.Premios.Count);
+    }
+
+    [Fact]
+    public void Los_premios_se_cambian_mientras_esta_abierto_y_sin_premio_no_se_sortea()
+    {
+        var sorteo = Sorteo.Crear(Datos(), Ahora);
+        sorteo.AgregarParticipantes([Cliente(1, "Ana"), Cliente(2, "Bea")], Ahora);
+
+        var sinPremio = Assert.Throws<ReglaDeNegocioException>(() => sorteo.Sortear(_ => 0, Ahora, null));
+        var sinPremioAMano = Assert.Throws<ReglaDeNegocioException>(() => sorteo.ElegirGanador(1, null, Ahora, null));
+        sorteo.AgregarPremio(Tinte(), 1, Ahora);
+        sorteo.Sortear(_ => 0, Ahora, null);
+
+        Assert.Equal(("Premio", "Premio"), (sinPremio.Campo, sinPremioAMano.Campo));
+        Assert.Throws<ReglaDeNegocioException>(() => sorteo.AgregarPremio(Cena(), 1, Ahora));
+        Assert.Throws<ReglaDeNegocioException>(() => sorteo.QuitarPremio(sorteo.Premios[0].Id, Ahora));
+        Assert.Single(sorteo.Premios);
+    }
+
+    [Fact]
+    public void Corregir_un_producto_de_sorteo_pone_al_dia_los_sorteos_abiertos_y_no_los_realizados()
+    {
+        var abierto = Sorteo.Crear(Datos(), Ahora);
+        abierto.AgregarPremio(Cena(), 1, Ahora);
+        var realizado = ConParticipantes("Ana", "Bea");
+        realizado.AgregarPremio(Cena(), 1, Ahora);
+        realizado.Sortear(_ => 0, Ahora, null);
+
+        var corregida = Cena("Cena para dos personas");
+        var cambiaAbierto = abierto.ActualizarPremio(corregida, Ahora);
+        var cambiaRealizado = realizado.ActualizarPremio(corregida, Ahora);
+        var sinCambios = abierto.ActualizarPremio(corregida, Ahora);
+
+        Assert.Equal((true, false, false), (cambiaAbierto, cambiaRealizado, sinCambios));
+        Assert.Equal("Cena para dos personas", abierto.Premios.Single().Nombre);
+        Assert.Equal("Cena para dos", realizado.Premios.Single(p => p.Tipo == TipoPremio.ProductoSorteo).Nombre);
+    }
+
+    [Theory]
+    [InlineData(new[] { "Corte" }, false, "Corte")]
+    [InlineData(new[] { "Corte", "Hidratación" }, false, "Corte e Hidratación")]
+    [InlineData(new[] { "Corte", "Iluminador" }, false, "Corte e Iluminador")]
+    [InlineData(new[] { "Corte", "Hielo seco" }, false, "Corte y Hielo seco")]
+    [InlineData(new[] { "Corte", "2 × Iluminador" }, false, "Corte y 2 × Iluminador")]
+    [InlineData(new[] { "Corte", "Mascarilla", "Cena" }, false, "Corte, Mascarilla y Cena")]
+    [InlineData(new[] { "Cut", "Mask", "Dinner" }, true, "Cut, Mask and Dinner")]
+    public void Los_premios_se_unen_como_se_diria(string[] partes, bool ingles, string esperado) =>
+        Assert.Equal(esperado, PremioSorteo.Unir(partes, ingles));
 
     [Fact]
     public void Los_participantes_repetidos_no_se_duplican_y_se_pueden_quitar_mientras_esta_abierto()
@@ -82,9 +175,10 @@ public sealed class SorteoTests
         Assert.Equal(EstadoSorteo.Realizado, sorteo.Estado);
         Assert.Same(extraccion, sorteo.Ganador);
         Assert.Equal((2, "Bea Pérez", FormaGanador.AlAzar, 3, Ahora, (int?)4, (string?)null), (extraccion.ClienteId!.Value, extraccion.Ganador, extraccion.Forma, extraccion.Participantes, extraccion.Fecha, extraccion.AdministradorId, extraccion.Motivo));
+        Assert.Null(extraccion.EntregadoEn);
         // Ya sorteado, los participantes y los datos no cambian
         Assert.Throws<ReglaDeNegocioException>(() => sorteo.AgregarParticipantes([Cliente(9, "Zoe")], Ahora));
-        Assert.Throws<ReglaDeNegocioException>(() => sorteo.Editar(Datos(), Premio(), Ahora));
+        Assert.Throws<ReglaDeNegocioException>(() => sorteo.Editar(Datos(), Ahora));
         Assert.Throws<ReglaDeNegocioException>(() => sorteo.Sortear(_ => 0, Ahora, null));
         Assert.Throws<ReglaDeNegocioException>(() => sorteo.ComprobarQueSePuedeEliminar());
     }
@@ -148,6 +242,23 @@ public sealed class SorteoTests
     }
 
     [Fact]
+    public void Entregado_el_premio_queda_en_el_historial_y_el_ganador_ya_no_cambia()
+    {
+        var sorteo = ConParticipantes("Ana", "Bea", "Carla");
+        var sinGanador = Assert.Throws<ReglaDeNegocioException>(() => sorteo.MarcarEntregado(Ahora));
+        sorteo.Sortear(_ => 0, Ahora, null);
+
+        sorteo.MarcarEntregado(Ahora.AddDays(2));
+
+        Assert.Contains("ganador", sinGanador.Message);
+        Assert.Equal(Ahora.AddDays(2), sorteo.Ganador!.EntregadoEn);
+        Assert.Throws<ReglaDeNegocioException>(() => sorteo.MarcarEntregado(Ahora.AddDays(3)));
+        Assert.Contains("ya se entregó", Assert.Throws<ReglaDeNegocioException>(() => sorteo.Repetir(_ => 0, "No vino", Ahora, null)).Message);
+        Assert.Throws<ReglaDeNegocioException>(() => sorteo.ElegirGanador(2, "Otra", Ahora, null));
+        Assert.Single(sorteo.Extracciones);
+    }
+
+    [Fact]
     public void Cancelado_queda_en_el_historial_y_no_se_sortea_ni_se_anuncia()
     {
         var sorteo = ConParticipantes("Ana", "Bea");
@@ -177,6 +288,24 @@ public sealed class SorteoTests
         Assert.Equal([false, true, true, false], new[] { Hoy.AddDays(-1), Hoy, Hoy.AddDays(10), Hoy.AddDays(11) }.Select(anuncio.VisibleEl));
         Assert.Equal(("HastaAnuncio", "HastaAnuncio", "TextoAnuncioEn", "HastaAnuncio"), (alReves.Campo, pasado.Campo, sinIngles.Campo, largo.Campo));
         Assert.Single(sorteo.Anuncios);
+    }
+
+    [Fact]
+    public void Un_producto_de_sorteo_lleva_nombre_y_descripcion_en_los_dos_idiomas_y_se_elimina_sin_borrarse()
+    {
+        var cena = ProductoSorteo.Crear(new FichaProductoSorteo(" Cena para dos ", "Dinner for two", "En Casa Ramón", "At Casa Ramón"), Ahora);
+        var sinIngles = Assert.Throws<ReglaDeNegocioException>(() => ProductoSorteo.Crear(new FichaProductoSorteo("Entradas", " ", null, null), Ahora));
+        var sinDescripcionEn = Assert.Throws<ReglaDeNegocioException>(() => ProductoSorteo.Crear(new FichaProductoSorteo("Entradas", "Tickets", "Para el teatro", null), Ahora));
+
+        Assert.Equal(("Cena para dos", "Dinner for two", "At Casa Ramón", true), (cena.Nombre, cena.NombreEnIdioma(true), cena.DescripcionEnIdioma(true), cena.Activo));
+        Assert.Equal(("NombreEn", "DescripcionEn"), (sinIngles.Campo, sinDescripcionEn.Campo));
+        Assert.Equal((TipoPremio.ProductoSorteo, "Cena para dos", "En Casa Ramón"), (DatosPremio.De(cena).Tipo, DatosPremio.De(cena).Nombre, DatosPremio.De(cena).Descripcion));
+
+        cena.Eliminar(Ahora);
+        Assert.Equal((false, (DateTime?)Ahora), (cena.Activo, cena.EliminadoEn));
+        Assert.Throws<ReglaDeNegocioException>(() => cena.Eliminar(Ahora));
+        cena.Recuperar(Ahora.AddDays(1));
+        Assert.Equal((true, (DateTime?)null), (cena.Activo, cena.EliminadoEn));
     }
 
     [Fact]

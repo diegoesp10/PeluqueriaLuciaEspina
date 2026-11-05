@@ -19,7 +19,7 @@ using PeluqueriaLucia.Tests.Dominio;
 
 namespace PeluqueriaLucia.Tests.Integracion;
 
-/// <summary>Sorteos y costes de compra contra SQL Server real, con un contexto por petición como en la web.</summary>
+/// <summary>Sorteos, productos de sorteo y costes de compra contra SQL Server real, con un contexto por petición como en la web.</summary>
 public sealed class SorteosTests : IAsyncLifetime
 {
     private readonly string _carpeta = Path.GetFullPath(Path.Combine(".artifacts", "sorteos-prueba-" + Guid.NewGuid().ToString("N")));
@@ -47,13 +47,14 @@ public sealed class SorteosTests : IAsyncLifetime
         var bea = await ClienteAsync("Bea", null, null);
         var carla = await ClienteAsync("Carla", "carla@example.test", null);
 
-        var creado = await Sorteos().CrearAsync(Datos(), new PremioElegido(TipoPremio.Servicio, corte));
+        var creado = await Sorteos().CrearAsync(Datos());
         var id = creado.Valor;
+        Assert.True(creado.Exito, creado.Error?.Mensaje);
+        Assert.True((await Sorteos().AgregarPremioAsync(id, new PremioElegido(TipoPremio.Servicio, corte), 1)).Exito);
         var nuevos = await Sorteos().AgregarParticipantesAsync(id, [ana, bea, ana]);
         var repetidos = await Sorteos().AgregarParticipantesAsync(id, [bea, carla]);
         var vacio = await Sorteos().AgregarParticipantesAsync(id, [999999]);
 
-        Assert.True(creado.Exito, creado.Error?.Mensaje);
         Assert.Equal((2, 1), (nuevos.Valor, repetidos.Valor));
         Assert.Equal("ClienteId", vacio.Error?.Campo);
 
@@ -64,13 +65,13 @@ public sealed class SorteosTests : IAsyncLifetime
         Assert.True(sorteado.Exito, sorteado.Error?.Mensaje);
         Assert.Equal(3, _pedido);
         Assert.Equal((EstadoSorteo.Realizado, bea, "Bea Pérez", FormaGanador.AlAzar, 3), (sorteo.Estado, sorteo.Ganador!.ClienteId!.Value, sorteo.Ganador.Ganador, sorteo.Ganador.Forma, sorteo.Ganador.Participantes));
-        Assert.Equal("Cut and styling", sorteo.PremioEn);
+        Assert.Equal("Cut and styling", sorteo.Premios.Single().NombreEn);
 
         // Bea no tiene ni correo ni móvil: se repite entre Ana y Carla
         var aviso = (await Sorteos().AvisoAsync(sorteo))!;
         Assert.Equal((null, null), (aviso.Correo, aviso.WhatsApp));
         Assert.Contains("¡Enhorabuena, Bea!", aviso.Texto);
-        Assert.Contains("Corte y peinado", aviso.Texto);
+        Assert.Contains("Has ganado Corte y peinado", aviso.Texto);
         _azar = 0;
         Assert.True((await Sorteos().RepetirAsync(id, "No tenemos cómo avisarle", null)).Exito);
         sorteo = (await Sorteos().ObtenerAsync(id))!;
@@ -95,10 +96,64 @@ public sealed class SorteosTests : IAsyncLifetime
         Assert.StartsWith("https://wa.me/34611222333?text=", whatsApp.Valor!.AbsoluteUri);
         Assert.Equal(CanalConfirmacion.WhatsApp, (await Sorteos().ObtenerAsync(id))!.Ganador!.AvisoCanal);
 
+        // Entregado el premio, el ganador ya no cambia
+        Assert.True((await Sorteos().MarcarEntregadoAsync(id)).Exito);
+        Assert.NotNull((await Sorteos().ObtenerAsync(id))!.Ganador!.EntregadoEn);
+        Assert.False((await Sorteos().RepetirAsync(id, "Otra vez", null)).Exito);
+
         // Con ganador, no se borra: queda en el historial
         Assert.False((await Sorteos().EliminarAsync(id)).Exito);
         Assert.Equal([id], (await Sorteos().ListarAsync(historial: true)).Select(s => s.Id));
         Assert.Empty(await Sorteos().ListarAsync(historial: false));
+    }
+
+    [Fact]
+    public async Task Un_lote_con_servicio_producto_de_la_tienda_y_producto_de_sorteo_queda_en_el_historial_de_cada_uno()
+    {
+        var tinte = await ServicioAsync("Tinte ecológico", "Organic dye");
+        var champu = (await Productos().CrearAsync(new DatosProducto(ProductoTests.Ficha("CH-L"), new CategoriaElegida(null, "Champús"), 3), [], null)).Valor;
+        var cena = await ProductosSorteo().CrearAsync(new FichaProductoSorteo("Cena para dos", "Dinner for two", "En Casa Ramón", "At Casa Ramón"));
+        var repetida = await ProductosSorteo().CrearAsync(new FichaProductoSorteo("cena para dos", "Dinner", null, null));
+        Assert.True(cena.Exito, cena.Error?.Mensaje);
+        Assert.Equal("Nombre", repetida.Error?.Campo);
+
+        var id = (await Sorteos().CrearAsync(Datos())).Valor;
+        await Sorteos().AgregarPremioAsync(id, new PremioElegido(TipoPremio.Servicio, tinte), 1);
+        await Sorteos().AgregarPremioAsync(id, new PremioElegido(TipoPremio.Producto, champu), 2);
+        await Sorteos().AgregarPremioAsync(id, new PremioElegido(TipoPremio.ProductoSorteo, cena.Valor), 1);
+        var inexistente = await Sorteos().AgregarPremioAsync(id, new PremioElegido(TipoPremio.ProductoSorteo, 999999), 1);
+        Assert.Equal("Premio", inexistente.Error?.Campo);
+        Assert.Equal("Tinte ecológico, 2 × Champú de argán y Cena para dos", (await Sorteos().ObtenerAsync(id))!.PremiosEnTexto());
+
+        // Corregir el producto de sorteo pone al día el sorteo abierto
+        var editado = await ProductosSorteo().EditarAsync(cena.Valor, new FichaProductoSorteo("Cena para dos personas", "Dinner for two", "En Casa Ramón", "At Casa Ramón"));
+        Assert.Equal(1, editado.Valor);
+        Assert.Equal("Cena para dos personas", (await Sorteos().ObtenerAsync(id))!.Premios.Single(p => p.Tipo == TipoPremio.ProductoSorteo).Nombre);
+        Assert.Equal((1, 0, 0), Uso(await ProductosSorteo().ListarAsync(), cena.Valor));
+
+        await Sorteos().AgregarParticipantesAsync(id, [await ClienteAsync("Ana", null, null), await ClienteAsync("Bea", null, null)]);
+        _azar = 1;
+        await Sorteos().SortearAsync(id, null);
+        await Sorteos().MarcarEntregadoAsync(id);
+
+        // Ya sorteado, otro cambio en el producto no toca lo que se sorteó
+        await ProductosSorteo().EditarAsync(cena.Valor, new FichaProductoSorteo("Cena", "Dinner", null, null));
+        var sorteo = (await Sorteos().ObtenerAsync(id))!;
+        Assert.Equal("Cena para dos personas", sorteo.Premios.Single(p => p.Tipo == TipoPremio.ProductoSorteo).Nombre);
+        Assert.Equal((0, 1, 1), Uso(await ProductosSorteo().ListarAsync(), cena.Valor));
+        var historial = Assert.Single(await ProductosSorteo().HistorialAsync(cena.Valor));
+        Assert.Equal((id, "Bea Pérez", 3), (historial.Id, historial.Ganador!.Ganador, historial.Premios.Count));
+        Assert.NotNull(historial.Ganador.EntregadoEn);
+
+        // Eliminado no se ofrece ni se puede añadir a otro sorteo, pero el historial sigue
+        Assert.Equal(0, (await ProductosSorteo().EliminarAsync(cena.Valor)).Valor);
+        Assert.Empty(await ProductosSorteo().ActivosAsync());
+        var otro = (await Sorteos().CrearAsync(Datos("Sorteo de verano"))).Valor;
+        Assert.Contains("eliminado", (await Sorteos().AgregarPremioAsync(otro, new PremioElegido(TipoPremio.ProductoSorteo, cena.Valor), 1)).Error?.Mensaje);
+        Assert.Single(await ProductosSorteo().HistorialAsync(cena.Valor));
+        Assert.True((await ProductosSorteo().RecuperarAsync(cena.Valor)).Exito);
+        Assert.Single(await ProductosSorteo().ActivosAsync());
+        Assert.Equal(3, await _bd.EscalarAsync<int>($"SELECT COUNT(*) FROM PremiosSorteos WHERE SorteoId = {id}"));
     }
 
     [Fact]
@@ -119,7 +174,7 @@ public sealed class SorteosTests : IAsyncLifetime
                 Visita.Registrar(await db.Clientes.SingleAsync(c => c.Id == bea), new DateTime(2026, 9, 1, 10, 0, 0), FormaPago.Efectivo, [servicio]));
             await db.SaveChangesAsync();
         }
-        var id = (await Sorteos().CrearAsync(Datos(), new PremioElegido(TipoPremio.Servicio, corte))).Valor;
+        var id = await ConPremioAsync(Datos(), new PremioElegido(TipoPremio.Servicio, corte));
 
         var octubreEntero = await Sorteos().AgregarClientesConVisitasAsync(id, new DateOnly(2026, 10, 1), new DateOnly(2026, 10, 31));
         var otraVez = await Sorteos().AgregarClientesConVisitasAsync(id, new DateOnly(2026, 10, 1), new DateOnly(2026, 10, 31));
@@ -132,12 +187,14 @@ public sealed class SorteosTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task La_web_solo_enseña_los_anuncios_de_hoy_de_sorteos_no_cancelados()
+    public async Task La_web_solo_enseña_los_anuncios_de_hoy_de_sorteos_no_cancelados_con_todos_sus_premios()
     {
         var tinte = await ServicioAsync("Tinte", "Dye");
+        var cena = (await ProductosSorteo().CrearAsync(new FichaProductoSorteo("Cena", "Dinner", "Para dos", "For two"))).Valor;
         var hoy = Sorteos().Hoy;
-        var abierto = (await Sorteos().CrearAsync(Datos("Sorteo de otoño"), new PremioElegido(TipoPremio.Servicio, tinte))).Valor;
-        var cancelado = (await Sorteos().CrearAsync(Datos("Sorteo aplazado"), new PremioElegido(TipoPremio.Servicio, tinte))).Valor;
+        var abierto = await ConPremioAsync(Datos("Sorteo de otoño"), new PremioElegido(TipoPremio.Servicio, tinte));
+        await Sorteos().AgregarPremioAsync(abierto, new PremioElegido(TipoPremio.ProductoSorteo, cena), 2);
+        var cancelado = await ConPremioAsync(Datos("Sorteo aplazado"), new PremioElegido(TipoPremio.Servicio, tinte));
         await Sorteos().AnunciarAsync(abierto, "Participa con tu visita", "Join with your visit", hoy, hoy.AddDays(5));
         await Sorteos().AnunciarAsync(abierto, "Muy pronto", "Coming soon", hoy.AddDays(6), hoy.AddDays(9));
         await Sorteos().AnunciarAsync(cancelado, "Aplazado", "Postponed", hoy, hoy.AddDays(5));
@@ -149,13 +206,16 @@ public sealed class SorteosTests : IAsyncLifetime
 
         Assert.Equal("DesdeAnuncio", sinFechas.Error?.Campo);
         var anuncio = Assert.Single(visibles);
-        Assert.Equal(("Sorteo de otoño", "Tinte", "Dye", "Join with your visit", false), (anuncio.Titulo, anuncio.Premio, anuncio.PremioEnIdioma(true), anuncio.TextoEnIdioma(true), anuncio.Realizado));
-        // Quitar el anuncio lo saca de la web; borrar un sorteo sin ganador se lleva sus anuncios
+        Assert.Equal(("Sorteo de otoño", "Join with your visit", false), (anuncio.Titulo, anuncio.TextoEnIdioma(true), anuncio.Realizado));
+        Assert.Equal(("Tinte y 2 × Cena", "Dye and 2 × Dinner"), (anuncio.PremiosEnIdioma(false), anuncio.PremiosEnIdioma(true)));
+        Assert.Equal([(TipoPremio.Servicio, (string?)null), (TipoPremio.ProductoSorteo, "For two")], anuncio.Premios.Select(p => (p.Tipo, p.DescripcionEnIdioma(true))));
+        // Quitar el anuncio lo saca de la web; borrar un sorteo sin ganador se lleva sus anuncios y sus premios
         var anuncioId = anuncio.AnuncioId;
         Assert.True((await Sorteos().QuitarAnuncioAsync(abierto, anuncioId)).Exito);
         Assert.Empty(await Sorteos().AnunciosVisiblesAsync());
         Assert.True((await Sorteos().EliminarAsync(abierto)).Exito);
         Assert.Equal(1, await _bd.EscalarAsync<int>("SELECT COUNT(*) FROM AnunciosSorteos"));
+        Assert.Equal(1, await _bd.EscalarAsync<int>("SELECT COUNT(*) FROM PremiosSorteos"));
     }
 
     [Fact]
@@ -164,7 +224,7 @@ public sealed class SorteosTests : IAsyncLifetime
         var champu = (await Productos().CrearAsync(new DatosProducto(ProductoTests.Ficha("CH-S"), new CategoriaElegida(null, "Champús"), 2), [], null)).Valor;
         var ana = await ClienteAsync("Ana", null, null);
         var bea = await ClienteAsync("Bea", null, null);
-        var id = (await Sorteos().CrearAsync(Datos(), new PremioElegido(TipoPremio.Producto, champu))).Valor;
+        var id = await ConPremioAsync(Datos(), new PremioElegido(TipoPremio.Producto, champu));
         await Sorteos().AgregarParticipantesAsync(id, [ana, bea]);
         _azar = 0;
         await Sorteos().SortearAsync(id, null);
@@ -174,7 +234,8 @@ public sealed class SorteosTests : IAsyncLifetime
 
         var sorteo = (await Sorteos().ObtenerAsync(id))!;
         Assert.Equal((null, "Ana Pérez"), (sorteo.Ganador!.ClienteId, sorteo.Ganador.Ganador));
-        Assert.Equal((null, "Champú de argán"), (sorteo.ProductoId, sorteo.Premio));
+        var premio = sorteo.Premios.Single();
+        Assert.Equal((null, "Champú de argán"), (premio.ProductoId, premio.Nombre));
         Assert.Equal([bea], sorteo.Participantes.Select(p => p.ClienteId));
     }
 
@@ -182,7 +243,7 @@ public sealed class SorteosTests : IAsyncLifetime
     public async Task Dos_sorteos_a_la_vez_no_dan_dos_ganadores()
     {
         var corte = await ServicioAsync("Corte", "Cut");
-        var id = (await Sorteos().CrearAsync(Datos(), new PremioElegido(TipoPremio.Servicio, corte))).Valor;
+        var id = await ConPremioAsync(Datos(), new PremioElegido(TipoPremio.Servicio, corte));
         await Sorteos().AgregarParticipantesAsync(id, [await ClienteAsync("Ana", null, null), await ClienteAsync("Bea", null, null)]);
         await using var primero = _bd.Contexto();
         await using var segundo = _bd.Contexto();
@@ -195,6 +256,41 @@ public sealed class SorteosTests : IAsyncLifetime
 
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => segundo.SaveChangesAsync());
         Assert.Equal(1, await _bd.EscalarAsync<int>("SELECT COUNT(*) FROM ExtraccionesSorteos"));
+    }
+
+    [Fact]
+    public async Task La_migracion_pasa_el_premio_de_cada_sorteo_a_su_lista_de_premios_sin_borrar_nada()
+    {
+        await using var bd = await BaseDeDatosPrueba.CrearAsync("20261029175921_SorteosYCostesDeProductos");
+        int tinte;
+        await using (var db = bd.Contexto())
+        {
+            var servicio = Servicio.Crear("Tinte", 30m, Sexo.Mujer, DateTime.Now, "Dye");
+            db.Add(servicio);
+            await db.SaveChangesAsync();
+            tinte = servicio.Id;
+        }
+        // Un sorteo con un servicio y otro cuyo producto ya se borró (queda el nombre)
+        await bd.EjecutarAsync($"""
+            INSERT INTO Sorteos (Titulo, TituloEn, TipoPremio, ServicioId, ProductoId, Premio, PremioEn, FechaSorteo, Estado, CreadoEn, ActualizadoEn)
+            VALUES (N'Sorteo de otoño', N'Autumn giveaway', 0, {tinte}, NULL, N'Tinte', N'Dye', '2026-11-20T18:00:00', 0, '2026-10-30', '2026-10-30'),
+                   (N'Sorteo de la tienda', N'Shop giveaway', 1, NULL, NULL, N'Champú ya borrado', NULL, '2026-11-25T18:00:00', 1, '2026-10-30', '2026-10-30');
+            """);
+
+        await using (var db = bd.Contexto())
+            await db.Database.MigrateAsync();
+
+        Assert.Equal("Tinte|Dye|0|1|1;Champú ya borrado||1|0|1", await bd.EscalarAsync<string>("""
+            SELECT STRING_AGG(CONCAT(p.Nombre, '|', p.NombreEn, '|', p.Tipo, '|', IIF(p.ServicioId IS NULL, 0, 1), '|', p.Cantidad), ';') WITHIN GROUP (ORDER BY p.SorteoId)
+            FROM PremiosSorteos p
+            """));
+        // Las columnas antiguas conservan sus datos
+        Assert.Equal(2, await bd.EscalarAsync<int>("SELECT COUNT(*) FROM Sorteos WHERE Premio IS NOT NULL AND TipoPremio IS NOT NULL"));
+        await using (var db = bd.Contexto())
+        {
+            var sorteo = await new SorteoRepositorio(db).ObtenerAsync(await bd.EscalarAsync<int>("SELECT MIN(Id) FROM Sorteos"), default);
+            Assert.Equal("Tinte", sorteo!.PremiosEnTexto());
+        }
     }
 
     [Fact]
@@ -243,12 +339,34 @@ public sealed class SorteosTests : IAsyncLifetime
     private static DatosSorteo Datos(string titulo = "Sorteo de Navidad") =>
         new(titulo, titulo + " (en)", null, null, DateTime.Today.AddDays(10).AddHours(18));
 
+    /// <summary>Cuántas veces está en marcha, se ha sorteado y se ha entregado un producto de sorteo.</summary>
+    private static (int, int, int) Uso(IReadOnlyList<ResumenProductoSorteo> resumen, int id)
+    {
+        var r = resumen.Single(x => x.Producto.Id == id);
+        return (r.EnMarcha, r.Sorteados, r.Entregados);
+    }
+
+    /// <summary>Un sorteo con un premio, listo para apuntar participantes.</summary>
+    private async Task<int> ConPremioAsync(DatosSorteo datos, PremioElegido premio)
+    {
+        var id = (await Sorteos().CrearAsync(datos)).Valor;
+        var agregado = await Sorteos().AgregarPremioAsync(id, premio, 1);
+        Assert.True(agregado.Exito, agregado.Error?.Mensaje);
+        return id;
+    }
+
     /// <summary>Servicios de aplicación con un contexto nuevo, como en una petición web.</summary>
     private SorteosService Sorteos()
     {
         var db = _bd.Contexto();
-        return new SorteosService(new SorteoRepositorio(db), new ServicioRepositorio(db), new ProductoRepositorio(db), db,
+        return new SorteosService(new SorteoRepositorio(db), new ServicioRepositorio(db), new ProductoRepositorio(db), new ProductoSorteoRepositorio(db), db,
             new AzarFijo(this), _correo, new WhatsAppManual(), TimeProvider.System);
+    }
+
+    private ProductosSorteoService ProductosSorteo()
+    {
+        var db = _bd.Contexto();
+        return new ProductosSorteoService(new ProductoSorteoRepositorio(db), new SorteoRepositorio(db), db, TimeProvider.System);
     }
 
     private ProductosService Productos()

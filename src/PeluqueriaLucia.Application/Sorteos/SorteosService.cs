@@ -12,13 +12,16 @@ using PeluqueriaLucia.Domain.Sorteos;
 
 namespace PeluqueriaLucia.Application.Sorteos;
 
-/// <summary>Sorteos guardados. El sorteo se carga con sus participantes (y sus fichas), sus extracciones y sus anuncios.</summary>
+/// <summary>Sorteos guardados. El sorteo se carga con sus premios, sus participantes (y sus fichas), sus extracciones y sus anuncios.</summary>
 public interface ISorteoRepositorio
 {
     Task<Sorteo?> ObtenerAsync(int id, CancellationToken ct = default);
 
     /// <summary>Los abiertos (por fecha del sorteo) o el historial: realizados y cancelados, lo último primero.</summary>
     Task<IReadOnlyList<Sorteo>> ListarAsync(bool historial, CancellationToken ct = default);
+
+    /// <summary>Los sorteos abiertos que tienen ese producto de sorteo como premio (para ponerlos al día si cambia).</summary>
+    Task<IReadOnlyList<Sorteo>> AbiertosConProductoSorteoAsync(int productoSorteoId, CancellationToken ct = default);
 
     /// <summary>Anuncios que la web enseña ese día, de sorteos no cancelados, por fecha del sorteo.</summary>
     Task<IReadOnlyList<AnuncioPublico>> AnunciosVisiblesAsync(DateOnly dia, CancellationToken ct = default);
@@ -40,20 +43,32 @@ public interface IAzar
     int Siguiente(int maximo);
 }
 
+/// <summary>Un premio tal como lo enseña la web.</summary>
+public sealed record PremioPublico(TipoPremio Tipo, string Nombre, string? NombreEn, string? Descripcion, string? DescripcionEn, int Cantidad)
+{
+    public string NombreEnIdioma(bool ingles) => ingles && NombreEn is { Length: > 0 } ? NombreEn : Nombre;
+
+    public string? DescripcionEnIdioma(bool ingles) => ingles && DescripcionEn is { Length: > 0 } ? DescripcionEn : Descripcion;
+
+    /// <summary>«2 × Champú» o «Champú».</summary>
+    public string TextoEnIdioma(bool ingles) => Cantidad > 1 ? $"{Cantidad} × {NombreEnIdioma(ingles)}" : NombreEnIdioma(ingles);
+}
+
 /// <summary>Un anuncio de sorteo tal como lo enseña la web (sin datos de los participantes ni del ganador).</summary>
 public sealed record AnuncioPublico(int AnuncioId, int SorteoId, string Titulo, string? TituloEn, string? Descripcion, string? DescripcionEn,
-    string Premio, string? PremioEn, TipoPremio TipoPremio, DateTime FechaSorteo, bool Realizado, string Texto, string? TextoEn, DateOnly Hasta)
+    IReadOnlyList<PremioPublico> Premios, DateTime FechaSorteo, bool Realizado, string Texto, string? TextoEn, DateOnly Hasta)
 {
     public string TituloEnIdioma(bool ingles) => ingles && TituloEn is { Length: > 0 } ? TituloEn : Titulo;
 
     public string? DescripcionEnIdioma(bool ingles) => ingles && DescripcionEn is { Length: > 0 } ? DescripcionEn : Descripcion;
 
-    public string PremioEnIdioma(bool ingles) => ingles && PremioEn is { Length: > 0 } ? PremioEn : Premio;
+    /// <summary>«Corte, 2 × Champú y Cena para dos»; vacío si el sorteo aún no tiene premios.</summary>
+    public string PremiosEnIdioma(bool ingles) => PremioSorteo.Unir(Premios.Select(p => p.TextoEnIdioma(ingles)), ingles);
 
     public string TextoEnIdioma(bool ingles) => ingles && TextoEn is { Length: > 0 } ? TextoEn : Texto;
 }
 
-/// <summary>El premio elegido en el formulario: un servicio o un producto, por su número.</summary>
+/// <summary>El premio elegido en el formulario: un servicio, un producto de la tienda o un producto de sorteo, por su número.</summary>
 public sealed record PremioElegido(TipoPremio Tipo, int Id);
 
 /// <summary>Cómo avisar al ganador: los canales que tiene su ficha y el texto que se propone.</summary>
@@ -63,6 +78,7 @@ public sealed class SorteosService(
     ISorteoRepositorio sorteos,
     IServicioRepositorio servicios,
     IProductoRepositorio productos,
+    IProductoSorteoRepositorio productosSorteo,
     IUnidadDeTrabajo unidadDeTrabajo,
     IAzar azar,
     IEnviadorCorreo correo,
@@ -86,17 +102,25 @@ public sealed class SorteosService(
     /// <summary>Lo que la web enseña hoy.</summary>
     public Task<IReadOnlyList<AnuncioPublico>> AnunciosVisiblesAsync(CancellationToken ct = default) => sorteos.AnunciosVisiblesAsync(Hoy, ct);
 
-    public Task<Resultado<int>> CrearAsync(DatosSorteo datos, PremioElegido? premio, CancellationToken ct = default) =>
+    /// <summary>Crea el sorteo con sus datos; los premios y los participantes se añaden después.</summary>
+    public Task<Resultado<int>> CrearAsync(DatosSorteo datos, CancellationToken ct = default) =>
         Resultado.ProtegerAsync<int>(async () =>
         {
-            var sorteo = Sorteo.Crear(datos, await PremioAsync(premio, ct), Ahora);
+            var sorteo = Sorteo.Crear(datos, Ahora);
             sorteos.Agregar(sorteo);
             await unidadDeTrabajo.GuardarCambiosAsync(ct);
             return Resultado.Ok(sorteo.Id);
         });
 
-    public Task<Resultado> EditarAsync(int id, DatosSorteo datos, PremioElegido? premio, CancellationToken ct = default) =>
-        CambiarAsync(id, async s => s.Editar(datos, await PremioAsync(premio, ct), Ahora), ct);
+    public Task<Resultado> EditarAsync(int id, DatosSorteo datos, CancellationToken ct = default) =>
+        CambiarAsync(id, s => s.Editar(datos, Ahora), ct);
+
+    /// <summary>Añade un premio al lote (si ya estaba, suma la cantidad).</summary>
+    public Task<Resultado> AgregarPremioAsync(int id, PremioElegido? premio, int cantidad, CancellationToken ct = default) =>
+        CambiarAsync(id, async s => s.AgregarPremio(await PremioAsync(premio, ct), cantidad, Ahora), ct);
+
+    public Task<Resultado> QuitarPremioAsync(int id, int premioId, CancellationToken ct = default) =>
+        CambiarAsync(id, s => s.QuitarPremio(premioId, Ahora), ct);
 
     /// <summary>Añade clientes elegidos uno a uno. Devuelve cuántos son nuevos en el sorteo.</summary>
     public async Task<Resultado<int>> AgregarParticipantesAsync(int id, IReadOnlyCollection<int> clienteIds, CancellationToken ct = default)
@@ -134,6 +158,10 @@ public sealed class SorteosService(
     public Task<Resultado> ElegirGanadorAsync(int id, int clienteId, string? motivo, int? administradorId, CancellationToken ct = default) =>
         CambiarAsync(id, s => s.ElegirGanador(clienteId, motivo, Ahora, administradorId), ct);
 
+    /// <summary>Anota que el ganador ya tiene su premio: desde entonces no se puede cambiar el ganador.</summary>
+    public Task<Resultado> MarcarEntregadoAsync(int id, CancellationToken ct = default) =>
+        CambiarAsync(id, s => s.MarcarEntregado(Ahora), ct);
+
     public Task<Resultado> CancelarAsync(int id, string? motivo, CancellationToken ct = default) =>
         CambiarAsync(id, s => s.Cancelar(motivo, Ahora), ct);
 
@@ -167,7 +195,7 @@ public sealed class SorteosService(
         var datos = salon is null ? null : await salon.ObtenerAsync(ct);
         var nombreSalon = datos?.Nombre is { Length: > 0 } n ? n : "la peluquería";
         var llamar = datos is { Telefonos.Count: > 0 } ? $" Llámanos al {datos.TelefonosEnTexto} para acordar cuándo te viene bien." : " Pásate por el salón cuando te venga bien.";
-        var texto = $"¡Enhorabuena, {ficha?.Nombre ?? ganador.Ganador}! Has ganado {sorteo.Premio} en el sorteo «{sorteo.Titulo}» de {nombreSalon}.{llamar} ¡Te esperamos!";
+        var texto = $"¡Enhorabuena, {ficha?.Nombre ?? ganador.Ganador}! Has ganado {Premios(sorteo)} en el sorteo «{sorteo.Titulo}» de {nombreSalon}.{llamar} ¡Te esperamos!";
         return new AvisoGanador(texto, AgendaService.NormalizarCorreo(ficha?.Email), TelefonoWhatsApp(ficha?.Telefono));
     }
 
@@ -187,7 +215,7 @@ public sealed class SorteosService(
             return new Error("Escribe el mensaje para el ganador (entre 10 y 2000 caracteres).", "TextoAviso");
 
         var datos = salon is null ? null : await salon.ObtenerAsync(ct);
-        var envio = await correo.EnviarAsync(PlantillaCorreoCita.ComponerPremio(destinatario, mensaje, sorteo.Premio, datos), ct);
+        var envio = await correo.EnviarAsync(PlantillaCorreoCita.ComponerPremio(destinatario, mensaje, Premios(sorteo), datos), ct);
         if (envio == ResultadoEnvio.Rechazado)
             return new Error("El servidor de correo ha rechazado el envío. Revisa la dirección o la configuración SMTP y vuelve a intentarlo.");
         // Incierto: puede que haya salido; se anota igual para no mandarlo dos veces sin querer
@@ -227,6 +255,9 @@ public sealed class SorteosService(
     /// <summary>«15 de noviembre de 2026 a las 18:00».</summary>
     public static string Cuando(DateTime fecha) => fecha.ToString("d 'de' MMMM 'de' yyyy 'a las' HH:mm", Es);
 
+    /// <summary>Los premios para el aviso al ganador: «Corte y 2 × Champú» o, si no hay (sorteos antiguos), «el premio».</summary>
+    private static string Premios(Sorteo sorteo) => sorteo.PremiosEnTexto() is { Length: > 0 } premios ? premios : "el premio";
+
     private async Task<Resultado<int>> AgregarAsync(int id, IReadOnlyList<Cliente> clientes, CancellationToken ct)
     {
         var sorteo = await sorteos.ObtenerAsync(id, ct);
@@ -260,20 +291,24 @@ public sealed class SorteosService(
             return Task.CompletedTask;
         }, ct);
 
-    private async Task<PremioSorteo> PremioAsync(PremioElegido? premio, CancellationToken ct)
+    private async Task<DatosPremio> PremioAsync(PremioElegido? premio, CancellationToken ct)
     {
         switch (premio?.Tipo)
         {
             case TipoPremio.Servicio when await servicios.ObtenerAsync(premio.Id, ct) is { } servicio:
                 if (!servicio.Activo)
                     throw new ReglaDeNegocioException($"«{servicio.Nombre}» está archivado: elige otro premio.", "Premio");
-                return PremioSorteo.De(servicio);
+                return DatosPremio.De(servicio);
             case TipoPremio.Producto when await productos.ObtenerAsync(premio.Id, ct) is { } producto:
                 if (!producto.Activo)
                     throw new ReglaDeNegocioException($"«{producto.Nombre}» está archivado: elige otro premio.", "Premio");
-                return PremioSorteo.De(producto);
+                return DatosPremio.De(producto);
+            case TipoPremio.ProductoSorteo when await productosSorteo.ObtenerAsync(premio.Id, ct) is { } productoSorteo:
+                if (!productoSorteo.Activo)
+                    throw new ReglaDeNegocioException($"«{productoSorteo.Nombre}» está eliminado: recupéralo en Productos de sorteo o elige otro premio.", "Premio");
+                return DatosPremio.De(productoSorteo);
             default:
-                throw new ReglaDeNegocioException("Elige el premio: un servicio del catálogo o un producto de la tienda.", "Premio");
+                throw new ReglaDeNegocioException("Elige el premio: un servicio del catálogo, un producto de la tienda o un producto de sorteo.", "Premio");
         }
     }
 

@@ -30,6 +30,7 @@ public static class DependencyInjection
         services.AddScoped<IContenidoRepositorio, ContenidoRepositorio>();
         services.AddScoped<PeluqueriaLucia.Application.Agenda.IRepositorioAgenda, RepositorioAgenda>();
         services.AddScoped<PeluqueriaLucia.Application.Sorteos.ISorteoRepositorio, SorteoRepositorio>();
+        services.AddScoped<PeluqueriaLucia.Application.Sorteos.IProductoSorteoRepositorio, ProductoSorteoRepositorio>();
         services.AddSingleton<PeluqueriaLucia.Application.Sorteos.IAzar, AzarSeguro>();
         services.AddSingleton<Comunicaciones.Correo.IConfiguracionSmtp, ConfiguracionCorreo>();
         services.AddSingleton<Comunicaciones.Correo.IEnviadorCorreo, Comunicaciones.Correo.EnviadorCorreoSmtp>();

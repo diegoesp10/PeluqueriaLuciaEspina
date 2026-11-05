@@ -1189,6 +1189,9 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
                     b.Property<int?>("ClienteId")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("EntregadoEn")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime>("Fecha")
                         .HasColumnType("datetime2");
 
@@ -1249,6 +1252,113 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
                     b.ToTable("ParticipantesSorteos", (string)null);
                 });
 
+            modelBuilder.Entity("PeluqueriaLucia.Domain.Sorteos.PremioSorteo", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Cantidad")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Descripcion")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("DescripcionEn")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("NombreEn")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<int?>("ProductoId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ProductoSorteoId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ServicioId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SorteoId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Tipo")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductoId");
+
+                    b.HasIndex("ProductoSorteoId");
+
+                    b.HasIndex("ServicioId");
+
+                    b.HasIndex("SorteoId");
+
+                    b.ToTable("PremiosSorteos", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_PremiosSorteos_Articulo", "([Tipo] = 0 AND [ProductoId] IS NULL AND [ProductoSorteoId] IS NULL) OR ([Tipo] = 1 AND [ServicioId] IS NULL AND [ProductoSorteoId] IS NULL) OR ([Tipo] = 2 AND [ServicioId] IS NULL AND [ProductoId] IS NULL)");
+
+                            t.HasCheckConstraint("CK_PremiosSorteos_Cantidad", "[Cantidad] BETWEEN 1 AND 99");
+
+                            t.HasCheckConstraint("CK_PremiosSorteos_Tipo", "[Tipo] IN (0, 1, 2)");
+                        });
+                });
+
+            modelBuilder.Entity("PeluqueriaLucia.Domain.Sorteos.ProductoSorteo", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Activo")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("ActualizadoEn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreadoEn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Descripcion")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("DescripcionEn")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("EliminadoEn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("NombreEn")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Activo", "Nombre");
+
+                    b.ToTable("ProductosSorteo", (string)null);
+                });
+
             modelBuilder.Entity("PeluqueriaLucia.Domain.Sorteos.Sorteo", b =>
                 {
                     b.Property<int>("Id")
@@ -1282,7 +1392,6 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
                         .HasColumnType("nvarchar(300)");
 
                     b.Property<string>("Premio")
-                        .IsRequired()
                         .HasMaxLength(120)
                         .HasColumnType("nvarchar(120)");
 
@@ -1296,7 +1405,7 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
                     b.Property<int?>("ServicioId")
                         .HasColumnType("int");
 
-                    b.Property<int>("TipoPremio")
+                    b.Property<int?>("TipoPremio")
                         .HasColumnType("int");
 
                     b.Property<string>("Titulo")
@@ -1670,6 +1779,32 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
                     b.Navigation("Cliente");
                 });
 
+            modelBuilder.Entity("PeluqueriaLucia.Domain.Sorteos.PremioSorteo", b =>
+                {
+                    b.HasOne("PeluqueriaLucia.Domain.Productos.Producto", null)
+                        .WithMany()
+                        .HasForeignKey("ProductoId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PeluqueriaLucia.Domain.Sorteos.ProductoSorteo", null)
+                        .WithMany()
+                        .HasForeignKey("ProductoSorteoId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PeluqueriaLucia.Domain.Catalogo.Servicio", null)
+                        .WithMany()
+                        .HasForeignKey("ServicioId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PeluqueriaLucia.Domain.Sorteos.Sorteo", "Sorteo")
+                        .WithMany("Premios")
+                        .HasForeignKey("SorteoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Sorteo");
+                });
+
             modelBuilder.Entity("PeluqueriaLucia.Domain.Sorteos.Sorteo", b =>
                 {
                     b.HasOne("PeluqueriaLucia.Domain.Productos.Producto", null)
@@ -1745,6 +1880,8 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
                     b.Navigation("Extracciones");
 
                     b.Navigation("Participantes");
+
+                    b.Navigation("Premios");
                 });
 
             modelBuilder.Entity("PeluqueriaLucia.Domain.Visitas.Visita", b =>

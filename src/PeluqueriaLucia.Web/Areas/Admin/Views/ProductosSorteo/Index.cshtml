@@ -1,0 +1,85 @@
+@model ProductosSorteoModelo
+@{
+    ViewData["Title"] = "Productos de sorteo";
+    var activos = Model.Activos;
+    var eliminados = Model.Eliminados;
+}
+
+<div>
+    <header class="page-head">
+        <div>
+            <h1>Productos de sorteo</h1>
+            <p class="subtitle">Lo que sorteas y no es de la peluquería: una cena, unas entradas, una cesta de un comercio vecino… Dales nombre y descripción y añádelos como premio a cualquier sorteo, junto a servicios y productos de la tienda.</p>
+        </div>
+        <div class="acciones">
+            <a class="btn btn-primary" asp-action="Nuevo"><icono nombre="mas" tamano="18" /> Nuevo producto de sorteo</a>
+        </div>
+    </header>
+
+    <partial name="_PestanasSorteos" model="@("Productos")" />
+
+    @if (activos.Count == 0)
+    {
+        <div class="section estado-vacio">
+            <span class="estado-icono tint-pink"><icono nombre="regalo" tamano="30" /></span>
+            <h2>Todavía no hay productos de sorteo</h2>
+            <p>Crea aquí lo que quieras sortear que no sea de la peluquería. También puedes crearlo desde la pantalla de un sorteo, y se añade a él como premio.</p>
+            <div class="acciones"><a class="btn btn-primary" asp-action="Nuevo"><icono nombre="mas" tamano="18" /> Nuevo producto de sorteo</a></div>
+        </div>
+    }
+    else
+    {
+        <section class="section">
+            <div class="section-head">
+                <h2>Disponibles</h2>
+                <span class="muted small">@activos.Count @(activos.Count == 1 ? "producto" : "productos")</span>
+            </div>
+            <div class="list productos-sorteo-lista">
+                @foreach (var r in activos)
+                {
+                    var p = r.Producto;
+                    <a class="row" asp-action="Ficha" asp-route-id="@p.Id">
+                        <span class="sorteo-premio-icono tint-pink"><icono nombre="regalo" tamano="18" /></span>
+                        <span class="row-main">
+                            <span class="row-title">@p.Nombre</span>
+                            @if (p.Descripcion is not null)
+                            {
+                                <span class="row-sub producto-sorteo-descripcion">@p.Descripcion</span>
+                            }
+                            <span class="row-sub">@FormatoSorteos.Uso(r.EnMarcha, r.Sorteados, r.Entregados)</span>
+                        </span>
+                        <span class="row-end"><span class="row-chevron"><icono nombre="siguiente" tamano="16" /></span></span>
+                    </a>
+                }
+            </div>
+        </section>
+    }
+
+    @if (eliminados.Count > 0)
+    {
+        <section class="section">
+            <div class="section-head">
+                <h2>Eliminados</h2>
+                <span class="muted small">Ya no se ofrecen como premio; los sorteos en los que estuvieron los conservan</span>
+            </div>
+            <div class="list productos-sorteo-lista">
+                @foreach (var r in eliminados)
+                {
+                    var p = r.Producto;
+                    <div class="row is-eliminado">
+                        <span class="sorteo-premio-icono tint-gray"><icono nombre="regalo" tamano="18" /></span>
+                        <a class="row-main" asp-action="Ficha" asp-route-id="@p.Id">
+                            <span class="row-title">@p.Nombre</span>
+                            <span class="row-sub">Eliminado el @Formato.FechaCorta(p.EliminadoEn ?? p.ActualizadoEn) · @FormatoSorteos.Uso(r.EnMarcha, r.Sorteados, r.Entregados)</span>
+                        </a>
+                        <span class="row-end">
+                            <form method="post" asp-action="Recuperar" asp-route-id="@p.Id">
+                                <button class="btn btn-gray btn-sm btn-icono-movil" title="Recuperar «@p.Nombre»"><icono nombre="recuperar" tamano="15" /> <span>Recuperar</span></button>
+                            </form>
+                        </span>
+                    </div>
+                }
+            </div>
+        </section>
+    }
+</div>

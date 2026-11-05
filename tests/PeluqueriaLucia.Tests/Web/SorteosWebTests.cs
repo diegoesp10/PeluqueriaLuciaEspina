@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Net;
 using System.Text.RegularExpressions;
+using Microsoft.EntityFrameworkCore;
 using PeluqueriaLucia.Domain.Catalogo;
 using PeluqueriaLucia.Domain.Clientes;
 using PeluqueriaLucia.Domain.Comun;
@@ -9,7 +10,10 @@ using PeluqueriaLucia.Tests.Integracion;
 
 namespace PeluqueriaLucia.Tests.Web;
 
-/// <summary>Sorteos del panel a la web pública (sin datos de participantes) y el coste de compra en la ficha del producto.</summary>
+/// <summary>
+/// Sorteos del panel a la web pública (sin datos de participantes), con premios de la peluquería y productos de sorteo, y el
+/// coste de compra en la ficha del producto.
+/// </summary>
 public sealed class SorteosWebTests(SeguridadWebFixture fixture) : IClassFixture<SeguridadWebFixture>
 {
     [Fact]
@@ -30,16 +34,32 @@ public sealed class SorteosWebTests(SeguridadWebFixture fixture) : IClassFixture
 
         // Sin el título en inglés no se crea
         var sinIngles = await admin.PostAsync("/admin/Sorteos/Nuevo", Formulario(await TokenAsync(admin, "/admin/Sorteos/Nuevo"),
-            ("Titulo", $"Sorteo {marca}"), ("Premio", $"Servicio-{servicio}"), ("FechaSorteo", DateTime.Today.AddDays(5).ToString("yyyy-MM-ddT18:00"))));
+            ("Titulo", $"Sorteo {marca}"), ("FechaSorteo", DateTime.Today.AddDays(5).ToString("yyyy-MM-ddT18:00"))));
         Assert.Equal(HttpStatusCode.OK, sinIngles.StatusCode);
         Assert.Contains("Escribe también el título en inglés", WebUtility.HtmlDecode(await sinIngles.Content.ReadAsStringAsync()));
 
+        // Se crea con sus datos y lleva a añadir los premios
         var creado = await admin.PostAsync("/admin/Sorteos/Nuevo", Formulario(await TokenAsync(admin, "/admin/Sorteos/Nuevo"),
-            ("Titulo", $"Sorteo {marca}"), ("TituloEn", $"Giveaway {marca}"), ("Premio", $"Servicio-{servicio}"),
-            ("FechaSorteo", DateTime.Today.AddDays(5).ToString("yyyy-MM-ddT18:00"))));
+            ("Titulo", $"Sorteo {marca}"), ("TituloEn", $"Giveaway {marca}"), ("FechaSorteo", DateTime.Today.AddDays(5).ToString("yyyy-MM-ddT18:00"))));
         Assert.Equal(HttpStatusCode.Redirect, creado.StatusCode);
-        var detalle = creado.Headers.Location!.OriginalString;
+        Assert.EndsWith("#premios", creado.Headers.Location!.OriginalString);
+        var detalle = creado.Headers.Location!.OriginalString.Split('#')[0];
         var id = detalle[(detalle.LastIndexOf('/') + 1)..];
+        Assert.Contains("Todavía no hay premios", WebUtility.HtmlDecode(await admin.GetStringAsync(detalle)));
+
+        // Premios: un servicio del catálogo y un producto de sorteo creado desde el propio sorteo
+        Assert.Equal(HttpStatusCode.Redirect, (await admin.PostAsync($"/admin/Sorteos/AgregarPremio/{id}", Formulario(await TokenAsync(admin, detalle),
+            ("premio", $"Servicio-{servicio}"), ("cantidad", "1")))).StatusCode);
+        var nuevoProducto = $"/admin/ProductosSorteo/Nuevo?sorteo={id}";
+        Assert.Contains($"Al crearlo se añade como premio al sorteo «Sorteo {marca}»", WebUtility.HtmlDecode(await admin.GetStringAsync(nuevoProducto)));
+        var producto = await admin.PostAsync(nuevoProducto, Formulario(await TokenAsync(admin, nuevoProducto),
+            ("Nombre", $"Cena para dos {marca}"), ("NombreEn", $"Dinner for two {marca}"), ("Descripcion", "En Casa Ramón"), ("DescripcionEn", "At Casa Ramón")));
+        Assert.Equal(HttpStatusCode.Redirect, producto.StatusCode);
+        Assert.Equal($"{detalle}#premios", producto.Headers.Location!.OriginalString);
+        var conPremios = WebUtility.HtmlDecode(await admin.GetStringAsync(detalle));
+        Assert.Contains("Premios · 2", conPremios);
+        Assert.Contains($"Cena para dos {marca}", conPremios);
+        Assert.Contains("Producto de sorteo", conPremios);
 
         foreach (var cliente in new[] { ana, bea })
             Assert.Equal(HttpStatusCode.Redirect, (await admin.PostAsync($"/admin/Sorteos/AgregarParticipante/{id}", Formulario(await TokenAsync(admin, detalle),
@@ -62,12 +82,15 @@ public sealed class SorteosWebTests(SeguridadWebFixture fixture) : IClassFixture
         var pagina = WebUtility.HtmlDecode(await publico.GetStringAsync("/sorteos"));
         Assert.Contains($"Participa con tu visita {marca}", pagina);
         Assert.Contains($"Hidratación {marca}", pagina);
+        Assert.Contains($"Cena para dos {marca}", pagina);
+        Assert.Contains("En Casa Ramón", pagina);
         Assert.DoesNotContain($"Ana{marca}", pagina);
         Assert.DoesNotContain("data-aviso-sorteo", pagina);
         var ingles = WebUtility.HtmlDecode(await publico.GetStringAsync("/en/sorteos"));
         Assert.Contains("Giveaways", ingles);
         Assert.Contains($"Giveaway {marca}", ingles);
         Assert.Contains($"Join with your visit {marca}", ingles);
+        Assert.Contains($"Dinner for two {marca}", ingles);
 
         // Sortear: la pantalla descubre al ganador con la ruleta la primera vez
         var sorteo = await admin.PostAsync($"/admin/Sorteos/Sortear/{id}", Formulario(await TokenAsync(admin, detalle)));
@@ -85,6 +108,22 @@ public sealed class SorteosWebTests(SeguridadWebFixture fixture) : IClassFixture
         Assert.Matches(@"^https://wa\.me/3461100000[12]\?text=", whatsApp.Headers.Location!.AbsoluteUri);
         Assert.Contains("Avisado por WhatsApp", WebUtility.HtmlDecode(await admin.GetStringAsync(detalle)));
 
+        // Entregado el premio: queda en el historial del sorteo y en el del producto de sorteo
+        Assert.Contains("Premio sin entregar", WebUtility.HtmlDecode(await admin.GetStringAsync(detalle)));
+        Assert.Equal(HttpStatusCode.Redirect, (await admin.PostAsync($"/admin/Sorteos/MarcarEntregado/{id}", Formulario(await TokenAsync(admin, detalle)))).StatusCode);
+        var entregado = WebUtility.HtmlDecode(await admin.GetStringAsync(detalle));
+        Assert.Contains($"Premio entregado el {DateTime.Today:dd/MM/yyyy}", entregado);
+        Assert.DoesNotContain("Repetir el sorteo o elegir otro ganador", entregado);
+        var productos = WebUtility.HtmlDecode(await admin.GetStringAsync("/admin/ProductosSorteo"));
+        Assert.Contains($"Cena para dos {marca}", productos);
+        int idProducto;
+        await using (var db = fixture.Bd.Contexto())
+            idProducto = await db.ProductosSorteo.Where(p => p.Nombre == $"Cena para dos {marca}").Select(p => p.Id).SingleAsync();
+        Assert.Contains($"href=\"/admin/ProductosSorteo/Ficha/{idProducto}\"", productos);
+        var historialProducto = WebUtility.HtmlDecode(await admin.GetStringAsync($"/admin/ProductosSorteo/Ficha/{idProducto}"));
+        Assert.Contains($"Sorteo {marca}", historialProducto);
+        Assert.Matches($"ganó (Ana|Bea){marca} Pérez", Regex.Replace(historialProducto, "<[^>]+>", ""));
+
         var realizado = WebUtility.HtmlDecode(await publico.GetStringAsync("/sorteos"));
         Assert.Contains("¡Ya tenemos ganador!", realizado);
         Assert.DoesNotContain($"Ana{marca}", realizado);
@@ -92,6 +131,8 @@ public sealed class SorteosWebTests(SeguridadWebFixture fixture) : IClassFixture
         var historial = WebUtility.HtmlDecode(await admin.GetStringAsync("/admin/Sorteos?vista=Historial"));
         Assert.Contains($"Sorteo {marca}", historial);
         Assert.Matches($"(Ana|Bea){marca} Pérez", historial);
+        Assert.Contains($"Hidratación {marca} y Cena para dos {marca}", historial);
+        Assert.Contains("Premio entregado", historial);
     }
 
     [Fact]

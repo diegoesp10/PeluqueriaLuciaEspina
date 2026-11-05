@@ -693,6 +693,33 @@
 .sorteo-anunciar { margin-top: 12px; }
 .sorteo-extraccion.is-anterior { opacity: .7; }
 .sorteo-extraccion .row-sub { white-space: normal; }
+
+/* Premios del sorteo (servicios, productos de la tienda y productos de sorteo) */
+.sorteo-datos p { margin: 0 0 4px; }
+.sorteo-datos p:last-child { margin-bottom: 0; }
+.sorteo-datos .etiqueta { font-size: 11px; letter-spacing: .12em; font-weight: 700; color: var(--accent); text-transform: uppercase; }
+.sorteo-premio-icono { display: grid; flex: none; place-items: center; width: 38px; height: 38px; border-radius: 12px;
+  background: color-mix(in oklab, var(--tint) 15%, var(--surface)); color: var(--tint-text, var(--tint)); }
+.sorteo-premios .row form { margin: 0; }
+.sorteo-premios .row-title, .sorteo-premios .row-sub, .productos-sorteo-lista .row-sub { white-space: normal; }
+.sorteo-premio-cantidad { color: var(--accent); font-variant-numeric: tabular-nums; }
+.sorteo-agregar-premio { display: grid; gap: 14px; margin-top: 12px; }
+.sorteo-agregar-premio .acciones { flex-wrap: wrap; }
+.sorteo-agregar-premio .field-hint { margin: 0; }
+.sorteo-premio-campos { display: grid; grid-template-columns: minmax(0, 1fr) 104px; gap: 12px; align-items: end; }
+.sorteo-ganador-estado { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.sorteo-ganador-contenido form { margin: 0; }
+.productos-sorteo-lista .row-main { color: inherit; text-decoration: none; }
+.productos-sorteo-lista .row.is-eliminado .row-title { color: var(--label-2); }
+.producto-sorteo-descripcion { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.producto-sorteo-textos p { margin: 0 0 8px; white-space: pre-line; }
+.producto-sorteo-textos p:last-child { margin-bottom: 0; }
+.sorteo-sello-grande.is-apagado { background: var(--fill); color: var(--label-2); box-shadow: none; }
+.stats.stats-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 8px; }
+@media (max-width: 560px) {
+  .stats.stats-3 { grid-template-columns: minmax(0, 1fr); }
+  .sorteo-premio-campos { grid-template-columns: minmax(0, 1fr) 84px; }
+}
 @media (prefers-reduced-motion: reduce) {
   .alerta-sorteo, .sorteo-sortear-sello { animation: none; }
 }

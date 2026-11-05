@@ -1,0 +1,76 @@
+@using PeluqueriaLucia.Domain.Sorteos
+@model ProductoSorteoEdicionModelo
+@{
+    var nuevo = Model.Id is null;
+    ViewData["Title"] = nuevo ? "Nuevo producto de sorteo" : "Editar producto de sorteo";
+    var f = Model.Formulario;
+    var destino = Model.Destino;
+}
+
+<div class="form-pagina">
+    @if (destino is not null)
+    {
+        <a class="back-link" asp-controller="Sorteos" asp-action="Detalle" asp-route-id="@destino.Id" asp-fragment="premios"><icono nombre="anterior" tamano="20" /> @destino.Titulo</a>
+    }
+    else if (nuevo)
+    {
+        <a class="back-link" asp-action="Index"><icono nombre="anterior" tamano="20" /> Productos de sorteo</a>
+    }
+    else
+    {
+        <a class="back-link" asp-action="Ficha" asp-route-id="@Model.Id"><icono nombre="anterior" tamano="20" /> @f.Nombre</a>
+    }
+    <header class="page-head">
+        <div>
+            <h1>@ViewData["Title"]</h1>
+            <p class="subtitle">
+                @if (destino is not null)
+                {
+                    <text>Al crearlo se añade como premio al sorteo «@destino.Titulo».</text>
+                }
+                else if (nuevo)
+                {
+                    <text>Algo que sorteas y no es de la peluquería. El nombre y la descripción se ven en la web cuando anuncias el sorteo, en español y en inglés.</text>
+                }
+                else
+                {
+                    <text>Los sorteos en marcha que lo tienen como premio se ponen al día; los ya realizados conservan lo que se sorteó.</text>
+                }
+            </p>
+        </div>
+    </header>
+
+    <form class="form" method="post" asp-action="@(nuevo ? "Nuevo" : "Editar")" asp-route-id="@Model.Id" asp-route-sorteo="@destino?.Id" novalidate>
+        <div asp-validation-summary="ModelOnly"></div>
+
+        <div class="fields">
+            <div class="field">
+                <label for="Nombre">Nombre</label>
+                <input class="input" id="Nombre" name="Nombre" value="@f.Nombre" maxlength="@ProductoSorteo.LongitudNombre" autocomplete="off" required autofocus="@nuevo"
+                       placeholder="Por ejemplo, Cena para dos en Casa Ramón" />
+                @Html.ValidationMessage("Nombre")
+            </div>
+            <div class="field">
+                <label for="NombreEn">Nombre en inglés</label>
+                <input class="input" id="NombreEn" name="NombreEn" value="@f.NombreEn" maxlength="@ProductoSorteo.LongitudNombre" autocomplete="off" lang="en" required
+                       placeholder="For example, Dinner for two at Casa Ramón" />
+                @Html.ValidationMessage("NombreEn")
+            </div>
+
+            <div class="field">
+                <label for="Descripcion">Descripción <span class="muted">(opcional)</span></label>
+                <textarea class="input" id="Descripcion" name="Descripcion" maxlength="@ProductoSorteo.LongitudDescripcion" rows="3" placeholder="Qué incluye, quién lo da, hasta cuándo vale…">@f.Descripcion</textarea>
+                @Html.ValidationMessage("Descripcion")
+            </div>
+            <div class="field">
+                <label for="DescripcionEn">Descripción en inglés <span class="muted">(si escribes la española)</span></label>
+                <textarea class="input" id="DescripcionEn" name="DescripcionEn" maxlength="@ProductoSorteo.LongitudDescripcion" rows="3" lang="en">@f.DescripcionEn</textarea>
+                @Html.ValidationMessage("DescripcionEn")
+            </div>
+        </div>
+
+        <div class="acciones acciones-form">
+            <button class="btn btn-primary btn-lg">@(destino is not null ? "Crear y añadir al sorteo" : nuevo ? "Crear producto de sorteo" : "Guardar cambios")</button>
+        </div>
+    </form>
+</div>

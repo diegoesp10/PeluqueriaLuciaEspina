@@ -1,0 +1,122 @@
+@using PeluqueriaLucia.Domain.Sorteos
+@model ProductoSorteoFichaModelo
+@{
+    var p = Model.Producto;
+    ViewData["Title"] = p.Nombre;
+}
+
+<div>
+    <a class="back-link" asp-action="Index"><icono nombre="anterior" tamano="20" /> Productos de sorteo</a>
+    <header class="page-head">
+        <div class="titulo-con-avatar">
+            <span class="sorteo-tarjeta-sello sorteo-sello-grande @(p.Activo ? "" : "is-apagado")"><icono nombre="regalo" tamano="30" /></span>
+            <div>
+                <h1>@p.Nombre</h1>
+                <p class="subtitle">
+                    <span class="pill @(p.Activo ? "tint-pink" : "tint-gray")">@(p.Activo ? "Producto de sorteo" : "Eliminado")</span>
+                    <span lang="en">@p.NombreEn</span>
+                </p>
+            </div>
+        </div>
+        <div class="acciones">
+            <a class="btn btn-gray" asp-action="Editar" asp-route-id="@p.Id"><icono nombre="editar" tamano="18" /> Editar</a>
+            @if (p.Activo)
+            {
+                <form method="post" asp-action="Eliminar" asp-route-id="@p.Id" data-confirmar="«@p.Nombre» dejará de ofrecerse como premio. Los sorteos en los que ya está lo conservan, y puedes recuperarlo cuando quieras." data-confirmar-accion="Eliminar">
+                    <button class="btn btn-gray btn-destructive"><icono nombre="papelera" tamano="18" /> Eliminar</button>
+                </form>
+            }
+            else
+            {
+                <form method="post" asp-action="Recuperar" asp-route-id="@p.Id">
+                    <button class="btn btn-gray"><icono nombre="recuperar" tamano="18" /> Recuperar</button>
+                </form>
+            }
+        </div>
+    </header>
+
+    <section class="stats stats-3" aria-label="Uso en los sorteos">
+        <div class="stat tint-pink">
+            <span class="stat-label"><icono nombre="calendario" tamano="16" /> En marcha</span>
+            <span class="stat-value">@Model.EnMarcha</span>
+            <span class="stat-foot">@(Model.EnMarcha == 1 ? "sorteo abierto" : "sorteos abiertos")</span>
+        </div>
+        <div class="stat tint-blue">
+            <span class="stat-label"><icono nombre="regalo" tamano="16" /> Sorteado</span>
+            <span class="stat-value">@Model.Sorteados</span>
+            <span class="stat-foot">@(Model.Sorteados == 1 ? "vez" : "veces")</span>
+        </div>
+        <div class="stat tint-green">
+            <span class="stat-label"><icono nombre="check" tamano="16" /> Entregado</span>
+            <span class="stat-value">@Model.Entregados</span>
+            <span class="stat-foot">@(Model.Sorteados == 0 ? "Aún no se ha sorteado" : Model.Sorteados == Model.Entregados ? "Todo entregado" : $"{Model.Sorteados - Model.Entregados} sin entregar")</span>
+        </div>
+    </section>
+
+    <div class="detalle-grid">
+        <section>
+            <div class="section">
+                <div class="section-head"><h2>Descripción</h2></div>
+                <div class="card card-pad producto-sorteo-textos">
+                    @if (p.Descripcion is null)
+                    {
+                        <p class="muted">Sin descripción. <a asp-action="Editar" asp-route-id="@p.Id">Añade una</a>: se ve en la web con el sorteo.</p>
+                    }
+                    else
+                    {
+                        <p>@p.Descripcion</p>
+                        <p class="muted small" lang="en">@p.DescripcionEn</p>
+                    }
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <div class="section" id="historial">
+                <div class="section-head"><h2>En los sorteos</h2></div>
+                @if (Model.Sorteos.Count == 0)
+                {
+                    <p class="card card-pad muted small">Aún no ha estado en ningún sorteo. Añádelo como premio desde la pantalla de un sorteo en marcha.</p>
+                }
+                else
+                {
+                    <div class="list">
+                        @foreach (var s in Model.Sorteos)
+                        {
+                            var premio = Model.Premio(s);
+                            var ganador = s.Ganador;
+                            <a class="row sorteo-historial" asp-controller="Sorteos" asp-action="Detalle" asp-route-id="@s.Id">
+                                <span class="sorteo-historial-sello @FormatoSorteos.Tinte(s)"><icono nombre="regalo" tamano="18" /></span>
+                                <span class="row-main">
+                                    <span class="row-title">@s.Titulo@(premio is { Cantidad: > 1 } ? $" · {premio.Cantidad} uds" : "")</span>
+                                    <span class="row-sub">
+                                        @if (s.Estado == EstadoSorteo.Realizado && ganador is not null)
+                                        {
+                                            <text>Sorteado el @ganador.Fecha.ToString("dd/MM/yyyy") · ganó <strong>@ganador.Ganador</strong> · @FormatoSorteos.Entrega(ganador)</text>
+                                        }
+                                        else if (s.Abierto)
+                                        {
+                                            <text>En marcha · se sortea el @s.FechaSorteo.ToString("dd/MM/yyyy")</text>
+                                        }
+                                        else
+                                        {
+                                            <text>Cancelado@(s.MotivoCancelacion is null ? "" : ": " + s.MotivoCancelacion)</text>
+                                        }
+                                        @if (s.Premios.Count > 1)
+                                        {
+                                            <text> · con @FormatoSorteos.Premios(s)</text>
+                                        }
+                                    </span>
+                                </span>
+                                <span class="row-end">
+                                    <span class="pill @(ganador?.EntregadoEn is not null ? "tint-green" : FormatoSorteos.Tinte(s))">@(ganador?.EntregadoEn is not null ? "Entregado" : FormatoSorteos.Estado(s))</span>
+                                    <span class="row-chevron"><icono nombre="siguiente" tamano="16" /></span>
+                                </span>
+                            </a>
+                        }
+                    </div>
+                }
+            </div>
+        </section>
+    </div>
+</div>
