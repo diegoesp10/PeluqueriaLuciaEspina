@@ -33,33 +33,34 @@ public sealed class SorteoFormulario
     [StringLength(Sorteo.LongitudDescripcion, ErrorMessage = "Máximo {1} caracteres.")]
     public string? DescripcionEn { get; set; }
 
-    /// <summary>«Servicio-12» o «Producto-5».</summary>
-    [Required(ErrorMessage = "Elige el premio.")]
-    public string? Premio { get; set; }
-
     [Required(ErrorMessage = "Indica cuándo se sortea.")]
     public DateTime? FechaSorteo { get; set; }
 
     public DatosSorteo Datos() => new(Titulo, TituloEn, Descripcion, DescripcionEn, FechaSorteo ?? default);
 
-    public PremioElegido? PremioElegido()
-    {
-        var partes = Premio?.Split('-', 2);
-        return partes is [var tipo, var id] && Enum.TryParse<TipoPremio>(tipo, out var t) && Enum.IsDefined(t)
-            && int.TryParse(id, NumberStyles.None, CultureInfo.InvariantCulture, out var numero) ? new PremioElegido(t, numero) : null;
-    }
-
-    public static string Clave(TipoPremio tipo, int id) => $"{tipo}-{id.ToString(CultureInfo.InvariantCulture)}";
-
     public static SorteoFormulario Desde(Sorteo s) => new()
     {
         Titulo = s.Titulo, TituloEn = s.TituloEn, Descripcion = s.Descripcion, DescripcionEn = s.DescripcionEn, FechaSorteo = s.FechaSorteo,
-        Premio = s.ServicioId is { } servicio ? Clave(TipoPremio.Servicio, servicio) : s.ProductoId is { } producto ? Clave(TipoPremio.Producto, producto) : null,
     };
 }
 
-/// <param name="PremioActual">Si el premio guardado ya no está en el catálogo o en la tienda, su nombre (para avisar).</param>
-public sealed record SorteoEdicionModelo(int? Id, SorteoFormulario Formulario, IReadOnlyList<Servicio> Servicios, IReadOnlyList<Producto> Productos, string? PremioActual = null);
+/// <summary>Cómo viaja un premio en los formularios: «Servicio-12», «Producto-5» o «ProductoSorteo-3».</summary>
+public static class ClavePremio
+{
+    public static string De(TipoPremio tipo, int id) => $"{tipo}-{id.ToString(CultureInfo.InvariantCulture)}";
+
+    public static PremioElegido? Leer(string? clave)
+    {
+        var partes = clave?.Split('-', 2);
+        return partes is [var tipo, var id] && Enum.TryParse<TipoPremio>(tipo, out var t) && Enum.IsDefined(t) && !int.TryParse(tipo, out _)
+            && int.TryParse(id, NumberStyles.None, CultureInfo.InvariantCulture, out var numero) ? new PremioElegido(t, numero) : null;
+    }
+}
+
+public sealed record SorteoEdicionModelo(int? Id, SorteoFormulario Formulario);
+
+/// <summary>Lo que se puede añadir como premio a un sorteo abierto.</summary>
+public sealed record OpcionesPremio(IReadOnlyList<ProductoSorteo> ProductosSorteo, IReadOnlyList<Servicio> Servicios, IReadOnlyList<Producto> Productos);
 
 /// <summary>Un anuncio del sorteo en la web, entre dos fechas.</summary>
 public sealed class AnuncioFormulario
@@ -76,10 +77,11 @@ public sealed class AnuncioFormulario
 }
 
 /// <param name="Aviso">Texto propuesto y canales del ganador; null si aún no lo hay.</param>
+/// <param name="Opciones">Lo que se puede añadir como premio; null si el sorteo ya no está abierto.</param>
 /// <param name="TextoAviso">El mensaje que se estaba escribiendo cuando hubo un error.</param>
 /// <param name="Revelar">Recién sorteado: la pantalla enseña el ganador con la animación de la ruleta.</param>
 public sealed record SorteoDetalleModelo(Sorteo Sorteo, DateOnly Hoy, AvisoGanador? Aviso, bool CorreoConfigurado, AnuncioFormulario Anuncio,
-    string? TextoAviso = null, bool Revelar = false)
+    OpcionesPremio? Opciones, string? TextoAviso = null, bool Revelar = false)
 {
     public IReadOnlyList<ParticipanteSorteo> Participantes =>
         [.. Sorteo.Participantes.OrderBy(p => p.Cliente?.Nombre).ThenBy(p => p.Cliente?.Apellido).ThenBy(p => p.ClienteId)];
@@ -107,9 +109,30 @@ public static class FormatoSorteos
         _ => "tint-pink",
     };
 
-    public static string IconoPremio(TipoPremio tipo) => tipo == TipoPremio.Servicio ? "tijeras" : "producto";
+    public static string IconoPremio(TipoPremio tipo) => tipo switch
+    {
+        TipoPremio.Servicio => "tijeras",
+        TipoPremio.Producto => "producto",
+        _ => "regalo",
+    };
 
-    public static string TipoPremioTexto(TipoPremio tipo) => tipo == TipoPremio.Servicio ? "Servicio del catálogo" : "Producto de la tienda";
+    /// <summary>El color de cada clase de premio, el mismo que su apartado en el menú.</summary>
+    public static string TintePremio(TipoPremio tipo) => tipo switch
+    {
+        TipoPremio.Servicio => "tint-orange",
+        TipoPremio.Producto => "tint-purple",
+        _ => "tint-pink",
+    };
+
+    public static string TipoPremioTexto(TipoPremio tipo) => tipo switch
+    {
+        TipoPremio.Servicio => "Servicio del catálogo",
+        TipoPremio.Producto => "Producto de la tienda",
+        _ => "Producto de sorteo",
+    };
+
+    /// <summary>«Corte, 2 × Champú y Cena para dos», o un aviso si aún no tiene premios.</summary>
+    public static string Premios(Sorteo s) => s.Premios.Count == 0 ? "Sin premios todavía" : s.PremiosEnTexto();
 
     /// <summary>«Hoy a las 18:00», «Mañana a las 18:00», «En 5 días» o, si ya pasó sin sortear, «Tocaba el 12/11».</summary>
     public static string Cuando(Sorteo s, DateOnly hoy)
@@ -136,6 +159,9 @@ public static class FormatoSorteos
         _ => "Sin avisar todavía",
     };
 
+    public static string Entrega(ExtraccionSorteo e) =>
+        e.EntregadoEn is { } entregado ? $"Premio entregado el {entregado:dd/MM/yyyy}" : "Premio sin entregar";
+
     /// <summary>El anuncio se ve en la web hoy, se verá más adelante o ya terminó.</summary>
     public static (string Texto, string Tinte) EstadoAnuncio(AnuncioSorteo a, DateOnly hoy) =>
         a.VisibleEl(hoy) ? ("En la web ahora", "tint-green")
@@ -147,4 +173,62 @@ public static class FormatoSorteos
         s.Anuncios.FirstOrDefault(a => a.VisibleEl(hoy)) is { } visible ? $"En la web hasta el {visible.Hasta:dd/MM}"
         : s.Anuncios.Where(a => a.Desde > hoy).OrderBy(a => a.Desde).FirstOrDefault() is { } proximo ? $"En la web desde el {proximo.Desde:dd/MM}"
         : "Sin anuncio en la web";
+
+    /// <summary>«En 1 sorteo en marcha · sorteado 2 veces · 1 entregado» o «Aún no ha estado en ningún sorteo».</summary>
+    public static string Uso(int enMarcha, int sorteados, int entregados)
+    {
+        var partes = new List<string>();
+        if (enMarcha > 0)
+            partes.Add(enMarcha == 1 ? "En 1 sorteo en marcha" : $"En {enMarcha} sorteos en marcha");
+        if (sorteados > 0)
+            partes.Add((sorteados == 1 ? "Sorteado 1 vez" : $"Sorteado {sorteados} veces") + (entregados == 0 ? ", sin entregar" : entregados == sorteados ? ", entregado" : $", {entregados} entregados"));
+        return partes.Count == 0 ? "Aún no ha estado en ningún sorteo" : string.Join(" · ", partes);
+    }
+}
+
+public sealed class ProductoSorteoFormulario
+{
+    [Required(ErrorMessage = "Escribe el nombre.")]
+    [StringLength(ProductoSorteo.LongitudNombre, ErrorMessage = "Máximo {1} caracteres.")]
+    public string? Nombre { get; set; }
+
+    [Required(ErrorMessage = "Escribe también el nombre en inglés: se ve en la web.")]
+    [StringLength(ProductoSorteo.LongitudNombre, ErrorMessage = "Máximo {1} caracteres.")]
+    public string? NombreEn { get; set; }
+
+    [StringLength(ProductoSorteo.LongitudDescripcion, ErrorMessage = "Máximo {1} caracteres.")]
+    public string? Descripcion { get; set; }
+
+    [StringLength(ProductoSorteo.LongitudDescripcion, ErrorMessage = "Máximo {1} caracteres.")]
+    public string? DescripcionEn { get; set; }
+
+    public FichaProductoSorteo Ficha() => new(Nombre, NombreEn, Descripcion, DescripcionEn);
+
+    public static ProductoSorteoFormulario Desde(ProductoSorteo p) => new()
+    {
+        Nombre = p.Nombre, NombreEn = p.NombreEn, Descripcion = p.Descripcion, DescripcionEn = p.DescripcionEn,
+    };
+}
+
+public sealed record ProductosSorteoModelo(IReadOnlyList<ResumenProductoSorteo> Productos)
+{
+    public IReadOnlyList<ResumenProductoSorteo> Activos => [.. Productos.Where(p => p.Producto.Activo)];
+
+    public IReadOnlyList<ResumenProductoSorteo> Eliminados => [.. Productos.Where(p => !p.Producto.Activo)];
+}
+
+/// <param name="Destino">Al crearlo desde la pantalla de un sorteo abierto, el sorteo al que se añade como premio.</param>
+public sealed record ProductoSorteoEdicionModelo(int? Id, ProductoSorteoFormulario Formulario, Sorteo? Destino = null);
+
+/// <param name="Sorteos">Los sorteos en los que ha estado como premio, lo último primero.</param>
+public sealed record ProductoSorteoFichaModelo(ProductoSorteo Producto, IReadOnlyList<Sorteo> Sorteos)
+{
+    /// <summary>La línea de premio de este producto en ese sorteo (por la cantidad y el nombre con que se sorteó).</summary>
+    public PremioSorteo? Premio(Sorteo s) => s.Premios.FirstOrDefault(p => p.ProductoSorteoId == Producto.Id);
+
+    public int EnMarcha => Sorteos.Count(s => s.Abierto);
+
+    public int Sorteados => Sorteos.Count(s => s.Estado == EstadoSorteo.Realizado);
+
+    public int Entregados => Sorteos.Count(s => s.Estado == EstadoSorteo.Realizado && s.Ganador?.EntregadoEn is not null);
 }

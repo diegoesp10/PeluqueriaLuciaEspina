@@ -30,7 +30,7 @@ La separación de capas existente se conserva; la gestión se ha trasladado al �
 - **Preferencia de aviso del cliente** (correo o WhatsApp): si la ficha la tiene, los avisos de sus citas van siempre por ese canal, se den en el salón o se pidan en la web; si no, se elige en cada cita. Ver [docs/AGENDA.md](docs/AGENDA.md).
 - **Exportación a Excel** del periodo que se está viendo (con una hoja de productos vendidos si los hay).
 - **Coste de compra de cada producto con su historial** («en enero me costó 100, en febrero 120»), anotado al dar de alta, al editar, al recibir mercancía o a mano. Ver [docs/PRODUCTOS.md](docs/PRODUCTOS.md).
-- **Sorteos** de servicios y productos entre los clientes que elige el salón: ganador al azar (o elegido por el salón), aviso por correo o WhatsApp, historial de quién ganó, cuándo y cómo, y anuncios en la web (aviso flotante y página `/sorteos`) entre las fechas que se elijan. Ver [docs/SORTEOS.md](docs/SORTEOS.md).
+- **Sorteos** de un lote de premios (servicios, productos de la tienda y **productos de sorteo** con nombre y descripción, como una cena o unas entradas) entre los clientes que elige el salón: ganador al azar (o elegido por el salón), aviso por correo o WhatsApp, entrega del premio, historial de qué se sorteó, quién ganó, cuándo y cómo, y anuncios en la web (aviso flotante y página `/sorteos`) entre las fechas que se elijan. Ver [docs/SORTEOS.md](docs/SORTEOS.md).
 
 ## Arquitectura
 

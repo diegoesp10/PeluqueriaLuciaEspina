@@ -4,8 +4,6 @@
     var nuevo = Model.Id is null;
     ViewData["Title"] = nuevo ? "Nuevo sorteo" : "Editar sorteo";
     var f = Model.Formulario;
-    var premioEnLista = f.Premio is not null && (Model.Servicios.Any(s => SorteoFormulario.Clave(TipoPremio.Servicio, s.Id) == f.Premio)
-        || Model.Productos.Any(p => SorteoFormulario.Clave(TipoPremio.Producto, p.Id) == f.Premio));
 }
 
 <div class="form-pagina">
@@ -20,7 +18,10 @@
     <header class="page-head">
         <div>
             <h1>@ViewData["Title"]</h1>
-            <p class="subtitle">El título y la descripción se ven en la web cuando anuncies el sorteo, en español y en inglés.</p>
+            <p class="subtitle">
+                El título y la descripción se ven en la web cuando anuncies el sorteo, en español y en inglés.
+                @(nuevo ? "Los premios y los participantes se añaden a continuación, en la pantalla del sorteo." : "Los premios se cambian en la pantalla del sorteo.")
+            </p>
         </div>
     </header>
 
@@ -28,32 +29,6 @@
         <div asp-validation-summary="ModelOnly"></div>
 
         <div class="fields">
-            <div class="field">
-                <label for="Premio">Premio</label>
-                <select class="input" id="Premio" name="Premio" required data-buscable="Buscar servicio o producto" data-buscable-vacio="Ningún servicio ni producto con ese texto.">
-                    <option value="">Elige el premio</option>
-                    <optgroup label="Servicios del catálogo">
-                        @foreach (var s in Model.Servicios)
-                        {
-                            var clave = SorteoFormulario.Clave(TipoPremio.Servicio, s.Id);
-                            <option value="@clave" selected="@(clave == f.Premio)" data-buscar="servicio @s.Nombre">@s.Nombre · servicio@(s.Precio > 0 ? " · " + Formato.Euros(s.Precio) : "")</option>
-                        }
-                    </optgroup>
-                    <optgroup label="Productos de la tienda">
-                        @foreach (var p in Model.Productos)
-                        {
-                            var clave = SorteoFormulario.Clave(TipoPremio.Producto, p.Id);
-                            <option value="@clave" selected="@(clave == f.Premio)" data-buscar="producto @p.Nombre @p.Referencia">@p.Nombre · producto · @Formato.Euros(p.PrecioVenta)</option>
-                        }
-                    </optgroup>
-                </select>
-                @if (!nuevo && !premioEnLista && Model.PremioActual is not null)
-                {
-                    <p class="field-hint texto-aviso">El premio guardado («@Model.PremioActual») ya no está en el catálogo ni en la tienda: elige otro.</p>
-                }
-                @Html.ValidationMessage("Premio")
-            </div>
-
             <div class="field">
                 <label for="Titulo">Título</label>
                 <input class="input" id="Titulo" name="Titulo" value="@f.Titulo" maxlength="@Sorteo.LongitudTitulo" autocomplete="off" required autofocus="@nuevo"
@@ -87,7 +62,7 @@
         </div>
 
         <div class="acciones acciones-form">
-            <button class="btn btn-primary btn-lg">@(nuevo ? "Crear sorteo" : "Guardar cambios")</button>
+            <button class="btn btn-primary btn-lg">@(nuevo ? "Crear y añadir los premios" : "Guardar cambios")</button>
         </div>
     </form>
 </div>

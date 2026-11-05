@@ -1,0 +1,9 @@
+@* Pestañas de Sorteos: en marcha, historial y productos de sorteo. El modelo es la pestaña activa: «Activos», «Historial» o «Productos». *@
+@model string
+<div class="toolbar">
+    <nav class="segmented" aria-label="Sorteos">
+        <a class="@(Model == "Activos" ? "is-active" : "")" asp-controller="Sorteos" asp-action="Index" asp-route-vista="Activos">En marcha</a>
+        <a class="@(Model == "Historial" ? "is-active" : "")" asp-controller="Sorteos" asp-action="Index" asp-route-vista="Historial">Historial</a>
+        <a class="@(Model == "Productos" ? "is-active" : "")" asp-controller="ProductosSorteo" asp-action="Index">Productos de sorteo</a>
+    </nav>
+</div>

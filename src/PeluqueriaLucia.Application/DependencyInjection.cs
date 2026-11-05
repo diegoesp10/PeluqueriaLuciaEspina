@@ -24,6 +24,7 @@ public static class DependencyInjection
         services.AddScoped<Publico.ContenidoService>();
         services.AddScoped<Publico.ResenasService>();
         services.AddScoped<Sorteos.SorteosService>();
+        services.AddScoped<Sorteos.ProductosSorteoService>();
         return services;
     }
 }

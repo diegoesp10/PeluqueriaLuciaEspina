@@ -11,10 +11,15 @@ using PeluqueriaLucia.Web.Publico;
 namespace PeluqueriaLucia.Web.Areas.Admin.Controllers;
 
 /// <summary>
-/// Sorteos de servicios y productos entre clientes: participantes, extracción al azar (o elección del salón), aviso al
-/// ganador por correo o WhatsApp, anuncios en la web e historial.
+/// Sorteos entre clientes: premios (servicios, productos de la tienda y productos de sorteo), participantes, extracción al
+/// azar (o elección del salón), aviso al ganador por correo o WhatsApp, entrega del premio, anuncios en la web e historial.
 /// </summary>
-public sealed class SorteosController(SorteosService sorteos, CatalogoService catalogo, ProductosService productos, SorteosPublicos publicos) : AdminController
+public sealed class SorteosController(
+    SorteosService sorteos,
+    ProductosSorteoService productosSorteo,
+    CatalogoService catalogo,
+    ProductosService productos,
+    SorteosPublicos publicos) : AdminController
 {
     private const string Revelar = "RevelarGanador";
     private const string AvisoConcurrencia = "El sorteo acaba de cambiar en otra pestaña y no se ha guardado nada. Revisa cómo ha quedado.";
@@ -28,11 +33,11 @@ public sealed class SorteosController(SorteosService sorteos, CatalogoService ca
     }
 
     [HttpGet]
-    public async Task<IActionResult> Nuevo(CancellationToken ct)
+    public IActionResult Nuevo()
     {
         // Por defecto, dentro de una semana a las 18:00
         var formulario = new SorteoFormulario { FechaSorteo = sorteos.Hoy.AddDays(7).ToDateTime(new TimeOnly(18, 0)) };
-        return View("Edicion", await ModeloEdicionAsync(null, formulario, null, ct));
+        return View("Edicion", new SorteoEdicionModelo(null, formulario));
     }
 
     [HttpPost]
@@ -40,17 +45,17 @@ public sealed class SorteosController(SorteosService sorteos, CatalogoService ca
     {
         if (ModelState.IsValid)
         {
-            var resultado = await sorteos.CrearAsync(formulario.Datos(), formulario.PremioElegido(), ct);
+            var resultado = await sorteos.CrearAsync(formulario.Datos(), ct);
             if (resultado.Exito)
             {
-                this.AvisarExito("Sorteo creado. Añade los participantes y, si quieres, un anuncio para la web.");
-                return RedirectToAction(nameof(Detalle), new { id = resultado.Valor });
+                this.AvisarExito("Sorteo creado. Añade los premios y a los participantes y, si quieres, un anuncio para la web.");
+                return Redirect(Url.Action(nameof(Detalle), new { id = resultado.Valor }) + "#premios");
             }
 
             ModelState.AgregarError(resultado.Error!);
         }
 
-        return View("Edicion", await ModeloEdicionAsync(null, formulario, null, ct));
+        return View("Edicion", new SorteoEdicionModelo(null, formulario));
     }
 
     [HttpGet]
@@ -65,7 +70,7 @@ public sealed class SorteosController(SorteosService sorteos, CatalogoService ca
             return RedirectToAction(nameof(Detalle), new { id });
         }
 
-        return View("Edicion", await ModeloEdicionAsync(id, SorteoFormulario.Desde(sorteo), sorteo.Premio, ct));
+        return View("Edicion", new SorteoEdicionModelo(id, SorteoFormulario.Desde(sorteo)));
     }
 
     [HttpPost]
@@ -73,7 +78,7 @@ public sealed class SorteosController(SorteosService sorteos, CatalogoService ca
     {
         if (ModelState.IsValid)
         {
-            var resultado = await ProtegerAsync(() => sorteos.EditarAsync(id, formulario.Datos(), formulario.PremioElegido(), ct));
+            var resultado = await ProtegerAsync(() => sorteos.EditarAsync(id, formulario.Datos(), ct));
             if (resultado.Exito)
             {
                 publicos.Invalidar();
@@ -84,8 +89,7 @@ public sealed class SorteosController(SorteosService sorteos, CatalogoService ca
             ModelState.AgregarError(resultado.Error!);
         }
 
-        var sorteo = await sorteos.ObtenerAsync(id, ct);
-        return sorteo is null ? NotFound() : View("Edicion", await ModeloEdicionAsync(id, formulario, sorteo.Premio, ct));
+        return await sorteos.ObtenerAsync(id, ct) is null ? NotFound() : View("Edicion", new SorteoEdicionModelo(id, formulario));
     }
 
     [HttpGet]
@@ -99,6 +103,28 @@ public sealed class SorteosController(SorteosService sorteos, CatalogoService ca
         var diaSorteo = DateOnly.FromDateTime(sorteo.FechaSorteo);
         var anuncio = new AnuncioFormulario { DesdeAnuncio = sorteos.Hoy, HastaAnuncio = diaSorteo >= sorteos.Hoy ? diaSorteo : sorteos.Hoy.AddDays(7) };
         return View(await ModeloDetalleAsync(sorteo, anuncio, null, TempData[Revelar] is true, ct));
+    }
+
+    /// <summary>Un premio más: servicio, producto de la tienda o producto de sorteo (si ya estaba, suma la cantidad).</summary>
+    [HttpPost]
+    public async Task<IActionResult> AgregarPremio(int id, string? premio, int? cantidad, CancellationToken ct)
+    {
+        var elegido = ClavePremio.Leer(premio);
+        var resultado = elegido is null
+            ? new Error("Elige el premio de la lista.", "Premio")
+            : await ProtegerAsync(() => sorteos.AgregarPremioAsync(id, elegido, cantidad ?? 1, ct));
+        if (resultado.Exito)
+            publicos.Invalidar();
+        return Volver(id, resultado, "Premio añadido.", "premios");
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> QuitarPremio(int id, int premioId, CancellationToken ct)
+    {
+        var resultado = await ProtegerAsync(() => sorteos.QuitarPremioAsync(id, premioId, ct));
+        if (resultado.Exito)
+            publicos.Invalidar();
+        return Volver(id, resultado, "Premio quitado.", "premios");
     }
 
     /// <summary>Un cliente elegido con el buscador.</summary>
@@ -171,6 +197,10 @@ public sealed class SorteosController(SorteosService sorteos, CatalogoService ca
             publicos.Invalidar();
         return Volver(id, resultado, "Ganador elegido. Ya puedes avisarle.", "ganador");
     }
+
+    [HttpPost]
+    public async Task<IActionResult> MarcarEntregado(int id, CancellationToken ct) =>
+        Volver(id, await ProtegerAsync(() => sorteos.MarcarEntregadoAsync(id, ct)), "Anotado: el ganador ya tiene su premio.", "ganador");
 
     [HttpPost]
     public async Task<IActionResult> AvisarCorreo(int id, string? textoAviso, CancellationToken ct)
@@ -278,14 +308,19 @@ public sealed class SorteosController(SorteosService sorteos, CatalogoService ca
         return View(nameof(Detalle), await ModeloDetalleAsync(sorteo, anuncio ?? new AnuncioFormulario { DesdeAnuncio = sorteos.Hoy }, textoAviso, false, ct));
     }
 
-    private async Task<SorteoDetalleModelo> ModeloDetalleAsync(Domain.Sorteos.Sorteo sorteo, AnuncioFormulario anuncio, string? textoAviso, bool revelar, CancellationToken ct) =>
-        new(sorteo, sorteos.Hoy, await sorteos.AvisoAsync(sorteo, ct), sorteos.CorreoConfigurado, anuncio, textoAviso, revelar);
-
-    private async Task<SorteoEdicionModelo> ModeloEdicionAsync(int? id, SorteoFormulario formulario, string? premioActual, CancellationToken ct)
+    private async Task<SorteoDetalleModelo> ModeloDetalleAsync(Domain.Sorteos.Sorteo sorteo, AnuncioFormulario anuncio, string? textoAviso, bool revelar, CancellationToken ct)
     {
         // Secuencial: el contexto de base de datos no admite consultas simultáneas
-        var servicios = await catalogo.ListarAsync(null, incluirArchivados: false, ct);
-        var tienda = await productos.ParaVentaAsync(ct);
-        return new SorteoEdicionModelo(id, formulario, servicios, tienda, premioActual);
+        var aviso = await sorteos.AvisoAsync(sorteo, ct);
+        OpcionesPremio? opciones = null;
+        if (sorteo.Abierto)
+        {
+            var productosSorteoActivos = await productosSorteo.ActivosAsync(ct);
+            var servicios = await catalogo.ListarAsync(null, incluirArchivados: false, ct);
+            var tienda = await productos.ParaVentaAsync(ct);
+            opciones = new OpcionesPremio(productosSorteoActivos, servicios, tienda);
+        }
+
+        return new SorteoDetalleModelo(sorteo, sorteos.Hoy, aviso, sorteos.CorreoConfigurado, anuncio, opciones, textoAviso, revelar);
     }
 }
