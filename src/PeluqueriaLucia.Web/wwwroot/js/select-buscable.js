@@ -57,6 +57,8 @@ window.SelectBuscable = (() => {
     lista.className = 'combo-lista list';
     lista.id = idLista;
     lista.setAttribute('role', 'listbox');
+    // La rueda del ratón desplaza la lista abierta, no la página (el scroll suave de la web pública, Lenis, la respeta)
+    lista.setAttribute('data-lenis-prevent', '');
     lista.hidden = true;
     raiz.append(caja, lista);
 

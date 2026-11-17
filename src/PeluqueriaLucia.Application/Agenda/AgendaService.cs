@@ -80,8 +80,12 @@ public sealed class AgendaService(IRepositorioAgenda datos, IProtectorSecretos s
         return await HuecosAsync(dia, minutos, Ahora, ct, dual);
     }
 
-    /// <summary>Horas de inicio dentro del horario de apertura (cada tramo con su intervalo) en las que cabe la duración sin
-    /// solaparse con otra cita (ver <see cref="OcupadasAsync"/>); Ocupadas son las que se pisan con alguna.</summary>
+    /// <summary>
+    /// Horas de inicio dentro del horario de apertura (cada tramo con su intervalo) en las que cabe la duración sin solaparse
+    /// con otra cita (ver <see cref="OcupadasAsync"/>); Ocupadas son las que se pisan con alguna. Un servicio más largo que el
+    /// tramo entero (no cabe ni empezando a su hora de apertura) puede empezar a cualquier hora del tramo y alargarse pasado
+    /// el cierre, sin pisar otra cita ni pasar del día: son las horas Alargadas, que el salón acepta o no al revisar la cita.
+    /// </summary>
     private async Task<DisponibilidadAgenda> HuecosAsync(DateOnly dia, int minutos, DateTime desde, CancellationToken ct, bool dual = false)
     {
         if (await datos.ExisteAsync<CierreAgenda>(x => x.Dia == dia, ct)) return new(dia, minutos, []);
@@ -90,16 +94,37 @@ public sealed class AgendaService(IRepositorioAgenda datos, IProtectorSecretos s
         var ocupadas = await OcupadasAsync(inicio, inicio.AddDays(1), ct, dual);
         var horas = new HashSet<TimeOnly>();
         var bloqueadas = new HashSet<TimeOnly>();
+        var alargadas = new Dictionary<TimeOnly, TimeOnly>();
+        var dentro = new HashSet<TimeOnly>();
         foreach (var tramo in tramos)
-            for (var t = dia.ToDateTime(tramo.Desde); t.AddMinutes(minutos) <= dia.ToDateTime(tramo.Hasta); t = t.AddMinutes(tramo.IntervaloMinutos))
+        {
+            var apertura = dia.ToDateTime(tramo.Desde); var cierre = dia.ToDateTime(tramo.Hasta);
+            var alarga = apertura.AddMinutes(minutos) > cierre;
+            for (var t = apertura; alarga ? t < cierre : t.AddMinutes(minutos) <= cierre; t = t.AddMinutes(tramo.IntervaloMinutos))
             {
-                if (t < desde || Zona.IsInvalidTime(t) || Zona.IsAmbiguousTime(t) ||
-                    Zona.IsInvalidTime(t.AddMinutes(minutos)) || Zona.IsAmbiguousTime(t.AddMinutes(minutos))) continue;
+                var fin = t.AddMinutes(minutos);
+                if (t < desde || DateOnly.FromDateTime(fin) != dia || Zona.IsInvalidTime(t) || Zona.IsAmbiguousTime(t) ||
+                    Zona.IsInvalidTime(fin) || Zona.IsAmbiguousTime(fin)) continue;
                 var hora = TimeOnly.FromDateTime(t);
-                if (ocupadas.Any(x => x.Inicio < t.AddMinutes(minutos) && x.Fin > t)) bloqueadas.Add(hora);
-                else horas.Add(hora);
+                if (ocupadas.Any(x => x.Inicio < fin && x.Fin > t)) { bloqueadas.Add(hora); continue; }
+                horas.Add(hora);
+                if (alarga) alargadas.TryAdd(hora, tramo.Hasta);
+                else dentro.Add(hora);
             }
-        return new(dia, minutos, horas.Order().ToList(), bloqueadas.Except(horas).Order().ToList());
+        }
+        return new(dia, minutos, horas.Order().ToList(), bloqueadas.Except(horas).Order().ToList(),
+            alargadas.Where(a => !dentro.Contains(a.Key)).OrderBy(a => a.Key).Select(a => new HoraAlargada(a.Key, a.Value)).ToList());
+    }
+
+    /// <summary>
+    /// La hora de cierre que pasa una cita: la del tramo del horario en el que empieza. Null si acaba dentro del horario o si no
+    /// empieza en ningún tramo (horas extra que da el salón, tiempo bloqueado).
+    /// </summary>
+    public static TimeOnly? CierreSuperado(IEnumerable<TramoAgenda> tramos, DateTime inicio, DateTime fin)
+    {
+        var hora = TimeOnly.FromDateTime(inicio);
+        var tramo = tramos.Where(t => t.Dia == inicio.DayOfWeek && t.Desde <= hora && t.Hasta > hora).OrderByDescending(t => t.Hasta).FirstOrDefault();
+        return tramo is not null && fin > DateOnly.FromDateTime(inicio).ToDateTime(tramo.Hasta) ? tramo.Hasta : null;
     }
 
     public static string? NormalizarTelefono(string? valor)
@@ -178,9 +203,11 @@ public sealed class AgendaService(IRepositorioAgenda datos, IProtectorSecretos s
             if (d.Minutos is < 5 or > 600) return new Error("La duración debe ser de 5 a 600 minutos.");
             fin = r.Inicio.AddMinutes(d.Minutos); var dia = DateOnly.FromDateTime(r.Inicio);
             if (Zona.IsInvalidTime(r.Inicio) || Zona.IsAmbiguousTime(r.Inicio) || Zona.IsInvalidTime(fin) || Zona.IsAmbiguousTime(fin)) return new Error("El intervalo coincide con un cambio de hora. Acuerda otro horario.");
-            // Las citas que da el salón pueden salirse del horario público (horas extra), pero nunca del día.
+            // Las citas que da el salón pueden salirse del horario público (horas extra), pero nunca del día. Las de la web
+            // empiezan dentro del horario; si acaban pasado el cierre (un servicio más largo que el tramo, o la duración que
+            // fija el salón), confirmarlas es aceptar alargar ese día.
             if (DateOnly.FromDateTime(fin) != dia || (web && (await datos.ExisteAsync<CierreAgenda>(x => x.Dia == dia, ct) ||
-                !await datos.ExisteAsync<TramoAgenda>(x => x.Dia == dia.DayOfWeek && x.Desde <= TimeOnly.FromDateTime(r.Inicio) && x.Hasta >= TimeOnly.FromDateTime(fin), ct)))) return new Error("La duración queda fuera del horario de apertura.");
+                !await datos.ExisteAsync<TramoAgenda>(x => x.Dia == dia.DayOfWeek && x.Desde <= TimeOnly.FromDateTime(r.Inicio) && x.Hasta > TimeOnly.FromDateTime(r.Inicio), ct)))) return new Error("La cita queda fuera del horario de apertura o termina otro día.");
             if ((await OcupadasAsync(r.Inicio, fin, ct, r.Dualidad, r.Origen == OrigenCita.Bloqueo)).Any(x => x.Id != r.Id)) return new Error("La duración se solapa con otra reserva. Ajusta el tiempo o rechaza la solicitud.");
         }
         else if (d.Estado == EstadoCita.Rechazada && r.Estado != EstadoCita.Pendiente) return new Error("Una cita propuesta o confirmada se cancela, no se rechaza.");

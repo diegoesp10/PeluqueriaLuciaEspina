@@ -87,6 +87,7 @@
   const grupos = horas.querySelector('[data-horas-grupos]');
   const resumen = horas.querySelector('[data-horas-resumen]');
   const vacio = horas.querySelector('[data-horas-vacio]');
+  const alargue = horas.querySelector('[data-horas-alargue]');
   // «martes 20 de octubre», igual que lo escribe el servidor al cargar la página
   const diaSemana = new Intl.DateTimeFormat('es-ES', { weekday: 'long' });
   const nombreMes = new Intl.DateTimeFormat('es-ES', { month: 'long' });
@@ -101,7 +102,8 @@
   };
   const elegida = () => horas.querySelector('input[name="Hora"]:checked')?.value ?? null;
 
-  function chip(hora, libre, marcada) {
+  // cierre: la hora de cierre que pasa una cita que empiece a esa hora (servicio más largo que el tramo del horario)
+  function chip(hora, libre, marcada, cierre, fin) {
     if (!libre) {
       const ocupada = document.createElement('span');
       ocupada.className = 'hora-chip is-ocupada';
@@ -115,7 +117,7 @@
       return ocupada;
     }
     const etiqueta = document.createElement('label');
-    etiqueta.className = 'hora-chip';
+    etiqueta.className = cierre ? 'hora-chip is-alargada' : 'hora-chip';
     const radio = document.createElement('input');
     radio.type = 'radio';
     radio.name = 'Hora';
@@ -124,11 +126,26 @@
     const texto = document.createElement('span');
     texto.textContent = hora;
     etiqueta.append(radio, texto);
+    if (cierre) {
+      etiqueta.title = `Acaba a las ${fin}, después del cierre (${cierre})`;
+      const lector = document.createElement('span');
+      lector.className = 'sr-only';
+      lector.textContent = `, acaba a las ${fin}, después del cierre`;
+      etiqueta.append(lector);
+    }
     return etiqueta;
   }
 
+  const finDe = (hora, minutos) => {
+    const [h, m] = hora.split(':').map(Number);
+    const total = h * 60 + m + minutos;
+    return `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+  };
+
   function pintar(datos, anterior) {
     const libres = new Set(datos.horas);
+    const alargadas = new Map((datos.alargadas ?? []).map((a) => [a.hora, a.cierre]));
+    if (alargue) alargue.hidden = alargadas.size === 0;
     const todas = [...new Set([...datos.horas, ...datos.ocupadas])].sort();
     grupos.replaceChildren();
     for (const [titulo, lista] of [
@@ -143,7 +160,7 @@
       cabecera.textContent = titulo;
       const fila = document.createElement('div');
       fila.className = 'horas-lista';
-      lista.forEach((h) => fila.append(chip(h, libres.has(h), h === anterior)));
+      lista.forEach((h) => fila.append(chip(h, libres.has(h), h === anterior, alargadas.get(h), finDe(h, datos.minutos))));
       grupo.append(cabecera, fila);
       grupos.append(grupo);
     }

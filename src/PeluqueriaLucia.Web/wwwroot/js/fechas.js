@@ -16,7 +16,7 @@
     const boton = document.createElement('button'); boton.type = 'button'; boton.className = 'input fecha-boton';
     boton.setAttribute('aria-label', etiqueta); boton.setAttribute('aria-haspopup','dialog'); boton.setAttribute('aria-expanded','false');
     const panel = document.createElement('div'); panel.className = 'fecha-calendario'; panel.id = `calendario-${++numero}`; panel.hidden = true;
-    panel.setAttribute('role','dialog'); panel.setAttribute('aria-label', etiqueta); boton.setAttribute('aria-controls',panel.id);
+    panel.setAttribute('role','dialog'); panel.setAttribute('aria-label', etiqueta); panel.setAttribute('data-lenis-prevent',''); boton.setAttribute('aria-controls',panel.id);
     contenedor.append(boton,panel);
     const seleccion = () => input.value ? new Date(`${input.value.slice(0,10)}${mensual ? '-01' : ''}T12:00:00`) : hoy();
     let vista = seleccion();
