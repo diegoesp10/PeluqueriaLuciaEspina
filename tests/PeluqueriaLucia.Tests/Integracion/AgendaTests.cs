@@ -163,6 +163,60 @@ public sealed class AgendaTests
     }
 
     [Fact]
+    public async Task Servicio_mas_largo_que_el_tramo_empieza_dentro_y_se_alarga_pasado_el_cierre()
+    {
+        await using var bd=await BaseDeDatosPrueba.CrearAsync(); await using var db=bd.Contexto(); var reloj=new Reloj(); var agenda=Crear(db,reloj);
+        // Lunes: mañana de 9:45 a 13:00 (195 min) y tarde de 15:00 a 19:00 (240 min), cada 15 min
+        var mechas=await agenda.HuecosPanelAsync(Dia,200,default);
+        // 200 min no caben en la mañana: se ofrecen sus horas alargando pasado las 13:00
+        foreach(var h in new[]{new TimeOnly(9,45),new(11,0),new(12,45)}) { Assert.Contains(h,mechas.Horas); Assert.Equal(new TimeOnly(13,0),mechas.Cierre(h)); }
+        Assert.Equal(new TimeOnly(16,5),mechas.Fin(new(12,45)));
+        // Por la tarde sí caben: hasta las 15:30 y sin alargar
+        Assert.Contains(new TimeOnly(15,30),mechas.Horas); Assert.Null(mechas.Cierre(new(15,30)));
+        Assert.Equal(new TimeOnly(15,30),mechas.Horas.Where(h=>h.Hour>=15).Max());
+        // 250 min no caben en ningún tramo: los dos se alargan
+        var larga=await agenda.HuecosPanelAsync(Dia,250,default);
+        Assert.Equal((new TimeOnly(13,0),new TimeOnly(19,0)),(larga.Cierre(new(9,45))!.Value,larga.Cierre(new(18,45))!.Value));
+        // Lo que cabe sin alargar no se marca
+        Assert.Empty((await agenda.HuecosPanelAsync(Dia,30,default)).Alargadas!);
+        // Alargar nunca pisa otra cita, tampoco las de la tarde
+        var admin=Administrador.Crear("alargar","hash-prueba",reloj.Ahora.UtcDateTime); db.Add(admin); await db.SaveChangesAsync();
+        Assert.True((await agenda.CrearCitaAsync(new(Dia,new(15,0),60,null,"Tarde",null,null,null,false,admin.Id),default)).Exito);
+        mechas=await agenda.HuecosPanelAsync(Dia,200,default);
+        Assert.Contains(new TimeOnly(11,30),mechas.Horas);
+        foreach(var h in new[]{new TimeOnly(11,45),new(12,45)}) { Assert.DoesNotContain(h,mechas.Horas); Assert.Contains(h,mechas.Ocupadas!); }
+        // El salón también puede dar la cita a una hora alargada
+        Assert.True((await agenda.CrearCitaAsync(new(Dia,new(9,45),200,null,"Mechas",null,null,null,false,admin.Id),default)).Exito);
+    }
+
+    [Fact]
+    public async Task Solicitud_web_que_pasa_del_cierre_se_pide_y_el_salon_decide_si_alarga()
+    {
+        await using var bd=await BaseDeDatosPrueba.CrearAsync(); await using var db=bd.Contexto(); var reloj=new Reloj(); var agenda=Crear(db,reloj);
+        var admin=Administrador.Crear("mechas","hash-prueba",reloj.Ahora.UtcDateTime);
+        var mechas=PeluqueriaLucia.Domain.Catalogo.Servicio.Crear("Mechas",80m,PeluqueriaLucia.Domain.Comun.Sexo.Mujer,DateTime.Now);
+        mechas.ConfigurarPublicacion(await db.Set<PeluqueriaLucia.Domain.Publico.CategoriaTratamiento>().OrderBy(c=>c.Id).Select(c=>c.Id).FirstAsync(),null,
+            PeluqueriaLucia.Domain.Publico.TipoPrecioPublico.Consultar,200,0,true,false);
+        db.AddRange(admin,mechas); await db.SaveChangesAsync();
+        var disponibilidad=await agenda.DisponibilidadAsync(Dia,mechas.Id,default);
+        Assert.Equal(new TimeOnly(13,0),disponibilidad.Cierre(new(12,30)));
+        var solicitud=await agenda.SolicitarAsync(Datos(new(12,30)) with { ServicioId=mechas.Id },default);
+        Assert.True(solicitud.Exito,solicitud.Error?.Mensaje);
+        var r=await db.ReservasCitas.AsNoTracking().SingleAsync();
+        Assert.Equal(new DateTime(2026,10,12,15,50,0),r.Fin);
+        var tramos=await agenda.HorariosAsync(default);
+        Assert.Equal(new TimeOnly(13,0),AgendaService.CierreSuperado(tramos,r.Inicio,r.Fin));
+        // Confirmarla es aceptar alargar ese día
+        var confirmada=await agenda.GestionarAsync(new(r.Id,Convert.ToBase64String(r.Version),EstadoCita.Confirmada,200,true,null,admin.Id),default);
+        Assert.True(confirmada.Exito,confirmada.Error?.Mensaje);
+        // Acabar dentro del horario, o empezar fuera de él (horas extra del salón), no es pasar del cierre
+        Assert.Null(AgendaService.CierreSuperado(tramos,Dia.ToDateTime(new(10,0)),Dia.ToDateTime(new(12,0))));
+        Assert.Null(AgendaService.CierreSuperado(tramos,Dia.ToDateTime(new(20,0)),Dia.ToDateTime(new(21,0))));
+        // La web no ofrece empezar con el salón cerrado
+        Assert.False((await agenda.SolicitarAsync(Datos(new(13,0),"623456789") with { Dia=Dia.AddDays(1),ServicioId=mechas.Id },default)).Exito);
+    }
+
+    [Fact]
     public async Task Dualidad_permite_dar_citas_a_la_misma_hora_salvo_en_el_tiempo_bloqueado()
     {
         await using var bd=await BaseDeDatosPrueba.CrearAsync(); await using var db=bd.Contexto(); var reloj=new Reloj(); var agenda=Crear(db,reloj);

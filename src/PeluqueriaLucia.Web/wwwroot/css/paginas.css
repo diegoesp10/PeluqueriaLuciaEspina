@@ -382,6 +382,9 @@
 .hora-chip:has(input:focus-visible) { outline: 3px solid var(--olive); outline-offset: 2px; }
 .hora-chip.is-ocupada { border-style: dashed; background: transparent; color: var(--label-3); font-weight: 500; cursor: not-allowed; }
 .hora-chip.is-ocupada > span:first-child { text-decoration: line-through; }
+/* Hora de un servicio más largo que el tramo: acaba pasado el cierre (punto naranja) */
+.hora-chip.is-alargada::after { content: ""; position: absolute; top: 6px; right: 6px; width: 7px; height: 7px; border-radius: 50%; background: var(--orange); }
+.horas-alargue { margin: 10px 0 0; }
 .horas-vacio { margin: 12px 0 0; padding: 14px 16px; border-radius: 14px; background: var(--fill); color: var(--label-2); }
 
 /* ── «Contacto de la web»: una fila por teléfono (icono, número y «Quitar») ── */

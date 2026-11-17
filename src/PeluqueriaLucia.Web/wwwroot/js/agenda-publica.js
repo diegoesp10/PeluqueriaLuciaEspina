@@ -42,6 +42,8 @@
       enlaces(valor());
     }),
   );
+  // agenda-reserva.js cambia el calendario sin recargar: sus enlaces nuevos también conservan la elección
+  document.addEventListener('agenda-actualizada', () => enlaces(valor()));
 
   // Elegir un cuidado (o una consulta escrita) trae su disponibilidad
   select.addEventListener('change', () => formulario.requestSubmit());

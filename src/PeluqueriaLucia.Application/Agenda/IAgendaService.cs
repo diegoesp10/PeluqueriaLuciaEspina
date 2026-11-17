@@ -9,7 +9,22 @@ public sealed record ServicioAgenda(int Id, string Nombre, int Minutos, string? 
     /// <summary>Nombre que ve el visitante: en inglés si hay traducción; si no, el español.</summary>
     public string NombreEnIdioma(bool ingles) => ingles && NombreEn is { Length: > 0 } ? NombreEn : Nombre;
 }
-public sealed record DisponibilidadAgenda(DateOnly Dia, int Minutos, IReadOnlyList<TimeOnly> Horas, IReadOnlyList<TimeOnly>? Ocupadas = null);
+/// <summary>
+/// Horas libres de un día para una duración; Ocupadas son las que se pisan con otra cita. Alargadas: horas de un servicio
+/// más largo que el tramo entero del horario (unas mechas de 4 h en una mañana de 3 h 15 min), que empiezan dentro del
+/// tramo y se alargan pasada su hora de cierre. El salón decide al revisar la solicitud si ese día puede alargar.
+/// </summary>
+public sealed record DisponibilidadAgenda(DateOnly Dia, int Minutos, IReadOnlyList<TimeOnly> Horas, IReadOnlyList<TimeOnly>? Ocupadas = null,
+    IReadOnlyList<HoraAlargada>? Alargadas = null)
+{
+    /// <summary>Cuándo acabaría la cita si empieza a esa hora.</summary>
+    public TimeOnly Fin(TimeOnly hora) => hora.AddMinutes(Minutos);
+
+    /// <summary>La hora de cierre que pasa la cita si empieza a esa hora; null si acaba dentro del horario.</summary>
+    public TimeOnly? Cierre(TimeOnly hora) => Alargadas?.FirstOrDefault(a => a.Hora == hora)?.Cierre;
+}
+/// <summary>Hora de inicio de un servicio más largo que su tramo del horario: acaba pasado Cierre, la hora a la que cierra el tramo.</summary>
+public sealed record HoraAlargada(TimeOnly Hora, TimeOnly Cierre);
 /// <summary>Solicitud de la web. Sin servicio del catálogo, ServicioOtro lleva lo que el cliente escribió (otro servicio o una consulta).</summary>
 public sealed record SolicitarCita(Guid SolicitudId, DateOnly Dia, TimeOnly Hora, string Telefono, string? Nombre, int? ServicioId, string Ip, string Correo, CanalConfirmacion Canal, string? Apellido = null, PeluqueriaLucia.Domain.Comun.Sexo? Sexo = null, string? ServicioOtro = null);
 /// <param name="ConfirmarDirecto">La cita ya se ha acordado por teléfono: se confirma sin esperar al enlace de aceptación.</param>

@@ -81,6 +81,42 @@ public sealed class ComunicacionesWebTests(SeguridadWebFixture fixture) : IClass
         Assert.DoesNotContain("Aviso de prueba del calendario", nada);
     }
 
+    [Fact]
+    public async Task Cita_que_pasa_del_cierre_se_avisa_en_la_agenda_y_sus_horas_se_marcan()
+    {
+        using var fabrica = new FabricaWeb(fixture.Bd.Cadena);
+        // Un jueves dentro de unas semanas: lunes a viernes, mañana de 9:45 a 13:00 y tarde de 15:00 a 19:00
+        var dia = DateOnly.FromDateTime(DateTime.Today.AddDays(40));
+        while (dia.DayOfWeek != DayOfWeek.Thursday) dia = dia.AddDays(1);
+        await using (var db = fixture.Bd.Contexto())
+        {
+            var inicio = dia.ToDateTime(new TimeOnly(10, 0));
+            db.Add(new ReservaCita
+            {
+                Id = Guid.NewGuid(), SolicitudId = Guid.NewGuid(), Inicio = inicio, Fin = inicio.AddMinutes(200), Nombre = "Mechas", Apellido = "Largas", Telefono = "+34612345678",
+                Correo = "mechas@example.test", Canal = CanalConfirmacion.Correo, Origen = OrigenCita.Web, Estado = EstadoCita.Pendiente, ServicioNombre = "Todo mechas",
+                CreadaUtc = DateTime.UtcNow, ActualizadaUtc = DateTime.UtcNow, CaducaUtc = DateTime.UtcNow.AddDays(1), IpHash = "x",
+            });
+            await db.SaveChangesAsync();
+        }
+
+        using var admin = fabrica.Cliente();
+        await EntrarAsync(admin);
+        var agenda = WebUtility.HtmlDecode(await admin.GetStringAsync($"/admin/agenda?dia={dia:yyyy-MM-dd}"));
+        Assert.Contains("Pasa del cierre", agenda);
+        Assert.Contains("Acaba a las 13:20, 20 min después del cierre (13:00).", agenda);
+        Assert.Contains("Prepara la propuesta solo si ese día podéis alargar", agenda);
+
+        // 250 min no caben en ningún tramo: las horas libres de los dos se alargan pasado su cierre
+        var huecos = System.Text.Json.JsonDocument.Parse(await admin.GetStringAsync($"/admin/agenda/huecos?dia={dia:yyyy-MM-dd}&minutos=250")).RootElement;
+        var alargadas = huecos.GetProperty("alargadas").EnumerateArray().ToDictionary(a => a.GetProperty("hora").GetString()!, a => a.GetProperty("cierre").GetString());
+        Assert.Equal("19:00", alargadas["15:00"]);
+        Assert.DoesNotContain("10:00", alargadas.Keys);
+        Assert.Empty(System.Text.Json.JsonDocument.Parse(await admin.GetStringAsync($"/admin/agenda/huecos?dia={dia:yyyy-MM-dd}&minutos=30")).RootElement.GetProperty("alargadas").EnumerateArray());
+        var nueva = WebUtility.HtmlDecode(await admin.GetStringAsync($"/admin/agenda/nueva?dia={dia:yyyy-MM-dd}"));
+        Assert.Contains("data-horas-alargue", nueva);
+    }
+
     private async Task EntrarAsync(HttpClient cliente)
     {
         var recuperacion = await fixture.RecuperacionAsync("prueba");

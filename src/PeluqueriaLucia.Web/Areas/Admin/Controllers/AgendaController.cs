@@ -43,7 +43,8 @@ public sealed class AgendaController(IAgendaService agenda, ClientesAgendaServic
         ViewData["CandidatosClientes"] = candidatos;
         // Las visitas del día dicen qué citas confirmadas ya se han abierto para cobrar o están cobradas
         var visitasDia = await visitas.DelDiaAsync(d, ct);
-        return View(new AgendaCalendario(d, agenda.Hoy, dias, delDia, pendientes, estado, await agenda.AvisosAsync(ct), utc, visitasDia));
+        return View(new AgendaCalendario(d, agenda.Hoy, dias, delDia, pendientes, estado, await agenda.AvisosAsync(ct), utc, visitasDia,
+            await agenda.HorariosAsync(ct)));
     }
     [HttpPost("/admin/agenda/eliminar")]
     public async Task<IActionResult> Eliminar(Guid id, DateOnly? dia, FiltroCitas estado, CancellationToken ct)
@@ -96,7 +97,7 @@ public sealed class AgendaController(IAgendaService agenda, ClientesAgendaServic
     }
 
     /// <summary>Horas libres de un día para una cita de esa duración (selector de horas de «Nueva cita»). Con un servicio
-    /// con dualidad, las citas ya dadas no quitan horas.</summary>
+    /// con dualidad, las citas ya dadas no quitan horas. Alargadas: las que acaban pasado el cierre del tramo (con su cierre).</summary>
     [HttpGet("/admin/agenda/huecos")]
     public async Task<IActionResult> Huecos(DateOnly dia, int minutos, int? servicioId, CancellationToken ct)
     {
@@ -107,6 +108,7 @@ public sealed class AgendaController(IAgendaService agenda, ClientesAgendaServic
             minutos = huecos.Minutos,
             horas = huecos.Horas.Select(h => h.ToString("HH:mm")),
             ocupadas = (huecos.Ocupadas ?? []).Select(h => h.ToString("HH:mm")),
+            alargadas = (huecos.Alargadas ?? []).Select(a => new { hora = a.Hora.ToString("HH:mm"), cierre = a.Cierre.ToString("HH:mm") }),
         });
     }
     [HttpGet("/admin/agenda/horarios")]

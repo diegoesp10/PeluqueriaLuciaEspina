@@ -68,7 +68,9 @@
             // La cita confirmada ya es su visita: se completa al cobrarla
             var visita = AgendaCalendario.Cobrable(c) ? Model.VisitaDe(c) : null;
             var estado = visita is { EstaCobrada: true } && c.Estado == EstadoCita.Completada ? "Completada y cobrada" : AgendaCalendario.TextoEstado(c, Model.Utc);
-            <article class="card agenda-cita@(bloqueo ? " agenda-bloqueo" : "")"><div class="agenda-cita-hora"><strong>@c.Inicio.ToString("HH:mm")</strong><span>hasta @c.Fin.ToString("HH:mm")</span><span class="badge">@estado</span>@if (c.Origen == OrigenCita.Panel) { <span class="badge">Dada en el salón</span> }@if (c.Dualidad) { <span class="badge" title="Servicio con dualidad: puede coincidir con otras citas">Dualidad</span> }</div><div class="agenda-cita-datos">
+            // Acaba pasado el cierre del tramo en el que empieza: en las abiertas se avisa de cuánto, para decidir si se alarga
+            var cierre = c.Estado is EstadoCita.Pendiente or EstadoCita.PendienteAceptacion or EstadoCita.Confirmada ? Model.CierreSuperado(c) : null;
+            <article class="card agenda-cita@(bloqueo ? " agenda-bloqueo" : "")"><div class="agenda-cita-hora"><strong>@c.Inicio.ToString("HH:mm")</strong><span>hasta @c.Fin.ToString("HH:mm")</span><span class="badge">@estado</span>@if (cierre is not null) { <span class="badge agenda-badge-cierre">Pasa del cierre</span> }@if (c.Origen == OrigenCita.Panel) { <span class="badge">Dada en el salón</span> }@if (c.Dualidad) { <span class="badge" title="Servicio con dualidad: puede coincidir con otras citas">Dualidad</span> }</div><div class="agenda-cita-datos">
             @if (bloqueo) { <h3>@c.Nombre</h3> }
             else
             {
@@ -76,6 +78,12 @@
                 @if (!string.IsNullOrEmpty(c.Telefono)) { <a class="agenda-telefono" href="tel:@c.Telefono">@c.Telefono <icono nombre="flecha-salir" tamano="14" /></a> }
                 @if (web) { <p>@c.Correo · @c.Canal</p> }
                 @if (c.AceptadaUtc is not null) { <p class="nota">Aceptada por el cliente.</p> }
+            }
+            @if (cierre is { } ci)
+            {
+                var pasa = (int)(c.Fin - DateOnly.FromDateTime(c.Inicio).ToDateTime(ci)).TotalMinutes;
+                <p class="agenda-pasa-cierre" role="note"><strong>Acaba a las @c.Fin.ToString("HH:mm"), @pasa min después del cierre (@ci.ToString("HH:mm")).</strong>
+                    @(c.Estado == EstadoCita.Pendiente && web ? "Prepara la propuesta solo si ese día podéis alargar; si no, recházala o acorta la duración." : "Ese día el salón alarga.")</p>
             }
             @if (AgendaCalendario.Cobrable(c) || c.Cliente is not null)
             {

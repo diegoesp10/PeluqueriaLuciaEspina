@@ -790,7 +790,7 @@ input[type='datetime-local'].input {
 .fecha-control { position:relative; min-width:0; }
 .fecha-original { position:absolute; width:1px !important; height:1px; opacity:0; pointer-events:none; padding:0; border:0; }
 .fecha-boton { text-align:left; cursor:pointer; min-width:200px; text-transform:capitalize; }
-.fecha-calendario { position:fixed; max-height:calc(100dvh - 40px); overflow-y:auto; z-index:60; width:min(330px,calc(100vw - 40px)); padding:20px; border:1px solid var(--separator); border-radius:24px; background:var(--surface); box-shadow:var(--glass-shadow); display:grid; gap:18px; }
+.fecha-calendario { position:fixed; max-height:calc(100dvh - 40px); overflow-y:auto; overscroll-behavior:contain; z-index:60; width:min(330px,calc(100vw - 40px)); padding:20px; border:1px solid var(--separator); border-radius:24px; background:var(--surface); box-shadow:var(--glass-shadow); display:grid; gap:18px; }
 .fecha-cabecera,.fecha-pie { display:flex; align-items:center; justify-content:space-between; gap:8px; }
 .fecha-cabecera strong { text-transform:capitalize; font-size:15px; }
 .fecha-selectores { display:flex; gap:10px; flex:1; min-width:0; }
@@ -889,6 +889,8 @@ svg[focusable="false"] { vertical-align: -.15em; }
   z-index: 10;
   max-height: 340px;
   overflow-y: auto;
+  /* Al llegar al final de la lista la rueda no pasa a desplazar la página */
+  overscroll-behavior: contain;
   box-shadow: var(--glass-shadow), var(--card-edge);
   animation: pop-in 0.2s var(--ease);
 }

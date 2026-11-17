@@ -163,7 +163,15 @@
                                         {
                                             if (huecos.Horas.Contains(h))
                                             {
-                                                <label class="hora-chip"><input type="radio" name="Hora" value="@h.ToString("HH:mm")" checked="@(f.Hora == h)" /><span>@h.ToString("HH:mm")</span></label>
+                                                var cierre = huecos.Cierre(h);
+                                                if (cierre is null)
+                                                {
+                                                    <label class="hora-chip"><input type="radio" name="Hora" value="@h.ToString("HH:mm")" checked="@(f.Hora == h)" /><span>@h.ToString("HH:mm")</span></label>
+                                                }
+                                                else
+                                                {
+                                                    <label class="hora-chip is-alargada" title="Acaba a las @huecos.Fin(h).ToString("HH:mm"), después del cierre (@cierre.Value.ToString("HH:mm"))"><input type="radio" name="Hora" value="@h.ToString("HH:mm")" checked="@(f.Hora == h)" /><span>@h.ToString("HH:mm")</span><span class="sr-only">, acaba a las @huecos.Fin(h).ToString("HH:mm"), después del cierre</span></label>
+                                                }
                                             }
                                             else
                                             {
@@ -175,6 +183,7 @@
                             }
                         }
                     </div>
+                    <p class="field-hint horas-alargue" data-horas-alargue hidden="@(huecos?.Alargadas is not { Count: > 0 })">Las horas con punto naranja acaban después del cierre: el servicio es más largo que el tramo del horario.</p>
                     <p class="horas-vacio" data-horas-vacio hidden="@(huecos is null || huecos.Horas.Count > 0)">No quedan horas libres ese día para esta duración. Prueba otro día o acorta la duración.</p>
                     @Html.ValidationMessage("Hora")
                 </fieldset>

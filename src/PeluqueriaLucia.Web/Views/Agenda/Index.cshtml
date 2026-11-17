@@ -12,6 +12,15 @@
     var para=Model.Formulario.Para ?? Model.Formulario.Sexo?.ToString();
     // Los enlaces del calendario conservan el servicio, lo escrito y el filtro
     string Enlace(DateOnly d) => $"{citas}?dia={d:yyyy-MM-dd}&servicioId={servicio}" + (string.IsNullOrEmpty(otro) ? "" : "&otro=" + Uri.EscapeDataString(otro)) + (para is null ? "" : "&para=" + para);
+    var disp=Model.Disponibilidad;
+    // Simulador: con un cuidado elegido, a qué hora acabaría la cita (y si pasa del cierre del tramo). agenda-reserva.js lo
+    // rehace al elegir otra hora con las plantillas de data-texto y data-texto-alargue.
+    var textoFin=T["Empieza a las {0} y acabaría hacia las {1}."];
+    var textoAlargue=T["Empieza a las {0} y acabaría hacia las {1}: {2} min después del cierre ({3}). El salón te confirmará si ese día puede alargar."];
+    string Simulacion(TimeOnly h) => disp.Cierre(h) is { } c
+        ? string.Format(textoAlargue, h.ToString("HH:mm"), disp.Fin(h).ToString("HH:mm"), (int)(disp.Fin(h) - c).TotalMinutes, c.ToString("HH:mm"))
+        : string.Format(textoFin, h.ToString("HH:mm"), disp.Fin(h).ToString("HH:mm"));
+    var elegida=Model.Formulario.Hora is { } he && disp.Horas.Contains(he) ? he : (TimeOnly?)null;
 }
 <section class="seccion-publica agenda-intro"><div><p class="etiqueta" data-anima="subir">@T["UN MOMENTO PARA TI"]</p><h1 data-dividir>@T["Tu próximo cuidado,"]<br /><em>@T["a un paso."]</em></h1><p class="intro" data-anima="subir">@T["Elige un día y una hora. El equipo del salón se pondrá en contacto contigo para revisar el servicio y confirmar tu cita."]</p></div><div class="agenda-sello" data-anima="subir"><img src="~/Img/Icono.jpg" alt="Lucía Peluquería Ecológica" width="150" height="150" data-flotar /><p>@T["Tiempo para escucharte."]<br />@T["Cuidado para tu cabello."]</p></div></section>
 <section class="seccion-publica agenda-publica">
@@ -24,8 +33,11 @@
             <label for="servicio-agenda">@T["¿Qué cuidado te apetece?"]</label>
             <select id="servicio-agenda" name="servicioId" data-buscable="@T["Busca tu cuidado: corte, color, manicura…"]" data-buscable-vacio="@T["No hay cuidados con ese texto. Escríbelo y pregúntanos."]" data-buscable-libre="otro" data-buscable-libre-texto="@T["Preguntar por «{0}»"]"><option value="">@T["Consultar en la peluquería"]</option>@foreach(var s in Model.Servicios){<option value="@s.Id" data-sexo="@s.Sexo" selected="@(servicio==s.Id)">@s.Nombre · @s.Minutos min</option>}</select>
             <div class="agenda-otro" data-buscable-libre-campo><label for="otro-agenda">@T["¿No lo encuentras? Escríbelo o pregúntanos"]</label><input id="otro-agenda" name="otro" value="@otro" maxlength="80" autocomplete="off" /></div>
-            <button class="btn btn-gray" type="submit">@T["Ver disponibilidad"]</button>
+            <button class="btn btn-gray" type="submit" data-reserva-ver>@T["Ver disponibilidad"]</button>
         </form>
+        @* Con JavaScript (agenda-reserva.js), los días y los meses se cambian sin recargar la página: se trae la página nueva y se
+           cambian solo este bloque, la fecha y las horas, sin tocar lo que se ha escrito *@
+        <div class="agenda-calendario-dias" data-reserva-calendario>
         <div class="agenda-mes"><a class="btn btn-gray" href="@Enlace(anterior<Model.Hoy?Model.Hoy:anterior)" aria-label="@T["Mes anterior"]"><icono nombre="anterior" tamano="18" /></a><h2>@inicio.ToString("MMMM yyyy")</h2><a class="btn btn-gray" href="@Enlace(siguiente)" aria-label="@T["Mes siguiente"]"><icono nombre="siguiente" tamano="18" /></a></div>
         <div class="agenda-dias" aria-label="@T["Calendario de citas"]">
             @foreach(var nombre in Textos.EnIngles ? new[]{"M","T","W","T","F","S","S"} : new[]{"L","M","X","J","V","S","D"}){<span class="agenda-semana" aria-hidden="true">@nombre</span>}
@@ -36,20 +48,29 @@
                 else{<span class="agenda-dia deshabilitado">@i</span>}
             }
         </div>
+        </div>
         <p class="nota">@T["Horario del salón · Oviedo. La disponibilidad se comprueba de nuevo al enviar."]</p>
     </div>
     <form method="post" action="@citas" class="card agenda-formulario" data-anima="subir" data-contacto-publico="@(ViewData["ContactoVerificable"] is true ? "true" : "false")" data-url-solicitar="@Url.Action("SolicitarContacto","Agenda")" data-url-verificar="@Url.Action("VerificarContacto","Agenda")">
         @Html.AntiForgeryToken()
-        <h2>@seleccion.ToString(Textos.EnIngles ? "dddd, d MMMM" : "dddd, d 'de' MMMM")</h2>
+        <h2 data-reserva-fecha>@seleccion.ToString(Textos.EnIngles ? "dddd, d MMMM" : "dddd, d 'de' MMMM")</h2>
         <p>@T["Tu cuidado empieza aquí."]</p>
         <div asp-validation-summary="All" role="alert"></div>
         <input asp-for="Formulario.SolicitudId" type="hidden" /><input type="hidden" name="Formulario.Dia" value="@seleccion.ToString("yyyy-MM-dd")" /><input asp-for="Formulario.ServicioId" type="hidden" /><input asp-for="Formulario.ServicioOtro" type="hidden" />
         <div class="agenda-trampa" aria-hidden="true"><label>Web<input name="Formulario.Web" tabindex="-1" autocomplete="off" /></label></div>
-        <fieldset class="agenda-horas"><legend>@T["Elige una hora"]</legend>@foreach(var h in Model.Disponibilidad.Horas.Concat(Model.Disponibilidad.Ocupadas ?? []).Distinct().Order()){
-            if(Model.Disponibilidad.Horas.Contains(h)){<label><input type="radio" name="Formulario.Hora" value="@h.ToString("HH:mm")" checked="@(Model.Formulario.Hora==h)" required /><span>@h.ToString("HH:mm")</span></label>}
+        @* Horas del día para el cuidado elegido. Las marcadas (agenda-hora-alargada) son de un cuidado más largo que el tramo
+           del horario: acaban pasado el cierre y el salón decide si ese día puede alargar *@
+        <div class="agenda-huecos" data-reserva-huecos data-con-servicio="@(servicio is null ? "false" : "true")" data-texto="@textoFin" data-texto-alargue="@textoAlargue" data-texto-perdida="@T["La hora que habías elegido ya no está libre. Elige otra."]">
+        <fieldset class="agenda-horas"><legend>@T["Elige una hora"]</legend>@foreach(var h in disp.Horas.Concat(disp.Ocupadas ?? []).Distinct().Order()){
+            if(disp.Horas.Contains(h)){
+                var cierre=disp.Cierre(h);
+                <label class="@(cierre is null ? null : "agenda-hora-alargada")"><input type="radio" name="Formulario.Hora" value="@h.ToString("HH:mm")" checked="@(elegida==h)" required data-fin="@disp.Fin(h).ToString("HH:mm")" data-cierre="@cierre?.ToString("HH:mm")" /><span>@h.ToString("HH:mm")@if(cierre is not null){<span class="sr-only">, @T["acaba después del cierre"]</span>}</span></label>}
             else{<label class="agenda-hora-ocupada"><input type="radio" disabled aria-label="@h.ToString("HH:mm"), @T["ocupado"]" /><span>@h.ToString("HH:mm") · @T["Ocupado"]</span></label>}
         }</fieldset>
-        @if(Model.Disponibilidad.Horas.Count==0){<div class="agenda-sin-huecos">@T["Este día no tiene huecos disponibles para el cuidado elegido. Prueba otro día."]</div>}
+        @if(disp.Alargadas is { Count: > 0 }){<p class="nota agenda-alargue-nota"><span class="agenda-alargue-marca" aria-hidden="true"></span>@T["Las horas marcadas acaban después de la hora de cierre: el salón te confirmará si ese día puede alargar."]</p>}
+        @if(disp.Horas.Count==0){<div class="agenda-sin-huecos">@T["Este día no tiene huecos disponibles para el cuidado elegido. Prueba otro día."]</div>}
+        <p class="agenda-simulador" role="status" data-simulador hidden="@(servicio is null || elegida is null)">@(servicio is not null && elegida is { } e ? Simulacion(e) : "")</p>
+        </div>
         <div class="form-field"><label asp-for="Formulario.Telefono">@T["Móvil de contacto"]</label><input asp-for="Formulario.Telefono" type="tel" autocomplete="tel" inputmode="tel" maxlength="30" placeholder="612 345 678" required /><small>@T["Móvil español, con o sin +34. Te llamaremos para validar la reserva."]</small></div>
         <div class="form-field"><label asp-for="Formulario.Correo">@T["Correo electrónico"]</label><input asp-for="Formulario.Correo" type="email" autocomplete="email" maxlength="254" placeholder="@T["tu@correo.es"]" required /><small>@T["Necesitamos tu teléfono y correo para gestionar la reserva."]</small></div>
         <section class="agenda-verificar-contacto" aria-label="@T["Autocompletar tus datos"]">
@@ -69,7 +90,7 @@
             <p class="nota">@T["Si ya eres cliente y tienes un canal preferido en el salón, te avisaremos por ese canal."]</p>
         </fieldset>
         <label class="agenda-consentimiento"><input asp-for="Formulario.Consentimiento" required /> <span>@T["Acepto que el salón use mi teléfono y correo para gestionar esta cita y contactar por el canal elegido."] <a asp-controller="Legal" asp-action="Privacidad" target="_blank">@T["Política de privacidad"]</a> · <a asp-controller="Legal" asp-action="Terminos" target="_blank">@T["Términos y condiciones"]</a></span></label>
-        <button class="btn btn-primary btn-block" type="submit" disabled="@(Model.Disponibilidad.Horas.Count==0)">@T["Solicitar mi cita"] <icono nombre="flecha" tamano="14" /></button>
+        <button class="btn btn-primary btn-block" type="submit" disabled="@(disp.Horas.Count==0)" data-reserva-enviar>@T["Solicitar mi cita"] <icono nombre="flecha" tamano="14" /></button>
         <p class="nota">@T["El equipo revisará tu solicitud y te enviará una propuesta por el canal elegido. La cita quedará confirmada cuando la aceptes en el enlace recibido. Las solicitudes sin revisar caducan en 24 horas. Tus datos nunca se muestran al público."]</p>
     </form>
 </section>
@@ -78,5 +99,6 @@
     <script src="~/js/agenda-navegacion.js" asp-append-version="true"></script>
     <script src="~/js/select-buscable.js" asp-append-version="true"></script>
     <script src="~/js/agenda-publica.js" asp-append-version="true"></script>
+    <script src="~/js/agenda-reserva.js" asp-append-version="true"></script>
     <script src="~/js/contacto-publico.js" asp-append-version="true"></script>
 }

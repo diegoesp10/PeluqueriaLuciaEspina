@@ -29,7 +29,9 @@
   // ── Scroll suave, sincronizado con ScrollTrigger ──
   let lenis = null;
   if (Lenis) {
-    lenis = new Lenis({ autoRaf: false, lerp: 0.1, anchors: { offset: -24 } });
+    // allowNestedScroll: la rueda sobre algo con su propio scroll (la lista de un desplegable abierto, el calendario de
+    // fechas…) lo desplaza a él y no a la página
+    lenis = new Lenis({ autoRaf: false, lerp: 0.1, anchors: { offset: -24 }, allowNestedScroll: true });
     lenis.on('scroll', ScrollTrigger.update);
     gsap.ticker.add((tiempo) => lenis.raf(tiempo * 1000));
     gsap.ticker.lagSmoothing(0);

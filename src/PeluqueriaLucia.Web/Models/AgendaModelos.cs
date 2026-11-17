@@ -36,10 +36,19 @@ public sealed record DiaCalendario(DateOnly Dia, int Abiertas, int Canceladas, i
 
 /// <summary>Calendario mensual del panel con el detalle del día elegido y las solicitudes pendientes de cualquier fecha.</summary>
 /// <param name="Visitas">Las visitas del día elegido, para saber cuáles son de sus citas.</param>
+/// <param name="Tramos">El horario de apertura, para avisar de las citas que acaban pasado el cierre.</param>
 public sealed record AgendaCalendario(DateOnly Dia, DateOnly Hoy, IReadOnlyList<DiaCalendario> Dias, IReadOnlyList<ReservaCita> CitasDia,
     IReadOnlyList<ReservaCita> Pendientes, FiltroCitas Filtro, AvisoAgenda Avisos, DateTime Utc,
-    IReadOnlyList<PeluqueriaLucia.Domain.Visitas.Visita>? Visitas = null)
+    IReadOnlyList<PeluqueriaLucia.Domain.Visitas.Visita>? Visitas = null, IReadOnlyList<TramoAgenda>? Tramos = null)
 {
+    /// <summary>
+    /// La hora de cierre que pasa la cita: la del tramo del horario en el que empieza, si acaba después (un servicio más largo
+    /// que el tramo, unas mechas de 4 h en una mañana de 3 h). Null si acaba dentro del horario. En una solicitud de la web,
+    /// prepararle la propuesta o confirmarla es aceptar alargar ese día.
+    /// </summary>
+    public TimeOnly? CierreSuperado(ReservaCita c) =>
+        Tramos is null || c.Origen == OrigenCita.Bloqueo ? null : AgendaService.CierreSuperado(Tramos, c.Inicio, c.Fin);
+
     /// <summary>
     /// La visita con la que se cobra una cita: la suya o, si no la tiene, la que su cliente tenga ese día registrada aparte (la
     /// más cercana a la hora de la cita). Al pulsar «Cobrar» se enlaza esa misma, así que nunca se cobra dos veces.
