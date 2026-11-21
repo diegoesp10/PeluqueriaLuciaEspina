@@ -49,7 +49,9 @@ internal sealed class VisitaConfiguracion : IEntityTypeConfiguration<Visita>
         builder.Property(v => v.FormaPago).HasColumnName("OpcionPago");
         builder.Property(v => v.TotalEfectivo).HasColumnType("decimal(18,2)");
         builder.Property(v => v.TotalTarjeta).HasColumnType("decimal(18,2)");
+        builder.Property(v => v.EfectivoEntregado).HasColumnType("decimal(18,2)");
         builder.Property(v => v.PorcentajeIva).HasColumnType("decimal(5,2)");
+        builder.Ignore(v => v.Cambio);
         builder.Ignore(v => v.Total);
         builder.Ignore(v => v.TotalServicios);
         builder.Ignore(v => v.TotalProductos);

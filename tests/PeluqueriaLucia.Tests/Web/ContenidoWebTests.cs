@@ -189,6 +189,77 @@ public sealed class ContenidoWebTests(SeguridadWebFixture fixture) : IClassFixtu
     }
 
     [Fact]
+    public async Task Las_resenas_se_publican_con_su_fecha_se_ocultan_y_vuelven_a_su_pestana()
+    {
+        static FormUrlEncodedContent Campos(string token, params (string Clave, string Valor)[] campos) =>
+            new([new("__RequestVerificationToken", token), .. campos.Select(c => new KeyValuePair<string, string>(c.Clave, c.Valor))]);
+        using var fabrica = new FabricaWeb(fixture.Bd.Cadena); using var publico = fabrica.Cliente(); using var admin = fabrica.Cliente();
+        var marca = Guid.NewGuid().ToString("N")[..6];
+        var comentario = $"Un trato estupendo y un color precioso {marca}.";
+        var otro = $"Volveré pronto, me encantó el salón {marca}.";
+        await using (var scope = fabrica.Services.CreateAsyncScope())
+        {
+            var servicio = scope.ServiceProvider.GetRequiredService<ResenasService>();
+            Assert.True((await servicio.EnviarAsync((await servicio.CodigoTicketAsync(await Visita(true)))!, "Lola R.", comentario, 5, null)).Exito);
+            Assert.True((await servicio.EnviarAsync((await servicio.CodigoTicketAsync(await Visita(true)))!, "Pepa M.", otro, 4, null)).Exito);
+        }
+        Guid id, idOtro;
+        await using (var db = fixture.Bd.Contexto())
+        {
+            id = await db.Resenas.Where(x => x.Comentario == comentario).Select(x => x.Id).SingleAsync();
+            idOtro = await db.Resenas.Where(x => x.Comentario == otro).Select(x => x.Id).SingleAsync();
+        }
+        await Entrar(admin);
+
+        // Pendientes: el contador en naranja y la reseña por revisar
+        var pendientes = WebUtility.HtmlDecode(await admin.GetStringAsync("/admin/Resenas"));
+        Assert.Contains(comentario, pendientes);
+        Assert.Contains("Pendiente de revisar: no se ve en la web", pendientes);
+        Assert.Contains("class=\"contador is-aviso\"", pendientes);
+
+        // Publicar desde «Pendientes»: vuelve a esa pestaña con el aviso, y la reseña está en «Publicadas» con su fecha
+        var publicar = await admin.PostAsync($"/admin/Resenas/Moderar/{id}", Campos(await Token(admin, "/admin/Resenas"),
+            ("Estado", "Publicada"), ("Respuesta", "¡Gracias, Lola!"), ("RespuestaEn", "Thank you, Lola!"), ("Desde", "Pendiente")));
+        Assert.Equal(HttpStatusCode.Redirect, publicar.StatusCode);
+        Assert.Equal("/admin/Resenas?estado=Pendiente", publicar.Headers.Location!.OriginalString);
+        var tras = WebUtility.HtmlDecode(await admin.GetStringAsync(publicar.Headers.Location.OriginalString));
+        Assert.Contains("Reseña de Lola R. publicada: ya se ve en la web. La tienes en «Publicadas».", tras);
+        Assert.DoesNotContain(comentario, tras);
+        var publicadas = WebUtility.HtmlDecode(await admin.GetStringAsync("/admin/Resenas?estado=Publicada"));
+        Assert.Contains(comentario, publicadas);
+        Assert.Matches(@"Publicada el \d{2}/\d{2}/\d{4} a las \d{2}:\d{2}", publicadas);
+        Assert.Contains("Ocultar de la web", publicadas);
+        Assert.Contains(comentario, WebUtility.HtmlDecode(await publico.GetStringAsync("/opiniones")));
+
+        // Ocultarla: sale de la web, queda en «Ocultas» con las dos fechas y se puede volver a publicar
+        var ocultar = await admin.PostAsync($"/admin/Resenas/Moderar/{id}", Campos(await Token(admin, "/admin/Resenas?estado=Publicada"),
+            ("Estado", "Oculta"), ("Respuesta", "¡Gracias, Lola!"), ("RespuestaEn", "Thank you, Lola!"), ("Desde", "Publicada")));
+        Assert.Equal("/admin/Resenas?estado=Publicada", ocultar.Headers.Location!.OriginalString);
+        Assert.Contains("Reseña de Lola R. oculta: ya no se ve en la web.", WebUtility.HtmlDecode(await admin.GetStringAsync(ocultar.Headers.Location.OriginalString)));
+        Assert.DoesNotContain(comentario, WebUtility.HtmlDecode(await publico.GetStringAsync("/opiniones")));
+        var ocultas = WebUtility.HtmlDecode(await admin.GetStringAsync("/admin/Resenas?estado=Oculta"));
+        Assert.Contains(comentario, ocultas);
+        Assert.Matches(@"Oculta de la web desde el \d{2}/\d{2}/\d{4}", ocultas);
+        Assert.Matches(@"Se publicó el \d{2}/\d{2}/\d{4}", ocultas);
+        Assert.Contains("Volver a publicar", ocultas);
+        await admin.PostAsync($"/admin/Resenas/Moderar/{id}", Campos(await Token(admin, "/admin/Resenas?estado=Oculta"), ("Estado", "Publicada"), ("Desde", "Oculta")));
+        Assert.Contains("Reseña de Lola R. publicada de nuevo: vuelve a verse en la web.", WebUtility.HtmlDecode(await admin.GetStringAsync("/admin/Resenas?estado=Oculta")));
+        Assert.Contains(comentario, WebUtility.HtmlDecode(await publico.GetStringAsync("/opiniones")));
+
+        // Una pendiente no se oculta (no estaba en la web): sigue pendiente y se dice por qué
+        await admin.PostAsync($"/admin/Resenas/Moderar/{idOtro}", Campos(await Token(admin, "/admin/Resenas"), ("Estado", "Oculta"), ("Desde", "Pendiente")));
+        Assert.Contains("Solo se ocultan las reseñas publicadas.", WebUtility.HtmlDecode(await admin.GetStringAsync("/admin/Resenas")));
+        await using (var db = fixture.Bd.Contexto())
+        {
+            var resena = await db.Resenas.SingleAsync(x => x.Id == id);
+            Assert.Equal(EstadoResena.Publicada, resena.Estado);
+            Assert.NotNull(resena.PublicadaEn);
+            Assert.NotNull(resena.RevisadaEn);
+            Assert.Equal(EstadoResena.Pendiente, (await db.Resenas.SingleAsync(x => x.Id == idOtro)).Estado);
+        }
+    }
+
+    [Fact]
     public async Task Codigo_inventado_consentimiento_ausente_y_textos_invalidos_no_crean_resenas()
     {
         using var fabrica = new FabricaWeb(fixture.Bd.Cadena); using var cliente = fabrica.Cliente();

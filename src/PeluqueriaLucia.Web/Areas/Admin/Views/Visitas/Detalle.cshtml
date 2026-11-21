@@ -105,6 +105,11 @@
                         </div>
                         <div class="row row-kv"><span>Efectivo</span><span class="num">@Formato.Euros(v.TotalEfectivo ?? 0)</span></div>
                         <div class="row row-kv"><span>Tarjeta</span><span class="num">@Formato.Euros(v.TotalTarjeta ?? 0)</span></div>
+                        @if (v.EfectivoEntregado is { } entregado)
+                        {
+                            <div class="row row-kv"><span>Entregado en efectivo</span><span class="num">@Formato.Euros(entregado)</span></div>
+                            <div class="row row-kv"><span>Cambio</span><span class="num">@Formato.Euros(v.Cambio ?? 0)</span></div>
+                        }
                     </div>
                 </div>
             </section>
@@ -299,6 +304,42 @@
                             </div>
                         </div>
                         <p class="field-hint" data-mixto-estado aria-live="polite">Escribe una parte y la otra se completa sola.</p>
+                    </div>
+
+                    @* Calculadora del cambio. Lo que te da se envía al cobrar (con tarjeta el campo se desactiva y no se envía) y sale en
+                       el ticket con el cambio; vacío, no se apunta *@
+                    @{
+                        var errorEntregado = ViewData.ModelState["Entregado"]?.Errors.FirstOrDefault()?.ErrorMessage;
+                    }
+                    <div class="cobro-cambio" data-cambio hidden>
+                        <div class="cobro-cambio-cabecera">
+                            <span class="cobro-cambio-titulo"><icono nombre="calculadora" tamano="17" /> Calculadora del cambio</span>
+                            <span class="muted small">A cobrar en efectivo: <strong class="num" data-cambio-cobrar>—</strong></span>
+                        </div>
+                        <div class="field">
+                            <label for="cambio-entrega">Te da</label>
+                            <div class="input-affix">
+                                <input class="input num" id="cambio-entrega" name="Entregado" inputmode="decimal" autocomplete="off" placeholder="0,00" data-cambio-entrega
+                                       value="@Formato.Importe(f.Entregado)" aria-invalid="@(errorEntregado is null ? null : "true")"
+                                       aria-describedby="@(errorEntregado is null ? "cambio-entrega-ayuda" : "cambio-entrega-error cambio-entrega-ayuda")" />
+                                <span>€</span>
+                            </div>
+                            @if (errorEntregado is not null)
+                            {
+                                <p class="field-validation-error" id="cambio-entrega-error">@errorEntregado</p>
+                            }
+                            <p class="field-hint" id="cambio-entrega-ayuda">Si lo escribes, sale en el ticket con el cambio.</p>
+                        </div>
+                        <div class="cobro-cambio-billetes" role="group" aria-label="Sumar monedas y billetes a lo que te da">
+                            @foreach (var valor in new[] { 1, 2, 5, 10, 20, 50, 100 })
+                            {
+                                <button type="button" class="btn btn-gray btn-sm num" data-cambio-sumar="@valor" aria-label="Sumar @valor €">+@valor €</button>
+                            }
+                            <button type="button" class="btn btn-gray btn-sm" data-cambio-justo>Justo</button>
+                            <button type="button" class="btn btn-gray btn-sm" data-cambio-borrar>Borrar</button>
+                        </div>
+                        <p class="cobro-cambio-resultado" data-cambio-resultado aria-live="polite"></p>
+                        <p class="cobro-cambio-desglose num" data-cambio-desglose hidden></p>
                     </div>
 
                     <button class="btn btn-success btn-lg btn-block" asp-action="Cobrar" asp-route-id="@v.Id" data-cobro-boton data-vacia="@(vacia ? "true" : "false")" disabled="@vacia">

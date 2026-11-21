@@ -6,13 +6,14 @@
     var hoy = Model.Hoy;
     ViewData["Title"] = s.Titulo;
     var ganador = s.Ganador;
-    var fichaGanador = Model.Ficha(ganador?.ClienteId)?.Cliente;
+    var fichaGanador = Model.DelGanador?.Cliente;
     var participantes = Model.Participantes;
-    var candidatos = participantes.Where(p => !Model.HaGanado(p.ClienteId)).ToList();
+    var candidatos = participantes.Where(p => !s.HaGanado(p)).ToList();
     var premios = s.Premios;
     var puedeSortear = participantes.Count >= 2 && premios.Count > 0;
     var a = Model.Anuncio;
-    var nombres = System.Text.Json.JsonSerializer.Serialize(participantes.Select(p => p.Cliente?.NombreCompleto ?? "").Where(n => n.Length > 0).Take(60));
+    // La ruleta pasa hasta 60 participantes, en desorden, con su número
+    var nombres = System.Text.Json.JsonSerializer.Serialize(participantes.OrderBy(_ => Random.Shared.Next()).Take(60).Select(p => p.Etiqueta));
 }
 
 <div>
@@ -26,6 +27,7 @@
             </div>
         </div>
         <div class="acciones">
+            <a class="btn btn-gray" asp-action="Tablero" asp-route-id="@s.Id"><icono nombre="cuadricula" tamano="18" /> Tablero</a>
             @if (s.Abierto)
             {
                 <a class="btn btn-gray" asp-action="Editar" asp-route-id="@s.Id"><icono nombre="editar" tamano="18" /> Editar</a>
@@ -85,7 +87,8 @@
                                 }
                                 @if (s.Abierto)
                                 {
-                                    <form method="post" asp-action="QuitarPremio" asp-route-id="@s.Id" asp-route-premioId="@p.Id">
+                                    <form method="post" asp-action="QuitarPremio" asp-route-id="@s.Id" asp-route-premioId="@p.Id"
+                                          data-confirmar-titulo="¿Quitar este premio?" data-confirmar="«@p.Nombre» dejará de ser premio de este sorteo." data-confirmar-accion="Quitar">
                                         <button class="btn btn-gray btn-icono" aria-label="Quitar «@p.Nombre» de los premios" title="Quitar de los premios"><icono nombre="cerrar" tamano="15" /></button>
                                     </form>
                                 }
@@ -145,22 +148,49 @@
                     {
                         <span class="muted small">Hacen falta al menos dos para sortear</span>
                     }
+                    else
+                    {
+                        <a asp-action="Tablero" asp-route-id="@s.Id">Ver el tablero <icono nombre="flecha" tamano="14" /></a>
+                    }
                 </div>
                 @if (s.Abierto)
                 {
                     <div class="card card-pad sorteo-agregar">
-                        <form method="post" asp-action="AgregarParticipante" asp-route-id="@s.Id" data-participante-agregar>
+                        <form class="sorteo-agregar-cliente" method="post" asp-action="AgregarParticipante" asp-route-id="@s.Id" data-participante-agregar>
                             <input type="hidden" name="clienteId" data-cliente-id />
                             <div class="combo" data-combo>
                                 <div class="search search-full">
                                     <icono nombre="buscar" tamano="17" />
-                                    <input class="input" type="search" placeholder="Añadir un cliente: nombre, teléfono o email" autocomplete="off"
+                                    <input class="input" type="search" placeholder="Buscar cliente para añadir" autocomplete="off"
                                            role="combobox" aria-expanded="false" aria-controls="combo-lista" aria-autocomplete="list"
-                                           aria-label="Buscar cliente para añadir al sorteo" data-combo-input data-url-buscar="@Url.Action("Buscar", "Clientes", new { area = "Admin" })" />
+                                           aria-label="Buscar cliente para añadir al sorteo, por nombre, teléfono o email" data-combo-input data-url-buscar="@Url.Action("Buscar", "Clientes", new { area = "Admin" })" />
                                 </div>
                                 <ul class="combo-lista list" id="combo-lista" role="listbox" data-combo-lista hidden></ul>
                             </div>
+                            <input class="input sorteo-numero-campo" type="number" name="numero" min="1" max="@Sorteo.NumeroMaximo" step="1" inputmode="numeric"
+                                   placeholder="Nº @Model.SiguienteNumero" aria-label="Su número (opcional; si no, el @Model.SiguienteNumero)" title="Su número. Si no escribes ninguno, el siguiente libre (@Model.SiguienteNumero)" />
                         </form>
+                        <p class="field-hint sorteo-agregar-pista">Cada participante lleva un número. Si no escribes ninguno, el cliente se lleva el siguiente libre.</p>
+                        <details class="sorteo-mas" open="@(Model.TextoNumeros is not null)">
+                            <summary>Meter números a mano (papeletas, un sorteo que ya tienes en otro sitio…)</summary>
+                            <form class="sorteo-numeros" method="post" asp-action="AgregarNumeros" asp-route-id="@s.Id">
+                                @{
+                                    // Si lo escrito no vale, el error sale también aquí, junto al texto, y la página baja hasta él
+                                    var errorNumeros = ViewData.ModelState["Numeros"]?.Errors.FirstOrDefault()?.ErrorMessage;
+                                }
+                                <div class="field">
+                                    <label for="numeros">Números</label>
+                                    <textarea class="input" id="numeros" name="numeros" rows="4" required maxlength="@LectorNumerosSorteo.LongitudMaxima" spellcheck="false" placeholder="1-50&#10;51 María López&#10;60, 61, 75 Juan"
+                                              autofocus="@(errorNumeros is not null)" aria-invalid="@(errorNumeros is null ? null : "true")" aria-describedby="@(errorNumeros is null ? null : "numeros-error")">@Model.TextoNumeros</textarea>
+                                    @if (errorNumeros is not null)
+                                    {
+                                        <p class="field-validation-error" id="numeros-error">@errorNumeros</p>
+                                    }
+                                    <p class="field-hint">Una línea por persona: primero los números, sueltos o en rangos como «1-50», y después, si quieres, el nombre de quien los tiene. No necesitan ficha de cliente. Los números que ya estén en el sorteo se quedan como están.</p>
+                                </div>
+                                <button class="btn btn-gray"><icono nombre="mas" tamano="17" /> Añadir números</button>
+                            </form>
+                        </details>
                         <details class="sorteo-mas">
                             <summary>Añadir de golpe a los clientes que vinieron entre dos fechas</summary>
                             <form class="sorteo-visitas" method="post" asp-action="AgregarVisitas" asp-route-id="@s.Id">
@@ -175,7 +205,7 @@
                 }
                 @if (participantes.Count == 0)
                 {
-                    <p class="card card-pad muted small">Todavía no participa nadie. Busca a tus clientes arriba o añade de golpe a los que vinieron en unas fechas.</p>
+                    <p class="card card-pad muted small">Todavía no participa nadie. Busca a tus clientes arriba, añade de golpe a los que vinieron en unas fechas o mete números a mano.</p>
                 }
                 else
                 {
@@ -183,25 +213,51 @@
                         @foreach (var p in participantes)
                         {
                             var c = p.Cliente;
-                            var esGanador = ganador?.ClienteId == p.ClienteId;
+                            var esGanador = ganador?.Es(p) == true;
                             <div class="row @(esGanador ? "is-ganador" : "")">
-                                <span class="avatar @(c is null ? "tint-gray" : Formato.Tinte(c.Sexo))">@(c?.Iniciales ?? "?")</span>
+                                <span class="avatar sorteo-numero @(c is null ? "tint-gray" : Formato.Tinte(c.Sexo))" title="Número @p.Numero">@p.Numero</span>
                                 <span class="row-main">
-                                    <a class="row-title" asp-controller="Clientes" asp-action="Detalle" asp-route-id="@p.ClienteId">@(c?.NombreCompleto ?? "Cliente")</a>
-                                    <span class="row-sub">@(c?.Telefono ?? c?.Email ?? "Sin teléfono ni correo")</span>
+                                    @if (p.ClienteId is { } clienteId)
+                                    {
+                                        <a class="row-title" asp-controller="Clientes" asp-action="Detalle" asp-route-id="@clienteId">@(c?.NombreCompleto ?? "Cliente")</a>
+                                        <span class="row-sub">@(c?.Telefono ?? c?.Email ?? "Sin teléfono ni correo")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="row-title">@(p.Nombre ?? "Sin nombre")</span>
+                                        <span class="row-sub">Número metido a mano, sin ficha</span>
+                                    }
                                 </span>
                                 @if (esGanador)
                                 {
                                     <span class="pill tint-green"><icono nombre="estrella" tamano="13" /> Ganador</span>
                                 }
-                                else if (Model.HaGanado(p.ClienteId))
+                                else if (s.HaGanado(p))
                                 {
                                     <span class="pill tint-gray">Ganó antes</span>
                                 }
                                 @if (s.Abierto)
                                 {
-                                    <form method="post" asp-action="QuitarParticipante" asp-route-id="@s.Id" asp-route-clienteId="@p.ClienteId">
-                                        <button class="btn btn-gray btn-icono" aria-label="Quitar a @(c?.NombreCompleto ?? "este cliente") del sorteo" title="Quitar del sorteo"><icono nombre="cerrar" tamano="15" /></button>
+                                    <details class="sorteo-cambiar">
+                                        <summary class="btn btn-gray btn-icono" aria-label="Cambiar el número @p.Numero" title="Cambiar el número"><icono nombre="editar" tamano="15" /></summary>
+                                        <form class="sorteo-cambiar-form" method="post" asp-action="CambiarNumero" asp-route-id="@s.Id" asp-route-numero="@p.Numero">
+                                            <div class="field">
+                                                <label for="nuevo-@p.Numero">Número</label>
+                                                <input class="input" type="number" id="nuevo-@p.Numero" name="nuevo" value="@p.Numero" min="1" max="@Sorteo.NumeroMaximo" step="1" inputmode="numeric" required />
+                                            </div>
+                                            @if (p.ClienteId is null)
+                                            {
+                                                <div class="field">
+                                                    <label for="nombre-@p.Numero">Quién lo tiene <span class="muted">(opcional)</span></label>
+                                                    <input class="input" id="nombre-@p.Numero" name="nombre" value="@p.Nombre" maxlength="@ParticipanteSorteo.LongitudNombre" autocomplete="off" />
+                                                </div>
+                                            }
+                                            <button class="btn btn-primary btn-sm">Guardar</button>
+                                        </form>
+                                    </details>
+                                    <form method="post" asp-action="QuitarParticipante" asp-route-id="@s.Id" asp-route-numero="@p.Numero"
+                                          data-confirmar-titulo="¿Quitar del sorteo?" data-confirmar="El número @p.Numero@(p.NombreVisible is { } quien ? $" ({quien})" : "") dejará de participar y quedará libre." data-confirmar-accion="Quitar">
+                                        <button class="btn btn-gray btn-icono" aria-label="Quitar el número @p.Numero (@(p.NombreVisible ?? "sin nombre")) del sorteo" title="Quitar del sorteo"><icono nombre="cerrar" tamano="15" /></button>
                                     </form>
                                 }
                             </div>
@@ -237,13 +293,14 @@
                             <form class="sorteo-elegir" method="post" asp-action="ElegirGanador" asp-route-id="@s.Id">
                                 <div class="field">
                                     <label for="ganador-elegido">Ganador</label>
-                                    <select class="input" id="ganador-elegido" name="clienteId" required data-buscable="Buscar participante">
+                                    <select class="input" id="ganador-elegido" name="numero" required data-buscable="Buscar por número o nombre">
                                         <option value="">Elige un participante</option>
                                         @foreach (var p in participantes)
                                         {
-                                            <option value="@p.ClienteId">@(p.Cliente?.NombreCompleto ?? "Cliente")</option>
+                                            <option value="@p.Numero">@p.Etiqueta</option>
                                         }
                                     </select>
+                                    <p class="field-hint">¿Has sorteado en otro sitio (papeletas, la lotería…)? Elige aquí el número que ha salido.</p>
                                 </div>
                                 <div class="field"><label for="motivo-eleccion">Motivo <span class="muted">(opcional)</span></label><input class="input" id="motivo-eleccion" name="motivo" maxlength="@Sorteo.LongitudMotivo" autocomplete="off" placeholder="Sorteo hecho en el salón con papeletas…" /></div>
                                 <button class="btn btn-gray">Elegir ganador</button>
@@ -261,12 +318,12 @@
             }
             else if (ganador is not null)
             {
-                <div class="card card-pad sorteo-ganador" id="ganador" data-revelar="@(Model.Revelar ? "true" : "false")" data-nombres="@nombres" data-ganador="@ganador.Ganador">
+                <div class="card card-pad sorteo-ganador" id="ganador" data-revelar="@(Model.Revelar ? "true" : "false")" data-nombres="@nombres" data-ganador="@ganador.Etiqueta">
                     <div class="sorteo-ruleta" data-ruleta hidden aria-hidden="true"><span data-ruleta-nombre></span></div>
                     <div class="sorteo-ganador-contenido" data-ganador-contenido>
                         <p class="etiqueta">¡Tenemos ganador!</p>
-                        <span class="avatar avatar-lg @(fichaGanador is null ? "tint-gray" : Formato.Tinte(fichaGanador.Sexo))">@(fichaGanador?.Iniciales ?? "?")</span>
-                        <h2>@ganador.Ganador</h2>
+                        <span class="avatar avatar-lg @(fichaGanador is null ? "tint-gray" : Formato.Tinte(fichaGanador.Sexo)) @(ganador.Numero is null ? "" : "sorteo-numero")">@(ganador.Numero?.ToString() ?? fichaGanador?.Iniciales ?? "?")</span>
+                        <h2>@ganador.Etiqueta</h2>
                         <p class="muted">@SorteosService.Como(ganador) · @SorteosService.Cuando(ganador.Fecha)</p>
                         <p class="muted small">Gana @FormatoSorteos.Premios(s)</p>
                         <div class="sorteo-ganador-estado">
@@ -291,7 +348,9 @@
                             <div class="field">
                                 <label for="textoAviso">Mensaje</label>
                                 <textarea class="input" id="textoAviso" name="textoAviso" rows="5" maxlength="2000" required>@(Model.TextoAviso ?? aviso.Texto)</textarea>
-                                <p class="field-hint">Revísalo antes de enviarlo. Por WhatsApp se abre la conversación con el mensaje escrito y lo envías tú.</p>
+                                <p class="field-hint">@(aviso.SinFicha
+                                    ? "Ha ganado un número metido a mano, sin ficha de cliente: copia el mensaje y avísale por tu cuenta (en persona, por teléfono…)."
+                                    : "Revísalo antes de enviarlo. Por WhatsApp se abre la conversación con el mensaje escrito y lo envías tú.")</p>
                             </div>
                             <div class="acciones">
                                 <button class="btn btn-primary" disabled="@(aviso.Correo is null || !Model.CorreoConfigurado)" title="@(aviso.Correo is null ? "Su ficha no tiene correo" : !Model.CorreoConfigurado ? "El correo del servidor no está configurado" : aviso.Correo)">
@@ -301,7 +360,7 @@
                                     <icono nombre="telefono" tamano="17" /> Abrir WhatsApp
                                 </button>
                             </div>
-                            @if (aviso.Correo is null && aviso.WhatsApp is null)
+                            @if (aviso.Correo is null && aviso.WhatsApp is null && !aviso.SinFicha)
                             {
                                 <p class="field-hint texto-aviso">Su ficha no tiene correo ni móvil. <a asp-controller="Clientes" asp-action="Detalle" asp-route-id="@ganador.ClienteId">Completa la ficha</a> o llámale.</p>
                             }
@@ -324,11 +383,11 @@
                                 <form method="post" asp-action="ElegirGanador" asp-route-id="@s.Id">
                                     <div class="field">
                                         <label for="otro-ganador">O elige tú a otro ganador</label>
-                                        <select class="input" id="otro-ganador" name="clienteId" required data-buscable="Buscar participante">
+                                        <select class="input" id="otro-ganador" name="numero" required data-buscable="Buscar por número o nombre">
                                             <option value="">Elige un participante</option>
                                             @foreach (var p in candidatos)
                                             {
-                                                <option value="@p.ClienteId">@(p.Cliente?.NombreCompleto ?? "Cliente")</option>
+                                                <option value="@p.Numero">@p.Etiqueta</option>
                                             }
                                         </select>
                                     </div>
@@ -353,27 +412,70 @@
             }
 
             <div class="section" id="anuncios">
-                <div class="section-head"><h2>Anuncios en la web</h2><a asp-area="" asp-controller="SorteosWeb" asp-action="Index" target="_blank" rel="noopener">Ver en la web <icono nombre="flecha-salir" tamano="14" /></a></div>
-                @if (s.Anuncios.Count > 0)
+                @{
+                    // El que se ve hoy o, si no, el próximo: la tarjeta de estado sustituye al formulario de anunciar
+                    var enLaWeb = s.Anuncios.FirstOrDefault(x => x.VisibleEl(hoy));
+                    var actual = enLaWeb ?? s.Anuncios.Where(x => x.Desde > hoy).OrderBy(x => x.Desde).FirstOrDefault();
+                    var otros = s.Anuncios.Where(x => x != actual).OrderByDescending(x => x.Desde).ToList();
+                    var cambiando = actual is not null && a.AnuncioId == actual.Id;
+                }
+                <div class="section-head"><h2>Anuncio en la web</h2><a asp-area="" asp-controller="SorteosWeb" asp-action="Index" target="_blank" rel="noopener">Ver en la web <icono nombre="flecha-salir" tamano="14" /></a></div>
+                @if (actual is not null)
                 {
-                    <div class="list sorteo-anuncios">
-                        @foreach (var anuncio in s.Anuncios)
-                        {
-                            var (estadoAnuncio, tinteAnuncio) = FormatoSorteos.EstadoAnuncio(anuncio, hoy);
-                            <div class="row">
-                                <span class="row-main">
-                                    <span class="row-title">@anuncio.Texto</span>
-                                    <span class="row-sub">Del @anuncio.Desde.ToString("dd/MM/yyyy") al @anuncio.Hasta.ToString("dd/MM/yyyy") · <span lang="en">@anuncio.TextoEn</span></span>
-                                </span>
-                                <span class="pill @tinteAnuncio">@estadoAnuncio</span>
-                                <form method="post" asp-action="QuitarAnuncio" asp-route-id="@s.Id" asp-route-anuncioId="@anuncio.Id">
-                                    <button class="btn btn-gray btn-icono" aria-label="Quitar este anuncio" title="Quitar de la web"><icono nombre="cerrar" tamano="15" /></button>
-                                </form>
+                    <div class="card card-pad sorteo-anuncio-estado @(enLaWeb is null ? "is-programado" : "is-en-la-web")">
+                        <div class="sorteo-anuncio-cabecera">
+                            <span class="sorteo-anuncio-icono"><icono nombre="web" tamano="22" /></span>
+                            <div>
+                                <p class="sorteo-anuncio-etiqueta">@(enLaWeb is null ? "Programado" : "En la web ahora")</p>
+                                <p class="sorteo-anuncio-fechas">@(enLaWeb is null
+                                    ? $"Se verá del {actual.Desde:dd/MM/yyyy} al {actual.Hasta:dd/MM/yyyy}"
+                                    : $"Se ve hasta el {actual.Hasta:dd/MM/yyyy}")</p>
                             </div>
-                        }
+                        </div>
+                        <blockquote class="sorteo-anuncio-texto">
+                            <p>@actual.Texto</p>
+                            @if (actual.TextoEn is { Length: > 0 } textoEn)
+                            {
+                                <p class="muted" lang="en">@textoEn</p>
+                            }
+                        </blockquote>
+                        <div class="sorteo-anuncio-acciones">
+                            <form method="post" asp-action="TerminarAnuncio" asp-route-id="@s.Id" asp-route-anuncioId="@actual.Id"
+                                  data-confirmar-titulo="@(enLaWeb is null ? "¿Cancelar el anuncio?" : "¿Dejar de mostrarlo en la web?")"
+                                  data-confirmar="@(enLaWeb is null ? "El anuncio programado no llegará a verse en la web." : "El aviso flotante y la página «Sorteos» dejarán de enseñar este sorteo desde ahora.") Podrás volver a anunciarlo."
+                                  data-confirmar-accion="@(enLaWeb is null ? "Cancelar anuncio" : "Dejar de mostrar")">
+                                <button class="btn btn-gray btn-destructive"><icono nombre="ojo-tachado" tamano="17" /> @(enLaWeb is null ? "Cancelar el anuncio" : "Dejar de mostrar en la web")</button>
+                            </form>
+                            @if (s.Abierto)
+                            {
+                                <a class="btn btn-primary" href="#ganador"><icono nombre="regalo" tamano="17" /> Finalizar el sorteo</a>
+                            }
+                        </div>
+                        <details class="sorteo-mas sorteo-anuncio-cambiar" open="@cambiando">
+                            <summary>Cambiar el texto o las fechas</summary>
+                            <form class="sorteo-anunciar" method="post" asp-action="CambiarAnuncio" asp-route-id="@s.Id" asp-route-anuncioId="@actual.Id" novalidate>
+                                <div class="field">
+                                    <label for="TextoAnuncio">Texto del anuncio</label>
+                                    <textarea class="input" id="TextoAnuncio" name="TextoAnuncio" rows="2" maxlength="@AnuncioSorteo.LongitudTexto" required>@(cambiando ? a.TextoAnuncio : actual.Texto)</textarea>
+                                </div>
+                                <div class="field">
+                                    <label for="TextoAnuncioEn">Texto en inglés</label>
+                                    <textarea class="input" id="TextoAnuncioEn" name="TextoAnuncioEn" rows="2" maxlength="@AnuncioSorteo.LongitudTexto" required lang="en">@(cambiando ? a.TextoAnuncioEn : actual.TextoEn)</textarea>
+                                </div>
+                                <div class="fields-2">
+                                    <div class="field"><label for="DesdeAnuncio">Se ve desde</label><input class="input" type="date" id="DesdeAnuncio" name="DesdeAnuncio" value="@((cambiando ? a.DesdeAnuncio : actual.Desde)?.ToString("yyyy-MM-dd"))" required /></div>
+                                    <div class="field"><label for="HastaAnuncio">Hasta</label><input class="input" type="date" id="HastaAnuncio" name="HastaAnuncio" value="@((cambiando ? a.HastaAnuncio : actual.Hasta)?.ToString("yyyy-MM-dd"))" required /></div>
+                                </div>
+                                <button class="btn btn-primary">Guardar cambios</button>
+                            </form>
+                        </details>
                     </div>
                 }
-                @if (s.Estado != EstadoSorteo.Cancelado)
+                else if (s.Estado == EstadoSorteo.Cancelado)
+                {
+                    <p class="card card-pad muted small">El sorteo está cancelado: la web no lo anuncia.</p>
+                }
+                else
                 {
                     <form class="card card-pad sorteo-anunciar" method="post" asp-action="Anunciar" asp-route-id="@s.Id" novalidate>
                         <p class="muted small">La web enseña un aviso flotante y la página «Sorteos» con los premios, la fecha y este texto, entre las fechas que elijas. Nunca enseña a los participantes ni al ganador.</p>
@@ -389,8 +491,31 @@
                             <div class="field"><label for="DesdeAnuncio">Se ve desde</label><input class="input" type="date" id="DesdeAnuncio" name="DesdeAnuncio" value="@a.DesdeAnuncio?.ToString("yyyy-MM-dd")" required /></div>
                             <div class="field"><label for="HastaAnuncio">Hasta</label><input class="input" type="date" id="HastaAnuncio" name="HastaAnuncio" value="@a.HastaAnuncio?.ToString("yyyy-MM-dd")" required /></div>
                         </div>
-                        <button class="btn btn-primary"><icono nombre="mas" tamano="17" /> Anunciar en la web</button>
+                        <button class="btn btn-primary"><icono nombre="web" tamano="17" /> Anunciar en la web</button>
                     </form>
+                }
+                @if (otros.Count > 0)
+                {
+                    <details class="sorteo-mas sorteo-anuncios-historial">
+                        <summary>@(otros.Count == 1 ? "Otro anuncio" : $"Otros anuncios · {otros.Count}")</summary>
+                        <div class="list sorteo-anuncios">
+                            @foreach (var anuncio in otros)
+                            {
+                                var (estadoAnuncio, tinteAnuncio) = FormatoSorteos.EstadoAnuncio(anuncio, hoy);
+                                <div class="row">
+                                    <span class="row-main">
+                                        <span class="row-title">@anuncio.Texto</span>
+                                        <span class="row-sub">Del @anuncio.Desde.ToString("dd/MM/yyyy") al @anuncio.Hasta.ToString("dd/MM/yyyy")</span>
+                                    </span>
+                                    <span class="pill @tinteAnuncio">@estadoAnuncio</span>
+                                    <form method="post" asp-action="QuitarAnuncio" asp-route-id="@s.Id" asp-route-anuncioId="@anuncio.Id"
+                                          data-confirmar-titulo="¿Borrar este anuncio?" data-confirmar="@(anuncio.Hasta < hoy ? "Se borrará del historial del sorteo." : "No llegará a verse en la web y se borrará.")" data-confirmar-accion="Borrar">
+                                        <button class="btn btn-gray btn-icono" aria-label="Borrar este anuncio" title="Borrar"><icono nombre="cerrar" tamano="15" /></button>
+                                    </form>
+                                </div>
+                            }
+                        </div>
+                    </details>
                 }
             </div>
 
@@ -403,7 +528,7 @@
                         {
                             <div class="row sorteo-extraccion @(e == ganador ? "" : "is-anterior")">
                                 <span class="row-main">
-                                    <span class="row-title">@e.Ganador@(e == ganador ? "" : " · anterior")</span>
+                                    <span class="row-title">@e.Etiqueta@(e == ganador ? "" : " · anterior")</span>
                                     <span class="row-sub">@e.Fecha.ToString("dd/MM/yyyy HH:mm") · @SorteosService.Como(e)@(e.Motivo is null ? "" : " · " + e.Motivo) · @FormatoSorteos.Aviso(e)@(e.EntregadoEn is null ? "" : " · " + FormatoSorteos.Entrega(e))</span>
                                 </span>
                             </div>

@@ -85,6 +85,52 @@ public sealed class VisitaTests
     }
 
     [Fact]
+    public void Lo_que_da_en_efectivo_se_guarda_para_el_ticket_con_el_cambio()
+    {
+        var efectivo = VisitaDe(18.50m, 35m);
+        efectivo.Cobrar(FormaPago.Efectivo, null, null, entregado: 60.004m);
+        Assert.Equal(60m, efectivo.EfectivoEntregado);
+        Assert.Equal(6.50m, efectivo.Cambio);
+
+        var justo = VisitaDe(18.50m, 35m);
+        justo.Cobrar(FormaPago.Efectivo, null, null, entregado: 53.50m);
+        Assert.Equal(0m, justo.Cambio);
+
+        // En mixto, el cambio sale de la parte en efectivo
+        var mixto = VisitaDe(18.50m, 35m);
+        mixto.Cobrar(FormaPago.Mixto, 20m, 33.50m, entregado: 50m);
+        Assert.Equal(50m, mixto.EfectivoEntregado);
+        Assert.Equal(30m, mixto.Cambio);
+
+        // Con tarjeta no hay efectivo que entregar; sin escribirlo, no se sabe
+        var tarjeta = VisitaDe(18.50m, 35m);
+        tarjeta.Cobrar(FormaPago.Tarjeta, null, null, entregado: 100m);
+        Assert.Null(tarjeta.EfectivoEntregado);
+        Assert.Null(tarjeta.Cambio);
+        var sinEscribir = VisitaDe(10m);
+        sinEscribir.Cobrar(FormaPago.Efectivo, null, null);
+        Assert.Null(sinEscribir.EfectivoEntregado);
+        Assert.Null(sinEscribir.Cambio);
+    }
+
+    [Theory]
+    [InlineData(FormaPago.Efectivo, 50)]
+    [InlineData(FormaPago.Efectivo, -60)]
+    [InlineData(FormaPago.Efectivo, 10000.01)]
+    [InlineData(FormaPago.Mixto, 19.99)]
+    public void Lo_que_da_en_efectivo_que_no_llega_o_se_pasa_falla_y_no_cobra(FormaPago forma, decimal entregado)
+    {
+        var visita = VisitaDe(18.50m, 35m);
+        var mixto = forma == FormaPago.Mixto;
+
+        var error = Assert.Throws<ReglaDeNegocioException>(() =>
+            visita.Cobrar(forma, mixto ? 20m : null, mixto ? 33.50m : null, entregado: entregado));
+        Assert.Equal("Entregado", error.Campo);
+        Assert.False(visita.EstaCobrada);
+        Assert.Null(visita.EfectivoEntregado);
+    }
+
+    [Fact]
     public void Cobrar_dos_veces_falla()
     {
         var visita = VisitaDe(10m);

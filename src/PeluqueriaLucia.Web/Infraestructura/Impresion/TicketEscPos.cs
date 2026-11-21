@@ -6,7 +6,7 @@ namespace PeluqueriaLucia.Web.Infraestructura.Impresion;
 
 /// <summary>
 /// Construye el ticket de una visita en comandos ESC/POS para la impresora térmica: el mismo contenido que el ticket en
-/// pantalla (cabecera del negocio, líneas, total, desglose de IVA, forma de pago y código de opinión), en texto de ancho
+/// pantalla (cabecera del negocio, líneas, total, desglose de IVA, cómo se pagó y código de opinión), en texto de ancho
 /// fijo con página de códigos CP850 para las tildes y la ñ, y corte de papel al final.
 /// </summary>
 public static class TicketEscPos
@@ -108,10 +108,17 @@ public static class TicketEscPos
         Linea(v.EstaCobrada ? "Contado (" + Formato.Texto(v.FormaPago) + ")" : "PENDIENTE DE COBRO");
         Negrita(false);
         Centrar(false);
+        // En efectivo y en mixto, cómo se pagó: tarjeta, efectivo y, si se escribió al cobrar, lo entregado y el cambio
         if (v.EstaCobrada && v.FormaPago == FormaPago.Mixto)
-        {
-            Linea(DosColumnas("Efectivo", Importe(v.TotalEfectivo ?? 0)));
             Linea(DosColumnas("Tarjeta", Importe(v.TotalTarjeta ?? 0)));
+        if (v.EstaCobrada && v.FormaPago is FormaPago.Efectivo or FormaPago.Mixto)
+        {
+            Linea(DosColumnas("Efectivo", Importe(v.TotalEfectivo ?? v.Total)));
+            if (v.EfectivoEntregado is { } entregado)
+            {
+                Linea(DosColumnas("Entregado", Importe(entregado)));
+                Linea(DosColumnas("Cambio", Importe(v.Cambio ?? 0)));
+            }
         }
         Centrar(true);
         Linea("Impuestos incluidos");

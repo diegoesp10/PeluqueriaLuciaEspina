@@ -11,6 +11,9 @@ namespace PeluqueriaLucia.Domain.Visitas;
 /// </summary>
 public sealed class Visita
 {
+    /// <summary>Tope de lo que da el cliente en efectivo, para frenar un cero de más.</summary>
+    public const decimal EntregadoMaximo = 10_000m;
+
     private readonly List<LineaVisita> _lineas = [];
     private readonly List<LineaProductoVisita> _productos = [];
 
@@ -37,6 +40,15 @@ public sealed class Visita
     public decimal? TotalEfectivo { get; private set; }
 
     public decimal? TotalTarjeta { get; private set; }
+
+    /// <summary>
+    /// Lo que dio el cliente en efectivo al cobrar (la calculadora del cambio), si se escribió: sale en el ticket con el
+    /// cambio. Solo en los pagos en efectivo o mixtos; null si no se escribió y en las visitas cobradas antes de guardarlo.
+    /// </summary>
+    public decimal? EfectivoEntregado { get; private set; }
+
+    /// <summary>Lo que se le devolvió: lo entregado menos lo pagado en efectivo; null si no se sabe lo entregado.</summary>
+    public decimal? Cambio => EfectivoEntregado is { } entregado ? entregado - (TotalEfectivo ?? 0) : null;
 
     /// <summary>Tipo de IVA conservado de los tickets antiguos; null utiliza la configuración del negocio.</summary>
     public decimal? PorcentajeIva { get; private set; }
@@ -203,14 +215,17 @@ public sealed class Visita
 
     /// <summary>
     /// Cobra la visita. En pago mixto, efectivo y tarjeta tienen que sumar exactamente el total;
-    /// en los demás casos el importe completo va a la forma elegida.
+    /// en los demás casos el importe completo va a la forma elegida. <paramref name="entregado"/> es lo que da el cliente en
+    /// efectivo, si se ha escrito: tiene que llegar a lo que paga en efectivo y se guarda para el ticket (con tarjeta no se
+    /// guarda).
     /// Lo vendido y lo usado en el servicio que se ha terminado se descuenta del stock de <paramref name="existencias"/> (los
     /// productos de la visita): devuelve un movimiento de venta por producto vendido y otro de uso por producto terminado. Lo
     /// usado que sigue en uso no mueve el stock. Si falta stock, queda en negativo.
     /// </summary>
     public IReadOnlyList<MovimientoStock> Cobrar(
         FormaPago formaPago, decimal? efectivo, decimal? tarjeta,
-        IReadOnlyCollection<Producto>? existencias = null, DateTime? ahora = null, int? administradorId = null)
+        IReadOnlyCollection<Producto>? existencias = null, DateTime? ahora = null, int? administradorId = null,
+        decimal? entregado = null)
     {
         if (EstaCobrada)
             throw new ReglaDeNegocioException("Esta visita ya estaba cobrada.");
@@ -243,6 +258,19 @@ public sealed class Visita
                 break;
         }
 
+        // Lo que da el cliente en efectivo: tiene que llegar a lo que paga en efectivo
+        decimal? dado = null;
+        if (entregado is { } escrito && enEfectivo > 0)
+        {
+            var valor = Redondear(escrito);
+            if (valor < enEfectivo)
+                throw new ReglaDeNegocioException(
+                    $"Lo que te da ({valor:0.00} €) no llega a lo que paga en efectivo ({enEfectivo:0.00} €). Corrígelo o déjalo vacío.", "Entregado");
+            if (valor > EntregadoMaximo)
+                throw new ReglaDeNegocioException("Lo que te da no puede pasar de 10.000 €: revisa que no sobre un cero.", "Entregado");
+            dado = valor;
+        }
+
         // Todo se comprueba antes de descontar nada: si algo no vale, la visita y el stock quedan como estaban
         var salidas = _productos
             .Where(p => p.DescuentaStock)
@@ -260,6 +288,7 @@ public sealed class Visita
 
         TotalEfectivo = enEfectivo;
         TotalTarjeta = conTarjeta;
+        EfectivoEntregado = dado;
         FormaPago = formaPago;
         Estado = EstadoVisita.Cobrada;
         return movimientos;

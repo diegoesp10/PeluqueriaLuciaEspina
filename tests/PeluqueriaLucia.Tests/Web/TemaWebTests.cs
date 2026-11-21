@@ -34,6 +34,40 @@ public sealed class TemaWebTests(SeguridadWebFixture fixture) : IClassFixture<Se
         Assert.Contains("\"theme_color\": \"#5c2d91\"", await publico.GetStringAsync("/site.webmanifest"));
     }
 
+    /// <summary>
+    /// El panel nunca corta un menú ni un texto: hasta 1180 px pasa al menú hamburguesa (sin barra de solo iconos), las filas
+    /// bajan de línea en vez de acabar en puntos suspensivos, los controles segmentados bajan a otra fila si no caben y las
+    /// ventanas siguen centradas.
+    /// </summary>
+    [Fact]
+    public async Task El_panel_pasa_al_menu_hamburguesa_y_no_corta_textos()
+    {
+        using var fabrica = new FabricaWeb(fixture.Bd.Cadena);
+        using var publico = fabrica.Cliente();
+        using var admin = fabrica.Cliente();
+        await EntrarAsync(admin);
+
+        Assert.Contains("data-menu-abrir data-menu-hasta=\"1180px\"", await admin.GetStringAsync("/admin"));
+        Assert.Contains("botonMenu.dataset.menuHasta ?? '900px'", await publico.GetStringAsync("/js/app.js"));
+
+        var maqueta = await publico.GetStringAsync("/css/layout.css");
+        Assert.Contains("@media (max-width: 1180px)", maqueta);
+        Assert.DoesNotContain("max-width: 900px", maqueta);
+        Assert.DoesNotContain("--sidebar-w: 84px", maqueta);
+        Assert.Matches(@"\.main > dialog \{\s*margin: auto;", maqueta);
+
+        var componentes = await publico.GetStringAsync("/css/componentes.css");
+        var filas = Regex.Match(componentes, @"\.row-title \{[^}]*\}\s*\.row-sub \{[^}]*\}").Value;
+        Assert.NotEmpty(filas);
+        Assert.DoesNotContain("ellipsis", filas);
+        Assert.DoesNotContain("nowrap", filas);
+        Assert.Matches(@"\.segmented \{[^}]*flex-wrap: wrap;", componentes);
+
+        var paginas = await publico.GetStringAsync("/css/paginas.css");
+        Assert.DoesNotContain("min-width:901px", paginas);
+        Assert.DoesNotContain(".nav-label { display:none; }", paginas);
+    }
+
     private async Task EntrarAsync(HttpClient cliente)
     {
         var recuperacion = await fixture.RecuperacionAsync("prueba");

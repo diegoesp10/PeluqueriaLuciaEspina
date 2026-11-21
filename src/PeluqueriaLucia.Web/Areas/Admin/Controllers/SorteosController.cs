@@ -127,13 +127,30 @@ public sealed class SorteosController(
         return Volver(id, resultado, "Premio quitado.", "premios");
     }
 
-    /// <summary>Un cliente elegido con el buscador.</summary>
+    /// <summary>Un cliente elegido con el buscador, con el número escrito o, sin número, con el siguiente libre.</summary>
     [HttpPost]
-    public async Task<IActionResult> AgregarParticipante(int id, int? clienteId, CancellationToken ct)
+    public async Task<IActionResult> AgregarParticipante(int id, int? clienteId, int? numero, CancellationToken ct)
     {
-        var resultado = await ProtegerAsync(async () => await sorteos.AgregarParticipantesAsync(id, clienteId is { } cliente ? [cliente] : [], ct));
-        return Volver(id, resultado, resultado is Resultado<int> { Valor: 0 } ? "Ese cliente ya participaba." : "Participante añadido.", "participantes");
+        var resultado = await ProtegerAsync(async () => await sorteos.AgregarClienteAsync(id, clienteId, numero, ct));
+        return Volver(id, resultado, resultado is Resultado<bool> { Valor: false } ? "Ese cliente ya participaba." : "Participante añadido.", "participantes");
     }
+
+    /// <summary>Números escritos a mano, sin ficha: «1-50», «51 María», «60, 61 Juan»…</summary>
+    [HttpPost]
+    public async Task<IActionResult> AgregarNumeros(int id, string? numeros, CancellationToken ct)
+    {
+        var resultado = await ProtegerAsync(async () => await sorteos.AgregarNumerosAsync(id, numeros, ct));
+        if (!resultado.Exito)
+            return await DetalleConErrorAsync(id, resultado.Error!, null, null, ct, numeros);
+
+        var agregados = ((Resultado<Domain.Sorteos.NumerosAgregados>)resultado).Valor!;
+        return Volver(id, resultado, FormatoSorteos.NumerosAgregados(agregados), "participantes");
+    }
+
+    /// <summary>Cambia el número de un participante y, en los números sin ficha, el nombre de quien lo tiene.</summary>
+    [HttpPost]
+    public async Task<IActionResult> CambiarNumero(int id, int numero, int? nuevo, string? nombre, CancellationToken ct) =>
+        Volver(id, await ProtegerAsync(() => sorteos.CambiarNumeroAsync(id, numero, nuevo, nombre, ct)), "Número cambiado.", "participantes");
 
     /// <summary>Todos los clientes que vinieron entre dos fechas.</summary>
     [HttpPost]
@@ -156,8 +173,8 @@ public sealed class SorteosController(
     }
 
     [HttpPost]
-    public async Task<IActionResult> QuitarParticipante(int id, int clienteId, CancellationToken ct) =>
-        Volver(id, await ProtegerAsync(() => sorteos.QuitarParticipanteAsync(id, clienteId, ct)), "Participante quitado.", "participantes");
+    public async Task<IActionResult> QuitarParticipante(int id, int numero, CancellationToken ct) =>
+        Volver(id, await ProtegerAsync(() => sorteos.QuitarParticipanteAsync(id, numero, ct)), "Participante quitado.", "participantes");
 
     /// <summary>Sortea al azar y vuelve a la pantalla con la animación que descubre al ganador.</summary>
     [HttpPost]
@@ -187,11 +204,12 @@ public sealed class SorteosController(
         return Volver(id, resultado, "", "ganador");
     }
 
+    /// <summary>El salón elige al ganador por su número (por ejemplo, el que ha salido en un sorteo hecho en otro sitio).</summary>
     [HttpPost]
-    public async Task<IActionResult> ElegirGanador(int id, int? clienteId, string? motivo, CancellationToken ct)
+    public async Task<IActionResult> ElegirGanador(int id, int? numero, string? motivo, CancellationToken ct)
     {
-        var resultado = clienteId is { } cliente
-            ? await ProtegerAsync(() => sorteos.ElegirGanadorAsync(id, cliente, motivo, AdministradorId, ct))
+        var resultado = numero is { } elegido
+            ? await ProtegerAsync(() => sorteos.ElegirGanadorAsync(id, elegido, motivo, AdministradorId, ct))
             : new Error("Elige a uno de los participantes.");
         if (resultado.Exito)
             publicos.Invalidar();
@@ -248,7 +266,65 @@ public sealed class SorteosController(
         var resultado = await ProtegerAsync(() => sorteos.QuitarAnuncioAsync(id, anuncioId, ct));
         if (resultado.Exito)
             publicos.Invalidar();
-        return Volver(id, resultado, "Anuncio quitado de la web.", "anuncios");
+        return Volver(id, resultado, "Anuncio borrado del historial.", "anuncios");
+    }
+
+    /// <summary>Cambia el texto o las fechas del anuncio que está en la web (o programado).</summary>
+    [HttpPost]
+    public async Task<IActionResult> CambiarAnuncio(int id, int anuncioId, AnuncioFormulario anuncio, CancellationToken ct)
+    {
+        var resultado = ModelState.IsValid
+            ? await ProtegerAsync(() => sorteos.CambiarAnuncioAsync(id, anuncioId, anuncio.TextoAnuncio, anuncio.TextoAnuncioEn, anuncio.DesdeAnuncio, anuncio.HastaAnuncio, ct))
+            : new Error(ModelState.Values.SelectMany(v => v.Errors).First().ErrorMessage);
+        if (resultado.Exito)
+        {
+            publicos.Invalidar();
+            this.AvisarExito("Anuncio cambiado. La web ya enseña el texto y las fechas nuevos.");
+            return Redirect(Url.Action(nameof(Detalle), new { id }) + "#anuncios");
+        }
+
+        anuncio.AnuncioId = anuncioId;
+        return await DetalleConErrorAsync(id, resultado.Error!, anuncio, null, ct);
+    }
+
+    /// <summary>Deja de enseñar el anuncio en la web desde ahora (queda en el historial si ya se había visto).</summary>
+    [HttpPost]
+    public async Task<IActionResult> TerminarAnuncio(int id, int anuncioId, CancellationToken ct)
+    {
+        var resultado = await ProtegerAsync(() => sorteos.TerminarAnuncioAsync(id, anuncioId, ct));
+        if (resultado.Exito)
+            publicos.Invalidar();
+        return Volver(id, resultado, "Listo: la web ya no enseña este sorteo. Puedes volver a anunciarlo cuando quieras.", "anuncios");
+    }
+
+    /// <summary>Tablero con todos los números del sorteo: libres, ocupados (y por quién) y los que han salido.</summary>
+    [HttpGet]
+    public async Task<IActionResult> Tablero(int id, CancellationToken ct) =>
+        await sorteos.ObtenerAsync(id, ct) is { } sorteo ? View(new SorteoTableroModelo(sorteo, sorteos.Hoy)) : NotFound();
+
+    [HttpPost]
+    public async Task<IActionResult> Talonario(int id, int? hasta, CancellationToken ct)
+    {
+        var resultado = await ProtegerAsync(() => sorteos.CambiarTalonarioAsync(id, hasta, ct));
+        if (resultado.Exito)
+            this.AvisarExito(hasta is { } n ? $"Talonario guardado: del 1 al {n}." : "Talonario quitado: el tablero llega hasta el número más alto que haya.");
+        else
+            this.AvisarError(resultado.Error!.Mensaje);
+        return RedirectToAction(nameof(Tablero), new { id });
+    }
+
+    /// <summary>Apunta un número libre desde el tablero, con el nombre de quien lo tiene (opcional).</summary>
+    [HttpPost]
+    public async Task<IActionResult> ApuntarNumero(int id, int numero, string? nombre, CancellationToken ct)
+    {
+        var resultado = await ProtegerAsync(async () => await sorteos.AgregarNumerosAsync(id, $"{numero} {nombre?.Trim()}".Trim(), ct));
+        if (!resultado.Exito)
+            this.AvisarError(resultado.Error!.Mensaje);
+        else if (((Resultado<Domain.Sorteos.NumerosAgregados>)resultado).Valor!.Agregados == 0)
+            this.AvisarError($"El número {numero} ya lo tiene alguien.");
+        else
+            this.AvisarExito(string.IsNullOrWhiteSpace(nombre) ? $"Número {numero} apuntado." : $"Número {numero} apuntado para {nombre.Trim()}.");
+        return Redirect(Url.Action(nameof(Tablero), new { id }) + $"#n-{numero}");
     }
 
     [HttpPost]
@@ -298,14 +374,16 @@ public sealed class SorteosController(
         }
     }
 
-    private async Task<IActionResult> DetalleConErrorAsync(int id, Error error, AnuncioFormulario? anuncio, string? textoAviso, CancellationToken ct)
+    /// <param name="numeros">Los números que se estaban escribiendo, para no perderlos.</param>
+    private async Task<IActionResult> DetalleConErrorAsync(int id, Error error, AnuncioFormulario? anuncio, string? textoAviso, CancellationToken ct, string? numeros = null)
     {
         var sorteo = await sorteos.ObtenerAsync(id, ct);
         if (sorteo is null)
             return NotFound();
         ModelState.Clear();
         ModelState.AddModelError(error.Campo ?? string.Empty, error.Mensaje);
-        return View(nameof(Detalle), await ModeloDetalleAsync(sorteo, anuncio ?? new AnuncioFormulario { DesdeAnuncio = sorteos.Hoy }, textoAviso, false, ct));
+        var modelo = await ModeloDetalleAsync(sorteo, anuncio ?? new AnuncioFormulario { DesdeAnuncio = sorteos.Hoy }, textoAviso, false, ct);
+        return View(nameof(Detalle), modelo with { TextoNumeros = numeros });
     }
 
     private async Task<SorteoDetalleModelo> ModeloDetalleAsync(Domain.Sorteos.Sorteo sorteo, AnuncioFormulario anuncio, string? textoAviso, bool revelar, CancellationToken ct)

@@ -31,13 +31,46 @@ public sealed class TicketTermicoTests
         return Encoding.GetEncoding(850);
     }
 
-    private static Visita VisitaCobrada(FormaPago forma = FormaPago.Tarjeta, decimal? efectivo = null, decimal? tarjeta = null)
+    private static Visita VisitaCobrada(FormaPago forma = FormaPago.Tarjeta, decimal? efectivo = null, decimal? tarjeta = null, decimal? entregado = null)
     {
         var cliente = Cliente.Crear("Ana", "García", null, null, Sexo.Mujer, Fecha);
         var visita = Visita.Registrar(cliente, Fecha, forma,
             [Servicio.Crear("Corte señora", 18.50m, Sexo.Mujer, Fecha), Servicio.Crear("Tinte ecológico", 42m, Sexo.Mujer, Fecha)]);
-        visita.Cobrar(forma, efectivo, tarjeta);
+        visita.Cobrar(forma, efectivo, tarjeta, entregado: entregado);
         return visita;
+    }
+
+    /// <summary>Las líneas del ticket en papel de 32 caracteres, sin los comandos ESC/POS.</summary>
+    private static string[] Lineas(Visita visita) =>
+        Cp850().GetString(TicketEscPos.Construir(new TicketModelo(visita, Negocio), new ImpresoraTickets { AnchoCaracteres = 32 })).Split('\n')
+            .Select(l => System.Text.RegularExpressions.Regex.Replace(l, "\x1B..", string.Empty))
+            .Select(l => new string(l.Where(c => c >= ' ').ToArray()))
+            .ToArray();
+
+    private static string Fila(string izquierda, string derecha) => izquierda + new string(' ', 32 - izquierda.Length - derecha.Length) + derecha;
+
+    /// <summary>Las líneas que siguen a «Contado (…)» hasta «Impuestos incluidos».</summary>
+    private static string[] ComoSePago(Visita visita)
+    {
+        var lineas = Lineas(visita);
+        var desde = Array.FindIndex(lineas, l => l.StartsWith("Contado (", StringComparison.Ordinal)) + 1;
+        var hasta = Array.IndexOf(lineas, "Impuestos incluidos");
+        return lineas[desde..hasta];
+    }
+
+    [Fact]
+    public void En_efectivo_y_en_mixto_se_imprime_como_se_pago_con_lo_entregado_y_el_cambio()
+    {
+        // Total 60,50
+        Assert.Equal([Fila("Efectivo", "60,50"), Fila("Entregado", "70,00"), Fila("Cambio", "9,50")],
+            ComoSePago(VisitaCobrada(FormaPago.Efectivo, entregado: 70m)));
+        Assert.Equal([Fila("Tarjeta", "40,50"), Fila("Efectivo", "20,00"), Fila("Entregado", "50,00"), Fila("Cambio", "30,00")],
+            ComoSePago(VisitaCobrada(FormaPago.Mixto, 20m, 40.50m, 50m)));
+
+        // Sin escribir lo que dio, solo cómo se pagó; con tarjeta, nada más
+        Assert.Equal([Fila("Efectivo", "60,50")], ComoSePago(VisitaCobrada(FormaPago.Efectivo)));
+        Assert.Equal([Fila("Tarjeta", "40,50"), Fila("Efectivo", "20,00")], ComoSePago(VisitaCobrada(FormaPago.Mixto, 20m, 40.50m)));
+        Assert.Empty(ComoSePago(VisitaCobrada(FormaPago.Tarjeta, entregado: 100m)));
     }
 
     [Fact]

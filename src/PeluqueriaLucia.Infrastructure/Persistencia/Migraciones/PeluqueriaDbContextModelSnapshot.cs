@@ -536,6 +536,88 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
                     b.ToTable("FaltasAsistencia", (string)null);
                 });
 
+            modelBuilder.Entity("PeluqueriaLucia.Domain.Gastos.Gasto", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("ActualizadoEn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Concepto")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("CreadoEn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("Fecha")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("Importe")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("MedioPago")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Nota")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("TipoId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Fecha");
+
+                    b.HasIndex("TipoId");
+
+                    b.ToTable("Gastos", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Gastos_Importe", "[Importe] > 0");
+
+                            t.HasCheckConstraint("CK_Gastos_MedioPago", "[MedioPago] BETWEEN 1 AND 5");
+                        });
+                });
+
+            modelBuilder.Entity("PeluqueriaLucia.Domain.Gastos.TipoGasto", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Activo")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("ActualizadoEn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreadoEn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<int>("Orden")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Nombre")
+                        .IsUnique();
+
+                    b.ToTable("TiposGasto", (string)null);
+                });
+
             modelBuilder.Entity("PeluqueriaLucia.Domain.Productos.CategoriaProducto", b =>
                 {
                     b.Property<int>("Id")
@@ -862,6 +944,9 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
                     b.Property<Guid>("PermisoId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTime?>("PublicadaEn")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Respuesta")
                         .HasMaxLength(1500)
                         .HasColumnType("nvarchar(1500)");
@@ -869,6 +954,9 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
                     b.Property<string>("RespuestaEn")
                         .HasMaxLength(1500)
                         .HasColumnType("nvarchar(1500)");
+
+                    b.Property<DateTime?>("RevisadaEn")
+                        .HasColumnType("datetime2");
 
                     b.Property<byte[]>("Version")
                         .IsConcurrencyToken()
@@ -1207,6 +1295,9 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
                         .HasMaxLength(300)
                         .HasColumnType("nvarchar(300)");
 
+                    b.Property<int?>("Numero")
+                        .HasColumnType("int");
+
                     b.Property<int>("Participantes")
                         .HasColumnType("int");
 
@@ -1236,7 +1327,14 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
                     b.Property<DateTime>("AnadidoEn")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("ClienteId")
+                    b.Property<int?>("ClienteId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Nombre")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<int>("Numero")
                         .HasColumnType("int");
 
                     b.Property<int>("SorteoId")
@@ -1247,9 +1345,16 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
                     b.HasIndex("ClienteId");
 
                     b.HasIndex("SorteoId", "ClienteId")
+                        .IsUnique()
+                        .HasFilter("[ClienteId] IS NOT NULL");
+
+                    b.HasIndex("SorteoId", "Numero")
                         .IsUnique();
 
-                    b.ToTable("ParticipantesSorteos", (string)null);
+                    b.ToTable("ParticipantesSorteos", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ParticipantesSorteos_Numero", "[Numero] BETWEEN 1 AND 99999");
+                        });
                 });
 
             modelBuilder.Entity("PeluqueriaLucia.Domain.Sorteos.PremioSorteo", b =>
@@ -1390,6 +1495,9 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
                     b.Property<string>("MotivoCancelacion")
                         .HasMaxLength(300)
                         .HasColumnType("nvarchar(300)");
+
+                    b.Property<int?>("NumerosHasta")
+                        .HasColumnType("int");
 
                     b.Property<string>("Premio")
                         .HasMaxLength(120)
@@ -1535,6 +1643,9 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
                     b.Property<int?>("ClienteId")
                         .HasColumnType("int");
 
+                    b.Property<decimal?>("EfectivoEntregado")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<int>("Estado")
                         .HasColumnType("int");
 
@@ -1639,6 +1750,17 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
                         .HasForeignKey("ReservaId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("PeluqueriaLucia.Domain.Gastos.Gasto", b =>
+                {
+                    b.HasOne("PeluqueriaLucia.Domain.Gastos.TipoGasto", "Tipo")
+                        .WithMany()
+                        .HasForeignKey("TipoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Tipo");
                 });
 
             modelBuilder.Entity("PeluqueriaLucia.Domain.Productos.CosteProducto", b =>
@@ -1767,8 +1889,7 @@ namespace PeluqueriaLucia.Infrastructure.Persistencia.Migraciones
                     b.HasOne("PeluqueriaLucia.Domain.Clientes.Cliente", "Cliente")
                         .WithMany()
                         .HasForeignKey("ClienteId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.HasOne("PeluqueriaLucia.Domain.Sorteos.Sorteo", null)
                         .WithMany("Participantes")

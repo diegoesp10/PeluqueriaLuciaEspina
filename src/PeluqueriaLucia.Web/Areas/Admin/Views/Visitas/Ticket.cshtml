@@ -73,10 +73,20 @@
         @if (v.EstaCobrada)
         {
             <div class="ticket-centro ticket-fuerte">Contado (@Formato.Texto(v.FormaPago))</div>
+            @* En efectivo y en mixto, cómo se pagó: lo que fue con tarjeta, lo que fue en efectivo y, si se escribió al cobrar,
+               lo que dio el cliente y el cambio *@
             @if (v.FormaPago == FormaPago.Mixto)
             {
-                <div class="ticket-fila"><span>Efectivo</span><span>@Importe(v.TotalEfectivo ?? 0)</span></div>
                 <div class="ticket-fila"><span>Tarjeta</span><span>@Importe(v.TotalTarjeta ?? 0)</span></div>
+            }
+            @if (v.FormaPago is FormaPago.Efectivo or FormaPago.Mixto)
+            {
+                <div class="ticket-fila"><span>Efectivo</span><span>@Importe(v.TotalEfectivo ?? v.Total)</span></div>
+                @if (v.EfectivoEntregado is { } entregado)
+                {
+                    <div class="ticket-fila"><span>Entregado</span><span>@Importe(entregado)</span></div>
+                    <div class="ticket-fila"><span>Cambio</span><span>@Importe(v.Cambio ?? 0)</span></div>
+                }
             }
         }
         else

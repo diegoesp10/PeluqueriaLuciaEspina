@@ -16,6 +16,8 @@ public interface IContenidoRepositorio
     Task<Resena?> ResenaAsync(Guid id, CancellationToken ct);
     /// <summary>Reseñas paginadas; <paramref name="texto"/> filtra por palabras (LIKE) en nombre, comentario y respuesta.</summary>
     Task<Pagina<Resena>> ResenasAsync(EstadoResena? estado, int pagina, string? texto, CancellationToken ct);
+    /// <summary>Cuántas reseñas hay en cada estado (los estados sin ninguna no salen).</summary>
+    Task<IReadOnlyDictionary<EstadoResena, int>> ConteoResenasAsync(CancellationToken ct);
     Task<(int Total, double Media)> ValoracionAsync(CancellationToken ct);
     /// <summary>Teléfonos de contacto en su orden. Vacío si aún no se han guardado (la web usa entonces el de contenido-publico.json).</summary>
     Task<IReadOnlyList<TelefonoContacto>> TelefonosAsync(CancellationToken ct);

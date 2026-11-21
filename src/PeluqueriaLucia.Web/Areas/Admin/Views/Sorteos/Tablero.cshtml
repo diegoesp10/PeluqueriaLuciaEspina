@@ -1,0 +1,182 @@
+@using PeluqueriaLucia.Application.Sorteos
+@using PeluqueriaLucia.Domain.Sorteos
+@model SorteoTableroModelo
+@{
+    var s = Model.Sorteo;
+    ViewData["Title"] = $"Tablero · {s.Titulo}";
+    var ganador = s.Ganador;
+    var sorteados = Model.Sorteados;
+}
+
+<div class="tablero-pagina">
+    <a class="back-link" asp-action="Detalle" asp-route-id="@s.Id"><icono nombre="anterior" tamano="20" /> @s.Titulo</a>
+    <header class="page-head">
+        <div>
+            <h1>Tablero del sorteo</h1>
+            <p class="subtitle"><span class="pill @FormatoSorteos.Tinte(s)">@FormatoSorteos.Estado(s)</span> @s.Titulo · @(s.Abierto ? FormatoSorteos.Cuando(s, Model.Hoy) : "Previsto el " + SorteosService.Cuando(s.FechaSorteo))</p>
+        </div>
+        <div class="acciones">
+            <button class="btn btn-gray" type="button" data-tablero-pantalla hidden><icono nombre="pantalla-completa" tamano="18" /> <span>Pantalla completa</span></button>
+            <a class="btn btn-gray" asp-action="Detalle" asp-route-id="@s.Id" asp-fragment="participantes"><icono nombre="clientes" tamano="18" /> Participantes</a>
+        </div>
+    </header>
+
+    <div class="tablero-pantalla" data-tablero>
+        <div class="tablero-pantalla-titulo">
+            <p><icono nombre="regalo" tamano="22" /> @s.Titulo</p>
+            <button class="btn btn-gray" type="button" data-tablero-salir><icono nombre="cerrar" tamano="16" /> Salir de pantalla completa</button>
+        </div>
+
+        <section class="tablero-cifras" aria-label="Cómo va el sorteo">
+            <div class="tablero-cifra tint-purple"><strong>@Model.Ocupados</strong><span>@(Model.Ocupados == 1 ? "número ocupado" : "números ocupados")</span></div>
+            <div class="tablero-cifra tint-gray"><strong>@Model.Libres</strong><span>@(Model.Libres == 1 ? "número libre" : "números libres")</span></div>
+            <div class="tablero-cifra tint-gold"><strong>@sorteados.Count</strong><span>@(sorteados.Count == 1 ? "número sorteado" : "números sorteados")</span></div>
+            <div class="tablero-cifra tint-blue"><strong>@Model.Ultimo</strong><span>@(s.NumerosHasta is null ? "el número más alto" : "números en el talonario")</span></div>
+            @if (Model.Ultimo > 0)
+            {
+                <progress class="tablero-progreso" max="@Model.Ultimo" value="@Model.Ocupados" aria-label="@Model.PorcentajeOcupado % de los números ocupados">@Model.PorcentajeOcupado %</progress>
+                <p class="tablero-progreso-texto">@Model.PorcentajeOcupado % del talonario ocupado</p>
+            }
+        </section>
+
+        @if (sorteados.Count > 0)
+        {
+            <section class="tablero-sorteados" aria-labelledby="titulo-sorteados">
+                <h2 id="titulo-sorteados">Números sorteados</h2>
+                <ol class="tablero-bolas">
+                    @foreach (var e in sorteados)
+                    {
+                        var actual = e == ganador;
+                        <li class="tablero-bola-item @(actual ? "is-ganador" : "is-anterior")">
+                            <span class="tablero-bola">@(e.Numero?.ToString() ?? "?")</span>
+                            <span class="tablero-bola-texto">
+                                <strong>@(actual ? "Ganador" : "Salió antes")</strong>
+                                <span>@(Model.NombreDe(e))</span>
+                                <span class="muted">@e.Fecha.ToString("dd/MM/yyyy HH:mm") · @(e.Forma == FormaGanador.AlAzar ? "al azar" : "elegido por el salón")</span>
+                            </span>
+                        </li>
+                    }
+                </ol>
+            </section>
+        }
+
+        @if (Model.Ultimo == 0)
+        {
+            <div class="estado-vacio">
+                <span class="estado-icono tint-purple"><icono nombre="cuadricula" tamano="30" /></span>
+                <h2>El tablero está vacío</h2>
+                <p>Di hasta qué número llega el talonario (por ejemplo, 100) y verás todos los números, libres y ocupados. También se llena solo al añadir participantes.</p>
+            </div>
+        }
+        else
+        {
+            <div class="tablero-herramientas">
+                <label class="search">
+                    <icono nombre="buscar" tamano="17" />
+                    <input class="input" type="search" placeholder="Buscar un número o un nombre" autocomplete="off" aria-label="Buscar un número o un nombre en el tablero" data-tablero-buscar />
+                </label>
+                <fieldset class="segmented tablero-filtro" aria-label="Qué números enseñar">
+                    <label><input type="radio" name="filtro-tablero" value="todos" checked data-tablero-filtro /> Todos</label>
+                    <label><input type="radio" name="filtro-tablero" value="libres" data-tablero-filtro /> Libres</label>
+                    <label><input type="radio" name="filtro-tablero" value="ocupados" data-tablero-filtro /> Ocupados</label>
+                </fieldset>
+                <p class="tablero-resultado muted small" data-tablero-resultado aria-live="polite"></p>
+            </div>
+
+            <ul class="tablero-leyenda" aria-label="Qué significa cada color">
+                <li><span class="tablero-muestra is-libre"></span> Libre</li>
+                <li><span class="tablero-muestra is-ocupado"></span> Ocupado</li>
+                <li><span class="tablero-muestra is-ganador"></span> Ganador</li>
+                @if (sorteados.Count > 1)
+                {
+                    <li><span class="tablero-muestra is-gano-antes"></span> Salió antes</li>
+                }
+            </ul>
+
+            <ol class="tablero" data-tablero-celdas data-filtro="todos" aria-label="Números del 1 al @Model.Celdas">
+                @for (var n = 1; n <= Model.Celdas; n++)
+                {
+                    var p = Model.Participante(n);
+                    var estado = Model.Estado(n);
+                    var clase = SorteoTableroModelo.Clase(estado);
+                    var nombre = p?.NombreVisible;
+                    <li>
+                        <button type="button" class="tablero-celda @clase" id="n-@n" data-numero="@n" data-estado="@clase"
+                                data-nombre="@nombre" data-contacto="@(p?.Cliente?.Telefono ?? p?.Cliente?.Email)"
+                                data-ficha="@(p?.ClienteId is { } clienteId ? Url.Action("Detalle", "Clientes", new { id = clienteId }) : null)"
+                                aria-label="Número @n: @SorteoTableroModelo.Texto(estado)@(nombre is null ? "" : $", {nombre}")">
+                            <span class="tablero-celda-numero">@n</span>
+                            @if (estado == EstadoCelda.Libre)
+                            {
+                                <span class="tablero-celda-nombre">libre</span>
+                            }
+                            else
+                            {
+                                <span class="tablero-celda-nombre">@(FormatoSorteos.NombreCorto(p!) ?? "sin nombre")</span>
+                            }
+                            @if (estado is EstadoCelda.Ganador or EstadoCelda.GanoAntes)
+                            {
+                                <span class="tablero-celda-sello"><icono nombre="@(estado == EstadoCelda.Ganador ? "estrella" : "estrella-vacia")" tamano="12" /></span>
+                            }
+                        </button>
+                    </li>
+                }
+            </ol>
+            @if (Model.Ultimo > Model.Celdas)
+            {
+                <p class="card card-pad muted small">El tablero enseña hasta el número @Model.Celdas. Los números más altos están en la lista de <a asp-action="Detalle" asp-route-id="@s.Id" asp-fragment="participantes">participantes</a>.</p>
+            }
+        }
+    </div>
+
+    @if (s.Abierto)
+    {
+        <section class="section tablero-talonario">
+            <div class="section-head"><h2>Talonario</h2></div>
+            <form class="card card-pad tablero-talonario-form" method="post" asp-action="Talonario" asp-route-id="@s.Id">
+                <div class="field">
+                    <label for="hasta">¿Hasta qué número llega?</label>
+                    <input class="input num" type="number" id="hasta" name="hasta" value="@s.NumerosHasta" min="1" max="@Sorteo.NumeroMaximo" step="1" inputmode="numeric" placeholder="Por ejemplo, 100" />
+                    <p class="field-hint">Con un talonario de papeletas (del 1 al 100, por ejemplo), el tablero enseña también los números que aún nadie tiene. Déjalo vacío para llegar solo hasta el número más alto que haya.</p>
+                </div>
+                <button class="btn btn-gray">Guardar</button>
+            </form>
+        </section>
+    }
+</div>
+
+<dialog class="tablero-dialogo" data-tablero-dialogo aria-labelledby="tablero-dialogo-titulo">
+    <div class="tablero-dialogo-cabecera">
+        <span class="tablero-bola" data-dialogo-numero></span>
+        <div>
+            <h2 id="tablero-dialogo-titulo" data-dialogo-titulo></h2>
+            <p class="muted" data-dialogo-estado></p>
+        </div>
+        <form method="dialog" asp-antiforgery="false"><button class="btn btn-gray btn-icono" aria-label="Cerrar"><icono nombre="cerrar" tamano="16" /></button></form>
+    </div>
+    <p class="tablero-dialogo-contacto" data-dialogo-contacto hidden></p>
+    <div class="tablero-dialogo-acciones" data-dialogo-ocupado hidden>
+        <a class="btn btn-gray" data-dialogo-ficha hidden><icono nombre="cliente" tamano="17" /> Ver su ficha</a>
+        <a class="btn btn-gray" asp-action="Detalle" asp-route-id="@s.Id" asp-fragment="participantes"><icono nombre="editar" tamano="17" /> Cambiar en participantes</a>
+    </div>
+    @if (s.Abierto)
+    {
+        <form class="tablero-apuntar" method="post" asp-action="ApuntarNumero" asp-route-id="@s.Id" data-dialogo-libre hidden>
+            <input type="hidden" name="numero" data-dialogo-campo-numero />
+            <div class="field">
+                <label for="nombre-apuntar">¿Quién se lo queda? <span class="muted">(opcional)</span></label>
+                <input class="input" id="nombre-apuntar" name="nombre" maxlength="@ParticipanteSorteo.LongitudNombre" autocomplete="off" placeholder="Nombre de quien tiene la papeleta" />
+                <p class="field-hint">Para un cliente con ficha, añádelo desde «Participantes» con este número.</p>
+            </div>
+            <button class="btn btn-primary"><icono nombre="mas" tamano="17" /> Apuntar este número</button>
+        </form>
+    }
+    else
+    {
+        <p class="muted small" data-dialogo-libre hidden>El sorteo ya no está abierto: no se apuntan más números.</p>
+    }
+</dialog>
+
+@section Scripts {
+    <script src="~/js/sorteo-tablero.js" asp-append-version="true"></script>
+}

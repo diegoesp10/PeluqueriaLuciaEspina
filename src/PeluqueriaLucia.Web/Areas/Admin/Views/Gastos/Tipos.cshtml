@@ -1,0 +1,127 @@
+@using PeluqueriaLucia.Domain.Gastos
+@model TiposGastoModelo
+@{
+    ViewData["Title"] = "Tipos de gasto";
+    var activos = Model.Activos;
+    var archivados = Model.Archivados;
+}
+
+<div class="form-pagina categorias-productos tipos-gasto">
+    @if (Model.Volver is { } volver)
+    {
+        <a class="back-link" href="@volver"><icono nombre="anterior" tamano="20" /> Volver al gasto</a>
+    }
+    else
+    {
+        <a class="back-link" asp-controller="Visitas" asp-action="Index"><icono nombre="anterior" tamano="20" /> Visitas</a>
+    }
+    <header class="page-head">
+        <div>
+            <h1>Tipos de gasto</h1>
+            <p class="subtitle">Los que salen al anotar un gasto y agrupan los gastos en el Excel del asesor. Al renombrar uno, los gastos que ya lo llevan cambian con él. Uno con gastos no se borra: se archiva y deja de salir en los gastos nuevos.</p>
+        </div>
+    </header>
+
+    <section>
+        <div class="section-head"><h2>Nuevo tipo</h2></div>
+        <form class="categoria-nueva campos-marcados" method="post" asp-action="CrearTipo" novalidate>
+            <input type="hidden" name="volver" value="@Model.Volver" />
+            <div class="categoria-nueva-fila">
+                <label class="sr-only" for="Nuevo_Nombre">Nombre del tipo nuevo</label>
+                <input class="input" id="Nuevo_Nombre" name="Nuevo.Nombre" value="@Model.Nuevo.Nombre" maxlength="@TipoGasto.LongitudNombre" required
+                       autocomplete="off" placeholder="Por ejemplo, Limpieza" />
+                <button class="btn btn-primary"><icono nombre="mas" tamano="18" /> Añadir</button>
+            </div>
+            @Html.ValidationMessage("Nuevo.Nombre")
+        </form>
+    </section>
+
+    <section class="section">
+        <div class="section-head">
+            <h2>En uso</h2>
+            <span class="muted small">@activos.Count @(activos.Count == 1 ? "tipo" : "tipos")</span>
+        </div>
+        <div class="list categorias-lista">
+            @foreach (var t in activos)
+            {
+                var tipo = t.Tipo;
+                if (Model.Editando == tipo.Id)
+                {
+                    <form class="row categoria-fila is-editando campos-marcados" id="tipo-@tipo.Id" method="post" asp-action="RenombrarTipo" asp-route-id="@tipo.Id">
+                        <input type="hidden" name="volver" value="@Model.Volver" />
+                        <span class="categoria-icono tint-red"><icono nombre="cartera" tamano="18" /></span>
+                        <label class="sr-only" for="nombre-@tipo.Id">Nuevo nombre de «@tipo.Nombre»</label>
+                        <input class="input" id="nombre-@tipo.Id" name="nombre" value="@tipo.Nombre" maxlength="@TipoGasto.LongitudNombre" required autocomplete="off" autofocus />
+                        <span class="row-end categoria-acciones">
+                            <button class="btn btn-primary btn-sm">Guardar</button>
+                            <a class="btn btn-gray btn-sm" asp-action="Tipos" asp-route-volver="@Model.Volver" asp-fragment="tipo-@tipo.Id">Cancelar</a>
+                        </span>
+                    </form>
+                }
+                else
+                {
+                    <div class="row categoria-fila" id="tipo-@tipo.Id">
+                        <span class="categoria-icono tint-red"><icono nombre="cartera" tamano="18" /></span>
+                        <span class="row-main">
+                            <span class="row-title">@tipo.Nombre</span>
+                            <span class="row-sub">@TiposGastoModelo.Uso(t)</span>
+                        </span>
+                        <span class="row-end categoria-acciones">
+                            <a class="btn btn-gray btn-sm btn-icono-movil" asp-action="Tipos" asp-route-editar="@tipo.Id" asp-route-volver="@Model.Volver" asp-fragment="tipo-@tipo.Id"
+                               title="Renombrar «@tipo.Nombre»"><icono nombre="editar" tamano="15" /> <span>Renombrar</span></a>
+                            @if (t.Gastos > 0)
+                            {
+                                <form method="post" asp-action="ArchivarTipo" asp-route-id="@tipo.Id" asp-route-archivar="true" asp-route-volver="@Model.Volver"
+                                      data-confirmar="«@tipo.Nombre» dejará de salir al anotar un gasto. Los @(t.Gastos == 1 ? "gasto que ya lo lleva lo conserva" : $"{t.Gastos} gastos que ya lo llevan lo conservan"). Podrás volver a activarlo." data-confirmar-accion="Archivar">
+                                    <button class="btn btn-gray btn-sm btn-icono-movil" title="Archivar «@tipo.Nombre»"><icono nombre="archivar" tamano="15" /> <span>Archivar</span></button>
+                                </form>
+                            }
+                            else
+                            {
+                                <form method="post" asp-action="EliminarTipo" asp-route-id="@tipo.Id" asp-route-volver="@Model.Volver"
+                                      data-confirmar="Se borrará el tipo «@tipo.Nombre». No lo lleva ningún gasto." data-confirmar-accion="Borrar">
+                                    <button class="btn btn-gray btn-sm btn-destructive btn-icono-movil" title="Borrar «@tipo.Nombre»"><icono nombre="papelera" tamano="15" /> <span>Borrar</span></button>
+                                </form>
+                            }
+                        </span>
+                    </div>
+                }
+            }
+        </div>
+    </section>
+
+    @if (archivados.Count > 0)
+    {
+        <section class="section">
+            <div class="section-head">
+                <h2>Archivados</h2>
+                <span class="muted small">No salen al anotar un gasto</span>
+            </div>
+            <div class="list categorias-lista">
+                @foreach (var t in archivados)
+                {
+                    var tipo = t.Tipo;
+                    <div class="row categoria-fila is-eliminada" id="tipo-@tipo.Id">
+                        <span class="categoria-icono tint-gray"><icono nombre="cartera" tamano="18" /></span>
+                        <span class="row-main">
+                            <span class="row-title">@tipo.Nombre</span>
+                            <span class="row-sub">Archivado · @TiposGastoModelo.Uso(t)</span>
+                        </span>
+                        <span class="row-end categoria-acciones">
+                            <form method="post" asp-action="ArchivarTipo" asp-route-id="@tipo.Id" asp-route-archivar="false" asp-route-volver="@Model.Volver">
+                                <button class="btn btn-gray btn-sm btn-icono-movil" title="Activar «@tipo.Nombre»"><icono nombre="recuperar" tamano="15" /> <span>Activar</span></button>
+                            </form>
+                            @if (t.Gastos == 0)
+                            {
+                                <form method="post" asp-action="EliminarTipo" asp-route-id="@tipo.Id" asp-route-volver="@Model.Volver"
+                                      data-confirmar="Se borrará el tipo «@tipo.Nombre». No lo lleva ningún gasto." data-confirmar-accion="Borrar">
+                                    <button class="btn btn-gray btn-sm btn-destructive btn-icono-movil" title="Borrar «@tipo.Nombre»"><icono nombre="papelera" tamano="15" /> <span>Borrar</span></button>
+                                </form>
+                            }
+                        </span>
+                    </div>
+                }
+            </div>
+        </section>
+    }
+</div>

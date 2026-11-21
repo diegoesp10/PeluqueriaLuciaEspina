@@ -18,11 +18,19 @@ public enum Periodo
     Anio,
 }
 
+/// <param name="Pagina">Visitas y gastos del periodo en una sola lista, lo más reciente primero.</param>
 /// <param name="PorCobrar">En la vista de un día, las citas confirmadas de la agenda que aún no tienen visita.</param>
-public sealed record VisitasIndiceModelo(Periodo Periodo, DateOnly Fecha, DateOnly Hoy, Pagina<Visita> Pagina, ResumenVisitas Resumen,
-    IReadOnlyList<ReservaCita>? PorCobrar = null)
+/// <param name="Pagos">Lo pagado en el periodo (los gastos).</param>
+public sealed record VisitasIndiceModelo(Periodo Periodo, DateOnly Fecha, DateOnly Hoy, Pagina<Apunte> Pagina, ResumenVisitas Resumen,
+    IReadOnlyList<ReservaCita>? PorCobrar = null, PeluqueriaLucia.Application.Gastos.ResumenGastos? Pagos = null)
 {
     public IReadOnlyList<ReservaCita> CitasPorCobrar => PorCobrar ?? [];
+
+    public PeluqueriaLucia.Application.Gastos.ResumenGastos Gastos => Pagos ?? PeluqueriaLucia.Application.Gastos.ResumenGastos.Vacio;
+
+    /// <summary>Encabezado de la lista de un día: «3 visitas» o «3 visitas · 1 gasto».</summary>
+    public string TituloLista =>
+        $"{Resumen.Visitas} {(Resumen.Visitas == 1 ? "visita" : "visitas")}" + (Gastos.Gastos > 0 ? $" · {Gastos.Gastos} {(Gastos.Gastos == 1 ? "gasto" : "gastos")}" : "");
 
     public static FiltroVisitas Filtro(Periodo periodo, DateOnly fecha) => periodo switch
     {
@@ -133,6 +141,9 @@ public sealed class VisitaFormulario
     public decimal? Efectivo { get; set; }
 
     public decimal? Tarjeta { get; set; }
+
+    /// <summary>Lo que da el cliente en efectivo (la calculadora del cambio): sale en el ticket con el cambio.</summary>
+    public decimal? Entregado { get; set; }
 
     /// <summary>Servicio del catálogo que se añade; sin precio, el del catálogo.</summary>
     public int? ServicioId { get; set; }

@@ -104,6 +104,70 @@
   font-weight: 600;
 }
 
+/* Calculadora del cambio (efectivo y la parte en efectivo del mixto) */
+.cobro-cambio {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--separator);
+  border-radius: 14px;
+  background: color-mix(in oklab, var(--green) 5%, var(--surface));
+}
+
+.cobro-cambio-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 12px;
+}
+
+.cobro-cambio-titulo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.cobro-cambio-titulo svg {
+  color: var(--green);
+}
+
+.cobro-cambio-billetes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cobro-cambio-resultado {
+  margin: 0;
+  color: var(--label-2);
+  font-size: 14px;
+}
+
+.cobro-cambio-resultado.is-devolver {
+  color: var(--green-text);
+  font: 650 26px/1.2 var(--font);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.cobro-cambio-resultado.is-ok {
+  color: var(--green-text);
+  font-weight: 600;
+}
+
+.cobro-cambio-resultado.is-error {
+  color: var(--red);
+  font-weight: 600;
+}
+
+.cobro-cambio-desglose {
+  margin: -6px 0 0;
+  color: var(--label-2);
+  font-size: 13px;
+}
+
 /* ── Nueva visita ─────────────────────────────────────────────────────────── */
 
 .nueva-visita {
@@ -194,7 +258,7 @@
   }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1180px) {
   .barra-total {
     bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
     left: 0;
@@ -331,7 +395,25 @@
 .panel-actividad span { font-size:13px; color:var(--label-2); }
 .panel-cuenta { padding:22px 26px; display:flex; flex-wrap:wrap; gap:16px; align-items:center; justify-content:space-between; }
 .panel-cuenta p { color:var(--label-2); font-size:13px; margin-top:4px; }
-@media(min-width:901px) and (max-width:1180px) { .nav-label { display:none; } }
+.panel-acciones { display:flex; flex-wrap:wrap; gap:10px; }
+/* Cobros y gastos del mes: tres cifras (lo que entra, lo que sale y lo que queda) y los gastos por tipo con su barra */
+.panel-gastos { display:grid; gap:20px; padding:22px 26px; }
+.panel-gastos-cifras { display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:16px; margin:0; }
+.panel-gastos-cifras > div { min-width:0; padding-left:12px; border-left:3px solid var(--tint); }
+.panel-gastos-cifras dt { color:var(--label-2); font-size:13px; }
+.panel-gastos-cifras dd { margin:2px 0 0; font-size:22px; font-weight:600; font-variant-numeric:tabular-nums; letter-spacing:-.01em; overflow-wrap:anywhere; }
+.panel-gastos-vacio { margin:0; color:var(--label-2); font-size:14px; line-height:1.5; }
+.panel-gastos-tipos { display:grid; gap:12px; margin:0; padding:0; list-style:none; }
+.panel-gastos-tipo { display:flex; justify-content:space-between; gap:12px; font-size:14px; }
+.panel-gastos-tipo > span:first-child { min-width:0; overflow-wrap:anywhere; }
+.panel-gastos-tipo > .num { flex:none; color:var(--red); font-variant-numeric:tabular-nums; }
+.panel-gastos-tipos progress { display:block; width:100%; height:6px; margin-top:6px; border:0; border-radius:999px; overflow:hidden;
+  appearance:none; background:var(--fill); color:var(--red); }
+.panel-gastos-tipos progress::-webkit-progress-bar { background:var(--fill); border-radius:999px; }
+.panel-gastos-tipos progress::-webkit-progress-value { background:var(--red); border-radius:999px; }
+.panel-gastos-tipos progress::-moz-progress-bar { background:var(--red); border-radius:999px; }
+.panel-gastos-resto .panel-gastos-tipo { color:var(--label-2); }
+.panel-gastos-pie { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px 16px; padding-top:16px; border-top:1px solid var(--separator); }
 @media(max-width:900px) {
   .panel-bienvenida { grid-template-columns:minmax(0,1fr); padding:26px; gap:24px; }
   .panel-foto { display:none; }
@@ -340,14 +422,15 @@
 @media(max-width:560px) {
   .sitio-admin .stat { padding:16px; }
   .panel-bienvenida { padding:22px; }
-  .panel-cuenta,.panel-actividad { padding:22px; }
+  .panel-cuenta,.panel-actividad,.panel-gastos { padding:22px; }
+  .panel-acciones > .btn { flex:1 1 auto; }
   .sitio-admin .row:has(.row-body) { flex-wrap:wrap; }
 }
 .form-pagina { width: min(100%, 820px); margin-inline: auto; }
 .form-pagina .form { max-width: none; }
 .nueva-visita { width: min(100%, 960px); margin-inline: auto; }
 .nueva-visita .form-ancho { max-width: none; }
-@media (min-width:901px) { .barra-total { padding-inline:max(40px,calc((100% - var(--sidebar-w) - 960px) / 2)); } }
+@media (min-width:1181px) { .barra-total { padding-inline:max(40px,calc((100% - var(--sidebar-w) - 960px) / 2)); } }
 .main > .form { margin-inline: auto; }
 .resena-card form { display:grid; gap:16px; }
 
@@ -362,9 +445,31 @@
 .btn-icono:disabled { opacity: .35; cursor: default; }
 :target.orden-fila { background: color-mix(in oklab, var(--accent) 8%, transparent); }
 
-/* ── Reseñas: filtros separados de la lista ── */
+/* ── Reseñas: filtros separados de la lista; pestañas con su contador ── */
 .resenas-filtros { margin-bottom: 28px; }
-.resenas-filtros .segmented > a { padding-inline: 18px; }
+.resenas-filtros .segmented > a { padding-inline: 16px; }
+.segmented .contador { display: inline-grid; place-items: center; min-width: 22px; height: 20px; padding-inline: 6px; border-radius: 999px;
+  background: color-mix(in oklab, var(--label) 9%, transparent); color: var(--label-2); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.segmented .contador.is-aviso { background: var(--orange); color: var(--surface); }
+@media (max-width: 760px) {
+  /* Cuatro pestañas con contador no caben en una fila estrecha: de dos en dos, sin cortar ningún texto */
+  .resenas-filtros > .resenas-pestanas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); flex: 1 1 100%; gap: 2px; }
+  .resenas-filtros > .search { flex: 1 1 100%; max-width: none; }
+}
+/* Cada reseña: su estado arriba, el historial (escrita, publicada, oculta…) y los botones bien separados */
+.resenas-admin .resena-cabecera { align-items: center; }
+.resenas-admin .resena-cabecera > .pill { font-size: 12px; }
+.resena-historial { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; font-size: 13px; color: var(--label-2); }
+.resena-historial li { display: flex; align-items: flex-start; gap: 6px; line-height: 1.4; }
+.resena-historial svg { flex: none; margin-top: 2px; color: var(--olive); }
+.resena-historial .is-publicada { color: var(--green-text); font-weight: 600; }
+.resena-historial .is-publicada svg { color: var(--green); }
+.resena-historial .is-oculta, .resena-historial .is-rechazada { color: var(--label); font-weight: 600; }
+.resena-historial .is-oculta svg, .resena-historial .is-rechazada svg { color: var(--red); }
+.resena-historial .is-pendiente svg { color: var(--orange); }
+.resena-acciones { display: flex; flex-wrap: wrap; gap: 12px; padding-top: 18px; border-top: 1px solid var(--separator); }
+.resena-acciones > .btn { flex: 1 1 auto; justify-content: center; }
+.resena-card.is-oculta, .resena-card.is-rechazada { background: color-mix(in oklab, var(--fill) 45%, var(--surface)); }
 @media (max-width: 560px) { .orden-fila { flex-wrap: wrap; } .orden-flechas { margin-left: auto; } }
 
 /* ── Selector de horas de «Nueva cita» (nueva-cita.js): solo horas libres; las ocupadas se ven tachadas.
@@ -448,6 +553,7 @@
 
 /* Buscador del inventario: en su propio panel, separado de las cifras, con cada campo etiquetado */
 .filtros-productos { display: grid; gap: 14px; margin: 26px 0 24px; padding: 18px 20px; border-radius: var(--r-card); background: var(--surface); box-shadow: var(--card-shadow); }
+.filtros-productos > * { min-width: 0; }
 .filtros-productos-campos { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 14px 18px; }
 .filtro { display: grid; align-content: start; gap: 8px; min-width: 0; }
 .filtro-etiqueta { padding-left: 2px; color: var(--label-2); font-size: 13px; font-weight: 600; }
@@ -479,6 +585,10 @@
 .categoria-fila.is-eliminada .row-title { color: var(--label-2); }
 .categoria-fila.is-editando > .input { flex: 1; min-width: 0; min-height: 40px; }
 .categoria-acciones { gap: 8px; }
+/* Etiqueta de un campo con un enlace a su derecha («Editar tipos») */
+.field-cabecera { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
+.field-enlace { display: inline-flex; align-items: center; gap: 4px; font-size: 14px; font-weight: 600; color: var(--accent); text-decoration: none; }
+.field-enlace:hover { text-decoration: underline; }
 .categoria-acciones > form { margin: 0; }
 .producto-aviso-categoria { margin: -8px 0 24px; line-height: 1.45; }
 .producto-aviso-categoria a { font-weight: 600; }
@@ -594,6 +704,27 @@
 /* En tarjetas estrechas, las fechas (el selector mide al menos 200 px) van una debajo de otra */
 .coste-formulario .fields-2, .sorteo-anunciar .fields-2, .sorteo-visitas .fields-2 { grid-template-columns: minmax(0, 1fr); gap: 16px; }
 
+/* Visitas: con los gastos son cinco cifras. En pantallas anchas, en una fila; en las medianas, tres y dos; en las
+   estrechas, de dos en dos con los gastos a todo el ancho (nunca cuatro y una suelta) */
+.stats.stats-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+@media (max-width: 1439px) {
+  .stats.stats-5 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .stats.stats-5 > .stat { grid-column: span 2; }
+  .stats.stats-5 > .stat:nth-child(n + 4) { grid-column: span 3; }
+}
+@media (max-width: 1100px) {
+  .stats.stats-5 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stats.stats-5 > .stat,
+  .stats.stats-5 > .stat:nth-child(n + 4) { grid-column: auto; }
+  .stats.stats-5 > .stat:last-child { grid-column: 1 / -1; }
+}
+/* Gastos: pagos del salón, en rojo y con signo menos */
+.importe-gasto { color: var(--red); }
+.fila-gasto .row-title { font-weight: 500; }
+.gasto-medios { display: grid; gap: 10px; margin: 0; padding: 0; border: 0; }
+.gasto-medios-opciones { flex-wrap: wrap; }
+.gasto-medios-opciones > label { flex: 1 1 auto; padding-inline: 12px; }
+
 /* Visitas del día: las citas confirmadas que quedan por cobrar */
 .cita-por-cobrar > form { flex: none; margin: 0; }
 
@@ -629,7 +760,7 @@
   background: linear-gradient(135deg, var(--pink), var(--accent)); box-shadow: 0 8px 20px -10px var(--accent); }
 .sorteo-tarjeta-sello { width: 52px; height: 52px; }
 .sorteo-sello-grande { width: 64px; height: 64px; border-radius: 20px; }
-.sorteos-tarjetas { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; margin-top: 8px; }
+.sorteos-tarjetas { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 18px; margin-top: 8px; }
 .sorteo-tarjeta { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px 16px; padding: 20px; color: inherit; transition: transform .2s, box-shadow .2s; }
 .sorteo-tarjeta:hover { transform: translateY(-2px); box-shadow: var(--card-shadow), 0 14px 30px -18px var(--accent); }
 .sorteo-tarjeta-cuerpo { display: grid; gap: 4px; min-width: 0; }
@@ -660,6 +791,21 @@
 .sorteo-visitas > .btn, .sorteo-elegir > .btn, .sorteo-repetir .btn, .sorteo-anunciar > .btn { justify-self: start; }
 .sorteo-repetir form + form { padding-top: 16px; border-top: 1px solid var(--separator); }
 .sorteo-participantes .row form { margin: 0; }
+/* Número de cada participante en lugar de sus iniciales; al añadir un cliente, su número (opcional) junto al buscador */
+.avatar.sorteo-numero { font-size: 13px; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.avatar-lg.sorteo-numero { font-size: 22px; }
+.sorteo-agregar-cliente { display: grid; grid-template-columns: minmax(0, 1fr) 104px; gap: 10px; align-items: start; }
+.sorteo-agregar .sorteo-agregar-pista { margin: -4px 0 0; }
+.sorteo-numeros { display: grid; gap: 14px; }
+.sorteo-numeros > .btn { justify-self: start; }
+.sorteo-numeros textarea { font-variant-numeric: tabular-nums; }
+/* Cambiar el número: un pequeño formulario flotante junto a la fila */
+.sorteo-cambiar { position: relative; flex: none; }
+.sorteo-cambiar > summary { list-style: none; }
+.sorteo-cambiar > summary::-webkit-details-marker { display: none; }
+.sorteo-cambiar-form { position: absolute; z-index: 20; top: calc(100% + 6px); right: 0; display: grid; gap: 10px; width: min(260px, 80vw); padding: 14px;
+  border-radius: var(--r-card); background: var(--surface); box-shadow: var(--glass-shadow, var(--card-shadow)); }
+.sorteo-cambiar-form > .btn { justify-self: start; }
 .sorteo-participantes .row.is-ganador { background: color-mix(in oklab, var(--green) 10%, transparent); }
 .sorteo-participantes a.row-title { color: inherit; }
 
@@ -671,6 +817,12 @@
 .sorteo-sortear-sello { width: 72px; height: 72px; border-radius: 24px; animation: sorteo-flotar 3s ease-in-out infinite; }
 .sorteo-boton { background: linear-gradient(135deg, var(--pink), var(--accent)); border: 0; }
 .sorteo-cancelar summary { color: var(--red); }
+/* Bajo «Sortear ahora», cada opción en su franja, separada por una línea, y sus campos con aire */
+.sorteo-sortear > .sorteo-mas { width: 100%; margin-top: 4px; padding-top: 16px; border-top: 1px solid var(--separator); }
+.sorteo-sortear > .sorteo-mas + .sorteo-mas { margin-top: 0; }
+.sorteo-mas > summary { padding-block: 4px; }
+.sorteo-cancelar form { display: grid; gap: 14px; }
+.sorteo-cancelar form > .btn, .sorteo-elegir > .btn { justify-self: start; }
 @keyframes sorteo-flotar { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-6px) rotate(3deg); } }
 
 /* Ganador: tarjeta de celebración; recién sorteado, ruleta de nombres y confeti */
@@ -692,6 +844,135 @@
 @keyframes sorteo-confeti { 0% { opacity: 1; transform: translateY(0) rotate(0); } 100% { opacity: 0; transform: translateY(260px) rotate(var(--giro)); } }
 .sorteo-otra-vez { margin-top: 16px; }
 .sorteo-anuncios .row form { margin: 0; }
+/* Estado del anuncio: si está en la web, una tarjeta con su texto y los botones para quitarlo o cambiarlo */
+.sorteo-anuncio-estado { display: grid; gap: 16px; border-left: 4px solid var(--green); }
+.sorteo-anuncio-estado.is-programado { border-left-color: var(--blue); }
+.sorteo-anuncio-cabecera { display: flex; align-items: center; gap: 14px; }
+.sorteo-anuncio-icono { display: grid; flex: none; place-items: center; width: 44px; height: 44px; border-radius: 14px;
+  background: color-mix(in oklab, var(--green) 16%, var(--surface)); color: var(--green-text); }
+.is-programado .sorteo-anuncio-icono { background: color-mix(in oklab, var(--blue) 16%, var(--surface)); color: var(--blue); }
+.sorteo-anuncio-etiqueta { margin: 0; color: var(--green-text); font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.is-programado .sorteo-anuncio-etiqueta { color: var(--blue); }
+.is-en-la-web .sorteo-anuncio-etiqueta::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%;
+  background: var(--green); vertical-align: 1px; animation: anuncio-latido 2s ease-in-out infinite; }
+@keyframes anuncio-latido { 50% { box-shadow: 0 0 0 4px color-mix(in oklab, var(--green) 25%, transparent); } }
+.sorteo-anuncio-fechas { margin: 2px 0 0; font-size: 16px; font-weight: 600; }
+.sorteo-anuncio-texto { display: grid; gap: 6px; margin: 0; padding: 14px 16px; border-radius: 14px; background: var(--fill); }
+.sorteo-anuncio-texto p { margin: 0; overflow-wrap: anywhere; }
+.sorteo-anuncio-acciones { display: flex; flex-wrap: wrap; gap: 12px; }
+.sorteo-anuncio-acciones > form { margin: 0; }
+.sorteo-anuncio-acciones .btn { justify-content: center; }
+.sorteo-anuncio-cambiar { padding-top: 14px; border-top: 1px solid var(--separator); }
+.sorteo-anuncio-cambiar .sorteo-anunciar { margin-top: 0; }
+.sorteo-anuncios-historial { margin-top: 14px; }
+@media (max-width: 560px) {
+  .sorteo-anuncio-acciones > form, .sorteo-anuncio-acciones > .btn { flex: 1 1 100%; }
+  .sorteo-anuncio-acciones > form > .btn { width: 100%; }
+}
+
+/* ── Tablero del sorteo: todos los números, libres y ocupados, con quién los tiene ── */
+.tablero-pantalla { display: grid; gap: 20px; }
+.tablero-pantalla-titulo { display: none; }
+.tablero-cifras { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.tablero-cifra { display: grid; gap: 2px; padding: 14px 16px; border-radius: 18px; background: var(--surface); box-shadow: var(--card-shadow); border-top: 3px solid var(--tint); }
+.tablero-cifra strong { font-size: 28px; font-weight: 650; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.tablero-cifra span { color: var(--label-2); font-size: 13px; }
+.tablero-progreso { grid-column: 1 / -1; width: 100%; height: 10px; border: 0; border-radius: 999px; overflow: hidden; appearance: none; background: var(--fill); }
+.tablero-progreso::-webkit-progress-bar { background: var(--fill); border-radius: 999px; }
+.tablero-progreso::-webkit-progress-value { background: linear-gradient(90deg, var(--purple), var(--accent)); border-radius: 999px; }
+.tablero-progreso::-moz-progress-bar { background: linear-gradient(90deg, var(--purple), var(--accent)); border-radius: 999px; }
+.tablero-progreso-texto { grid-column: 1 / -1; margin: -6px 0 0; color: var(--label-2); font-size: 13px; }
+
+.tablero-sorteados h2 { margin: 0 0 10px; color: var(--olive); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+.tablero-bolas { display: flex; flex-wrap: wrap; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.tablero-bola-item { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 10px 16px 10px 10px; border-radius: 999px; background: var(--surface); box-shadow: var(--card-shadow); }
+.tablero-bola-item.is-anterior { opacity: .75; }
+.tablero-bola-texto { display: grid; min-width: 0; font-size: 13px; line-height: 1.35; }
+.tablero-bola-texto > span { overflow-wrap: anywhere; }
+.tablero-bola { display: grid; flex: none; place-items: center; width: 52px; height: 52px; border-radius: 50%; font-size: 19px; font-weight: 700; font-variant-numeric: tabular-nums;
+  background: radial-gradient(circle at 32% 28%, #fff 0 12%, color-mix(in oklab, var(--gold) 70%, #fff) 13%, var(--gold) 70%); color: #3a2a00;
+  box-shadow: inset 0 -4px 8px rgb(0 0 0 / .15), 0 4px 12px color-mix(in oklab, var(--gold) 35%, transparent); }
+.tablero-bola-item.is-anterior .tablero-bola, .tablero-bola.is-gano-antes { background: radial-gradient(circle at 32% 28%, #fff 0 12%, color-mix(in oklab, var(--purple) 55%, #fff) 13%, var(--purple) 75%); color: #fff; }
+.tablero-bola.is-libre { background: var(--fill); color: var(--label-2); box-shadow: inset 0 0 0 2px var(--separator); }
+.tablero-bola.is-ocupado { background: radial-gradient(circle at 32% 28%, #fff 0 12%, color-mix(in oklab, var(--accent) 55%, #fff) 13%, var(--accent) 75%); color: var(--accent-ink); }
+
+.tablero-herramientas { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.tablero-herramientas > .search { flex: 1 1 260px; max-width: 420px; }
+.tablero-resultado { flex: 1 1 100%; margin: -4px 0 0; min-height: 1em; }
+.tablero-resultado:empty { display: none; }
+.tablero-leyenda { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 0; padding: 0; list-style: none; color: var(--label-2); font-size: 13px; }
+.tablero-leyenda li { display: flex; align-items: center; gap: 6px; }
+.tablero-muestra { width: 16px; height: 16px; border-radius: 5px; }
+
+.tablero { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
+.tablero > li { min-width: 0; }
+.tablero-celda, .tablero-muestra { --celda: var(--accent); }
+.tablero-celda { position: relative; display: grid; align-content: center; justify-items: center; gap: 2px; width: 100%; min-height: 72px; padding: 8px 4px;
+  border: 0; border-radius: 14px; font: inherit; text-align: center; cursor: pointer;
+  background: color-mix(in oklab, var(--celda) 14%, var(--surface)); color: var(--label);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--celda) 30%, transparent);
+  transition: transform .15s var(--ease), box-shadow .15s, opacity .15s; }
+.tablero-celda:hover, .tablero-celda:focus-visible { transform: translateY(-2px) scale(1.04); box-shadow: inset 0 0 0 2px var(--celda), 0 8px 18px -10px var(--celda); z-index: 1; }
+.tablero-celda-numero { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; color: var(--celda); }
+.tablero-celda-nombre { max-width: 100%; font-size: 11.5px; line-height: 1.2; overflow-wrap: anywhere; color: var(--label-2); }
+.tablero-celda-sello { position: absolute; top: 5px; right: 6px; display: flex; color: var(--celda); }
+.tablero-celda.is-libre, .tablero-muestra.is-libre { --celda: var(--gray); background: transparent; box-shadow: inset 0 0 0 1.5px var(--separator); }
+.tablero-muestra.is-libre { border: 1.5px dashed var(--gray); box-shadow: none; }
+.tablero-celda.is-libre { border: 1.5px dashed color-mix(in oklab, var(--gray) 55%, transparent); box-shadow: none; }
+.tablero-celda.is-libre .tablero-celda-numero { color: var(--label-2); font-weight: 600; }
+.tablero-celda.is-libre .tablero-celda-nombre { font-style: italic; opacity: .8; }
+.tablero-celda.is-ocupado .tablero-celda-nombre { color: var(--label); font-weight: 600; }
+.tablero-muestra.is-ocupado { background: color-mix(in oklab, var(--accent) 22%, var(--surface)); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 40%, transparent); }
+.tablero-celda.is-ganador, .tablero-muestra.is-ganador { --celda: var(--gold); background: linear-gradient(145deg, color-mix(in oklab, var(--gold) 35%, var(--surface)), color-mix(in oklab, var(--gold) 14%, var(--surface))); }
+.tablero-celda.is-ganador { box-shadow: inset 0 0 0 2px var(--gold), 0 6px 20px -8px var(--gold); animation: celda-ganadora 2.4s ease-in-out infinite; }
+.tablero-celda.is-ganador .tablero-celda-nombre { color: var(--label); font-weight: 700; }
+@keyframes celda-ganadora { 50% { box-shadow: inset 0 0 0 2px var(--gold), 0 0 0 5px color-mix(in oklab, var(--gold) 22%, transparent); } }
+.tablero-celda.is-gano-antes, .tablero-muestra.is-gano-antes { --celda: var(--purple); background: color-mix(in oklab, var(--purple) 20%, var(--surface)); }
+.tablero-celda.is-recien { animation: celda-recien 1.6s ease-out 2; }
+@keyframes celda-recien { 0% { box-shadow: inset 0 0 0 2px var(--accent), 0 0 0 0 color-mix(in oklab, var(--accent) 45%, transparent); } 100% { box-shadow: inset 0 0 0 2px var(--accent), 0 0 0 14px transparent; } }
+/* Filtros y búsqueda */
+.tablero[data-filtro="libres"] > li:not(:has(.is-libre)), .tablero[data-filtro="ocupados"] > li:has(.is-libre) { display: none; }
+.tablero.is-buscando .tablero-celda:not(.is-coincide) { opacity: .28; }
+.tablero.is-buscando .tablero-celda.is-coincide { box-shadow: inset 0 0 0 2.5px var(--accent), 0 8px 20px -10px var(--accent); }
+
+/* Pantalla completa: para enseñarlo en el salón, con el título y casillas más grandes */
+.tablero-pantalla.is-completa { overflow: auto; padding: clamp(16px, 3vw, 40px); background: var(--bg); align-content: start; }
+.tablero-pantalla.is-completa .tablero-pantalla-titulo { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.tablero-pantalla-titulo p { display: flex; align-items: center; gap: 10px; margin: 0; font: 400 clamp(26px, 3vw, 44px)/1.1 var(--font-display); color: var(--accent); }
+.tablero-pantalla.is-completa .tablero { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
+.tablero-pantalla.is-completa .tablero-celda { min-height: 96px; }
+.tablero-pantalla.is-completa .tablero-celda-numero { font-size: 28px; }
+.tablero-pantalla.is-completa .tablero-celda-nombre { font-size: 13.5px; }
+
+/* Quién tiene un número: hoja con su nombre y lo que se puede hacer */
+.tablero-dialogo { width: min(440px, calc(100vw - 32px)); padding: 22px; border: 0; border-radius: 22px; background: var(--surface); color: var(--label); box-shadow: var(--glass-shadow); }
+.tablero-dialogo[open] { display: grid; gap: 16px; animation: pop-in .25s var(--ease); }
+.tablero-dialogo::backdrop { background: rgb(0 0 0 / .35); }
+.tablero-dialogo-cabecera { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 14px; }
+.tablero-dialogo-cabecera h2 { margin: 0; font-size: 19px; overflow-wrap: anywhere; }
+.tablero-dialogo-cabecera p { margin: 2px 0 0; font-size: 13.5px; }
+.tablero-dialogo-cabecera form { margin: 0; align-self: start; }
+.tablero-dialogo-contacto { margin: 0; padding: 10px 14px; border-radius: 12px; background: var(--fill); font-variant-numeric: tabular-nums; }
+.tablero-dialogo-acciones { display: flex; flex-wrap: wrap; gap: 10px; }
+.tablero-dialogo-acciones > .btn { flex: 1 1 auto; justify-content: center; }
+.tablero-dialogo-acciones > [hidden] { display: none; }
+.tablero-apuntar { display: grid; gap: 14px; margin: 0; }
+.tablero-apuntar[hidden] { display: none; }
+.tablero-talonario-form { display: grid; gap: 14px; max-width: 560px; }
+.tablero-talonario-form > .btn { justify-self: start; }
+.tablero-talonario-form .input.num { max-width: 200px; }
+@media (max-width: 900px) {
+  .tablero-cifras { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .tablero { grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 6px; }
+  .tablero-celda { min-height: 62px; border-radius: 12px; }
+  .tablero-celda-numero { font-size: 17px; }
+  .tablero-celda-nombre { font-size: 10.5px; }
+  .tablero-cifra strong { font-size: 22px; }
+  .tablero-herramientas > .search, .tablero-herramientas > .segmented { flex: 1 1 100%; max-width: none; }
+  .tablero-bola-item { flex: 1 1 100%; }
+}
 .sorteo-anuncios .row-title, .sorteo-anuncios .row-sub { white-space: normal; }
 .sorteo-anunciar { margin-top: 12px; }
 .sorteo-extraccion.is-anterior { opacity: .7; }
@@ -726,3 +1007,7 @@
 @media (prefers-reduced-motion: reduce) {
   .alerta-sorteo, .sorteo-sortear-sello { animation: none; }
 }
+/* El filtro del tablero es un fieldset: sin el borde ni el ancho mínimo del navegador */
+.tablero-filtro { margin: 0; border: 0; min-inline-size: 0; }
+/* Un correo o un nombre largo se parte en vez de salirse */
+.texto-largo { overflow-wrap: anywhere; }

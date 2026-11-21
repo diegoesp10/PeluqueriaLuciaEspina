@@ -46,7 +46,8 @@ En pantallas grandes, la foto de portada se limita a 560 px dentro de una compos
 
 - **Web:** fotografía del salón, títulos editoriales, tarjetas de servicios, contacto y reserva.
 - **Login:** logo, bienvenida y formulario en una tarjeta central. Campos alineados a la izquierda y acción principal a todo el ancho.
-- **Panel:** bienvenida con la misma foto, cifras claras y accesos de gestión agrupados. Navegación lateral de tonos suaves; en móvil, barra superior e inferior.
+- **Panel:** bienvenida con la misma foto, cifras claras y accesos de gestión agrupados. Navegación lateral de tonos suaves desde 1181 px; por debajo (móvil, tableta y portátil pequeño), barra superior con el **menú hamburguesa**, que abre la navegación completa en un cajón lateral (el botón lleva `data-menu-hasta="1180px"`, que lee `app.js`; la web pública cambia a 900 px). No hay barra de solo iconos: un menú siempre enseña sus nombres enteros.
+- **Nada cortado:** en el panel ningún texto acaba en puntos suspensivos. Las filas (`.row-title`, `.row-sub`) bajan de línea y parten las palabras muy largas (un correo); los controles segmentados bajan a otra fila si no caben, cada opción entera. Las ventanas (`<dialog>`) se quedan centradas. Antes de dar por buena una pantalla del panel, comprobarla de 320 a 1440 px sin desplazamiento horizontal ni textos cortados; la prueba `El_panel_pasa_al_menu_hamburguesa_y_no_corta_textos` vigila estas reglas.
 - **Clientes, visitas y catálogo:** misma tipografía, botones, tarjetas y paleta; dar prioridad a búsqueda, datos y acciones.
 - **Seguridad:** formularios y listas con los mismos componentes; las sesiones y los errores deben poder leerse en móvil.
 - **Ticket impreso:** papel blanco y tinta negra para que la impresora produzca un recibo legible. Su formato responde al soporte de impresión.

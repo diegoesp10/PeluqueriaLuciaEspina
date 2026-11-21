@@ -62,6 +62,12 @@ public interface IVisitaRepositorio
 
     Task<Pagina<Visita>> ListarAsync(FiltroVisitas filtro, int pagina, int tamano, CancellationToken ct = default);
 
+    /// <summary>
+    /// Visitas y gastos del periodo juntos, lo más reciente primero, paginados como una sola lista. Con filtro de cliente,
+    /// solo sus visitas.
+    /// </summary>
+    Task<Pagina<Apunte>> ListarApuntesAsync(FiltroVisitas filtro, int pagina, int tamano, CancellationToken ct = default);
+
     /// <summary>Todas las visitas del filtro, para exportar. Sin paginar.</summary>
     Task<IReadOnlyList<Visita>> ListarTodasAsync(FiltroVisitas filtro, CancellationToken ct = default);
 

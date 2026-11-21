@@ -38,6 +38,11 @@ public sealed class VisitasWebTests(SeguridadWebFixture fixture) : IClassFixture
         Assert.NotEmpty(linea);
         Assert.Contains("Cobrar 18,00", pendiente);
         Assert.Contains("/js/visita-editor.js", pendiente);
+        // La calculadora del cambio: lo que te da se envía al cobrar, para el ticket
+        Assert.Contains("data-cambio hidden", pendiente);
+        Assert.Contains("Calculadora del cambio", pendiente);
+        Assert.Contains("<input class=\"input num\" id=\"cambio-entrega\" name=\"Entregado\"", pendiente);
+        Assert.Contains("Si lo escribes, sale en el ticket con el cambio.", pendiente);
 
         // Añadir un servicio guarda también el precio cambiado del primero
         var anadido = await admin.PostAsync($"/admin/Visitas/AgregarServicio/{visitaId}", Formulario(await TokenAsync(admin, detalle),
@@ -66,13 +71,55 @@ public sealed class VisitasWebTests(SeguridadWebFixture fixture) : IClassFixture
         Assert.Contains("Cobrar 25,00", sinTinte);
 
         // Lo escrito a medias para añadir un producto no impide cobrar; se cobra con el precio escrito en ese momento
+        // Con tarjeta, lo que quedara escrito en la calculadora no cuenta
         var cobro = await admin.PostAsync($"/admin/Visitas/Cobrar/{visitaId}", Formulario(await TokenAsync(admin, detalle),
-            ($"PreciosServicios[{linea}]", "30,5"), ("FormaPago", "Tarjeta"), ("Cantidad", "muchas"), ("Precio", "x")));
+            ($"PreciosServicios[{linea}]", "30,5"), ("FormaPago", "Tarjeta"), ("Cantidad", "muchas"), ("Precio", "x"), ("Entregado", "100")));
         Assert.Equal(HttpStatusCode.Redirect, cobro.StatusCode);
         Assert.EndsWith($"/admin/Visitas/Ticket/{visitaId}", cobro.Headers.Location!.OriginalString);
         var ticket = WebUtility.HtmlDecode(await admin.GetStringAsync($"/admin/Visitas/Ticket/{visitaId}"));
         Assert.Contains("30,50", ticket);
         Assert.DoesNotContain("35,00", ticket);
+        Assert.Contains("Contado (Tarjeta)", ticket);
+        Assert.DoesNotContain("Entregado", ticket);
+        Assert.DoesNotContain("<span>Efectivo</span>", ticket);
+    }
+
+    [Fact]
+    public async Task Lo_que_da_en_efectivo_sale_en_el_ticket_con_el_cambio()
+    {
+        using var fabrica = new FabricaWeb(fixture.Bd.Cadena);
+        using var admin = fabrica.Cliente();
+        await EntrarAsync(admin);
+        var (clienteId, corte, _) = await ClienteYServicioAsync("Corte con cambio", 27.50m);
+        var registrada = await admin.PostAsync("/admin/Visitas/Nueva", Formulario(await TokenAsync(admin, "/admin/Visitas/Nueva"),
+            ("ClienteId", Texto(clienteId)), ("Fecha", DateTime.Now.ToString("yyyy-MM-ddTHH:mm")), ("FormaPago", "Efectivo"),
+            ("Servicios", Texto(corte)), ("Accion", "cobrar")));
+        var detalle = registrada.Headers.Location!.OriginalString;
+        var visitaId = detalle[(detalle.LastIndexOf('/') + 1)..];
+
+        // Lo que da no llega: no se cobra y lo escrito vuelve con el error al lado
+        var corto = await admin.PostAsync($"/admin/Visitas/Cobrar/{visitaId}", Formulario(await TokenAsync(admin, detalle),
+            ("FormaPago", "Efectivo"), ("Entregado", "20")));
+        Assert.Equal(HttpStatusCode.OK, corto.StatusCode);
+        var paginaCorta = WebUtility.HtmlDecode(await corto.Content.ReadAsStringAsync());
+        Assert.Contains("<p class=\"field-validation-error\" id=\"cambio-entrega-error\">Lo que te da (20", paginaCorta);
+        Assert.Contains("no llega a lo que paga en efectivo", paginaCorta);
+        Assert.Matches(@"name=""Entregado""[^>]*value=""20,00""[^>]*aria-invalid=""true""[^>]*>", paginaCorta);
+        Assert.False(await CobradaAsync(int.Parse(visitaId, CultureInfo.InvariantCulture)));
+
+        var cobro = await admin.PostAsync($"/admin/Visitas/Cobrar/{visitaId}", Formulario(await TokenAsync(admin, detalle),
+            ("FormaPago", "Efectivo"), ("Entregado", "50")));
+        Assert.Equal(HttpStatusCode.Redirect, cobro.StatusCode);
+        var ticket = WebUtility.HtmlDecode(await admin.GetStringAsync($"/admin/Visitas/Ticket/{visitaId}"));
+        Assert.Contains("Contado (Efectivo)", ticket);
+        Assert.Contains("<div class=\"ticket-fila\"><span>Efectivo</span><span>27,50</span></div>", ticket);
+        Assert.Contains("<div class=\"ticket-fila\"><span>Entregado</span><span>50,00</span></div>", ticket);
+        Assert.Contains("<div class=\"ticket-fila\"><span>Cambio</span><span>22,50</span></div>", ticket);
+
+        // La visita cobrada también lo enseña
+        var cobrada = WebUtility.HtmlDecode(await admin.GetStringAsync(detalle));
+        Assert.Matches(@"<span>Entregado en efectivo</span><span class=""num"">50,00\s€</span>", cobrada);
+        Assert.Matches(@"<span>Cambio</span><span class=""num"">22,50\s€</span>", cobrada);
     }
 
     [Fact]

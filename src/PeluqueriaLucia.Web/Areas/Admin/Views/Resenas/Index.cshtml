@@ -1,13 +1,13 @@
+@using PeluqueriaLucia.Domain.Publico
 @model ResenasIndice
 @{
     ViewData["Title"] = "Reseñas";
     var p = Model.Pagina;
     var estado = Model.Estado?.ToString();
     var paginacion = new PaginacionModelo(p.Numero, p.TotalPaginas, p.TotalElementos, n => Url.Action("Index", new { pagina = n, estado, q = Model.Texto })!);
-    var estados = new[] { (PeluqueriaLucia.Domain.Publico.EstadoResena.Pendiente, "Pendientes"), (PeluqueriaLucia.Domain.Publico.EstadoResena.Publicada, "Publicadas"), (PeluqueriaLucia.Domain.Publico.EstadoResena.Rechazada, "Rechazadas") };
 }
 <header class="page-head">
-    <div><h1>Escucha a tu salón.</h1><p class="subtitle">Opiniones verificadas con ticket. Revisa el texto y la foto antes de publicarlos.</p></div>
+    <div><h1>Escucha a tu salón.</h1><p class="subtitle">Opiniones verificadas con ticket. Revisa el texto y la foto antes de publicarlos; las publicadas se pueden ocultar de la web en cualquier momento.</p></div>
     <a class="btn btn-gray" asp-area="" asp-controller="Opiniones" asp-action="Index" target="_blank">Ver opiniones <icono nombre="flecha-salir" tamano="14" /></a>
 </header>
 
@@ -18,10 +18,13 @@
         <input class="input" type="search" name="q" value="@Model.Texto" placeholder="Buscar por nombre, comentario o respuesta"
                aria-label="Buscar reseñas" autocomplete="off" data-buscar-al-escribir />
     </label>
-    <nav class="segmented" aria-label="Estado de reseñas">
-        @foreach (var (valor, texto) in estados)
+    <nav class="segmented resenas-pestanas" aria-label="Estado de reseñas">
+        @foreach (var (valor, texto) in ResenasIndice.Pestanas)
         {
-            <a class="@(Model.Estado == valor ? "is-active" : null)" aria-current="@(Model.Estado == valor ? "page" : null)" asp-action="Index" asp-route-estado="@valor" asp-route-q="@Model.Texto">@texto</a>
+            var total = Model.Total(valor);
+            <a class="@(Model.Estado == valor ? "is-active" : null)" aria-current="@(Model.Estado == valor ? "page" : null)" asp-action="Index" asp-route-estado="@valor" asp-route-q="@Model.Texto">
+                @texto <span class="contador @(valor == EstadoResena.Pendiente && total > 0 ? "is-aviso" : null)" aria-label="@total @(total == 1 ? "reseña" : "reseñas")">@total</span>
+            </a>
         }
     </nav>
 </form>
@@ -35,9 +38,86 @@
         }
         else
         {
-            <h2>Aún no hay opiniones aquí.</h2><p>Las visitas verificadas aparecerán en este espacio.</p>
+            <span class="estado-icono tint-green"><icono nombre="check-circulo" tamano="30" /></span>
+            <h2>@ResenasIndice.Vacio(Model.Estado)</h2><p>@ResenasIndice.VacioDetalle(Model.Estado)</p>
         }
     </div>
 }
-<div class="resenas-grid">@foreach(var r in p.Elementos) { <article class="resena-card"><div class="resena-cabecera"><strong>@r.Alias</strong><span>@r.CreadaEn.ToLocalTime().ToString("dd/MM/yyyy")</span></div><p class="resena-estrellas">@for (var i = 1; i <= 5; i++) { <icono nombre="@(i <= r.Estrellas ? "estrella" : "estrella-vacia")" tamano="14" /> }</p><p class="resena-verificada"><icono nombre="check" tamano="14" /> Visita verificada · @r.Estado</p><p class="resena-comentario">@r.Comentario</p>@if(r.Foto is not null) { <img class="resena-foto" src="@Url.Action("Foto", new { id = r.Id })" alt="Foto propuesta por @r.Alias" loading="lazy" /> }<form method="post" asp-action="Moderar" asp-route-id="@r.Id"><div class="field"><label for="respuesta-@r.Id">Tu respuesta · opcional</label><textarea class="input" id="respuesta-@r.Id" name="Respuesta" rows="3" maxlength="1500">@r.Respuesta</textarea></div><div class="field"><label for="respuesta-en-@r.Id">Tu respuesta en inglés</label><textarea class="input" id="respuesta-en-@r.Id" name="RespuestaEn" rows="3" maxlength="1500" lang="en">@r.RespuestaEn</textarea><p class="field-hint">@(r.Respuesta is null ? "Obligatoria si respondes." : "Si se deja vacía, la web en inglés muestra la respuesta en español.")</p></div><div class="acciones"><button class="btn btn-primary" name="Estado" value="Publicada">Publicar</button><button class="btn btn-gray" name="Estado" value="Pendiente">Dejar pendiente</button><button class="btn btn-gray" name="Estado" value="Rechazada">Rechazar</button></div></form></article> }</div>
+<div class="resenas-grid resenas-admin">
+    @foreach (var r in p.Elementos)
+    {
+        <article class="resena-card is-@r.Estado.ToString().ToLowerInvariant()" id="resena-@r.Id">
+            <div class="resena-cabecera">
+                <strong>@r.Alias</strong>
+                <span class="pill @ResenasIndice.Tinte(r.Estado)">@ResenasIndice.Nombre(r.Estado)</span>
+            </div>
+            <p class="resena-estrellas" aria-label="@r.Estrellas de 5 estrellas">@for (var i = 1; i <= 5; i++) { <icono nombre="@(i <= r.Estrellas ? "estrella" : "estrella-vacia")" tamano="14" /> }</p>
+            <ul class="resena-historial">
+                <li><icono nombre="check" tamano="14" /> Visita verificada · escrita el @Formato.MomentoSalon(r.CreadaEn)</li>
+                @switch (r.Estado)
+                {
+                    case EstadoResena.Publicada:
+                        <li class="is-publicada"><icono nombre="web" tamano="14" /> @(r.PublicadaEn is { } publicada ? $"Publicada el {Formato.MomentoSalon(publicada)}" : "Publicada en la web")</li>
+                        break;
+                    case EstadoResena.Oculta:
+                        <li class="is-oculta"><icono nombre="ojo-tachado" tamano="14" /> Oculta de la web@(r.RevisadaEn is { } oculta ? $" desde el {Formato.MomentoSalon(oculta)}" : "")</li>
+                        @if (r.PublicadaEn is { } antes)
+                        {
+                            <li><icono nombre="web" tamano="14" /> Se publicó el @Formato.MomentoSalon(antes)</li>
+                        }
+                        break;
+                    case EstadoResena.Rechazada:
+                        <li class="is-rechazada"><icono nombre="cerrar" tamano="14" /> Rechazada@(r.RevisadaEn is { } rechazada ? $" el {Formato.MomentoSalon(rechazada)}" : "")</li>
+                        break;
+                    default:
+                        <li class="is-pendiente"><icono nombre="reloj" tamano="14" /> Pendiente de revisar: no se ve en la web</li>
+                        break;
+                }
+            </ul>
+            <p class="resena-comentario">@r.Comentario</p>
+            @if (r.Foto is not null)
+            {
+                <img class="resena-foto" src="@Url.Action("Foto", new { id = r.Id })" alt="Foto propuesta por @r.Alias" loading="lazy" />
+            }
+            <form method="post" asp-action="Moderar" asp-route-id="@r.Id">
+                <input type="hidden" name="Desde" value="@estado" />
+                <input type="hidden" name="Pagina" value="@p.Numero" />
+                <input type="hidden" name="Q" value="@Model.Texto" />
+                <div class="field">
+                    <label for="respuesta-@r.Id">Tu respuesta · opcional</label>
+                    <textarea class="input" id="respuesta-@r.Id" name="Respuesta" rows="3" maxlength="1500">@r.Respuesta</textarea>
+                </div>
+                <div class="field">
+                    <label for="respuesta-en-@r.Id">Tu respuesta en inglés</label>
+                    <textarea class="input" id="respuesta-en-@r.Id" name="RespuestaEn" rows="3" maxlength="1500" lang="en">@r.RespuestaEn</textarea>
+                    <p class="field-hint">@(r.Respuesta is null ? "Obligatoria si respondes." : "Si se deja vacía, la web en inglés muestra la respuesta en español.")</p>
+                </div>
+                <div class="resena-acciones">
+                    @switch (r.Estado)
+                    {
+                        case EstadoResena.Pendiente:
+                            <button class="btn btn-primary" name="Estado" value="Publicada"><icono nombre="check" tamano="17" /> Publicar</button>
+                            <button class="btn btn-gray btn-destructive" name="Estado" value="Rechazada"
+                                    data-confirmar-titulo="¿Rechazar esta reseña?" data-confirmar="La reseña de @r.Alias no se publicará. Podrás publicarla más tarde desde «Rechazadas»." data-confirmar-accion="Rechazar"><icono nombre="cerrar" tamano="17" /> Rechazar</button>
+                            break;
+                        case EstadoResena.Publicada:
+                            <button class="btn btn-primary" name="Estado" value="Publicada"><icono nombre="check" tamano="17" /> Guardar respuesta</button>
+                            <button class="btn btn-gray btn-destructive" name="Estado" value="Oculta"
+                                    data-confirmar-titulo="¿Ocultar de la web?" data-confirmar="La reseña de @r.Alias dejará de verse en la web. Podrás volver a publicarla desde «Ocultas»." data-confirmar-accion="Ocultar"><icono nombre="ojo-tachado" tamano="17" /> Ocultar de la web</button>
+                            break;
+                        case EstadoResena.Oculta:
+                            <button class="btn btn-primary" name="Estado" value="Publicada"><icono nombre="web" tamano="17" /> Volver a publicar</button>
+                            <button class="btn btn-gray btn-destructive" name="Estado" value="Rechazada"
+                                    data-confirmar-titulo="¿Rechazar esta reseña?" data-confirmar="La reseña de @r.Alias pasará a «Rechazadas» y seguirá sin verse en la web." data-confirmar-accion="Rechazar"><icono nombre="cerrar" tamano="17" /> Rechazar</button>
+                            break;
+                        default:
+                            <button class="btn btn-primary" name="Estado" value="Publicada"><icono nombre="check" tamano="17" /> Publicar</button>
+                            <button class="btn btn-gray" name="Estado" value="Pendiente"><icono nombre="volver" tamano="17" /> Devolver a pendientes</button>
+                            break;
+                    }
+                </div>
+            </form>
+        </article>
+    }
+</div>
 <partial name="_Paginacion" model="paginacion" />

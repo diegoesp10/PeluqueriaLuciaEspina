@@ -20,6 +20,7 @@ public static class DependencyInjection
         services.AddScoped<IClienteRepositorio, ClienteRepositorio>();
         services.AddScoped<IServicioRepositorio, ServicioRepositorio>();
         services.AddScoped<IVisitaRepositorio, VisitaRepositorio>();
+        services.AddScoped<PeluqueriaLucia.Application.Gastos.IGastoRepositorio, GastoRepositorio>();
         services.AddScoped<IProductoRepositorio, ProductoRepositorio>();
         services.AddScoped<IAdministradorRepositorio, AdministradorRepositorio>();
         services.AddScoped<ISesionRepositorio, SesionRepositorio>();

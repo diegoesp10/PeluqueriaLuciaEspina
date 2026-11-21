@@ -67,6 +67,8 @@ public sealed class ResenasService(IContenidoRepositorio repositorio, IVisitaRep
     }
     public Task<Pagina<Resena>> AdministrarAsync(EstadoResena? estado, int pagina, string? texto = null, CancellationToken ct = default) => repositorio.ResenasAsync(estado, pagina, texto, ct);
     public Task<Resena?> ObtenerAsync(Guid id, CancellationToken ct = default) => repositorio.ResenaAsync(id, ct);
+    /// <summary>Cuántas reseñas hay en cada estado, para las pestañas del panel.</summary>
+    public Task<IReadOnlyDictionary<EstadoResena, int>> ConteoAsync(CancellationToken ct = default) => repositorio.ConteoResenasAsync(ct);
     public async Task<Resultado> ModerarAsync(Guid id, EstadoResena estado, string? respuesta, string? respuestaEn = null, CancellationToken ct = default)
     {
         var resena = await repositorio.ResenaAsync(id, ct);
@@ -74,6 +76,6 @@ public sealed class ResenasService(IContenidoRepositorio repositorio, IVisitaRep
         // Una respuesta nueva nace en los dos idiomas; las anteriores al inglés pueden seguir solo en español
         if (!string.IsNullOrWhiteSpace(respuesta) && resena.Respuesta is null && string.IsNullOrWhiteSpace(respuestaEn))
             return new Error("Escribe también la respuesta en inglés.", "RespuestaEn");
-        return await Resultado.ProtegerAsync(async () => { resena.Moderar(estado, respuesta, respuestaEn); await unidad.GuardarCambiosAsync(ct); });
+        return await Resultado.ProtegerAsync(async () => { resena.Moderar(estado, respuesta, respuestaEn, Ahora); await unidad.GuardarCambiosAsync(ct); });
     }
 }

@@ -3,7 +3,11 @@
     ViewData["Title"] = Model.Titulo;
     var fecha = Model.Fecha.ToString("yyyy-MM-dd");
     var r = Model.Resumen;
-    var grupos = Model.Pagina.Elementos.GroupBy(v => DateOnly.FromDateTime(v.Fecha));
+    var g = Model.Gastos;
+    var grupos = Model.Pagina.Elementos.GroupBy(a => DateOnly.FromDateTime(a.Fecha));
+    // Al editar un gasto se vuelve a esta misma pantalla
+    var aqui = $"{Context.Request.PathBase}{Context.Request.Path}{Context.Request.QueryString}";
+    ViewData["Volver"] = aqui;
 }
 
 <div>
@@ -15,9 +19,13 @@
                 <p class="subtitle">@Model.Subtitulo</p>
             }
         </div>
-        <div class="acciones">
-            <a class="btn btn-gray" asp-action="Exportar" asp-route-periodo="@Model.Periodo" asp-route-fecha="@fecha" title="Descargar estas visitas en Excel" data-sin-cargando>
+        @* Tres botones: en el móvil, cada uno a su ancho y el que no quepa, debajo (sin partir las palabras) *@
+        <div class="acciones acciones-ajustadas">
+            <a class="btn btn-gray" asp-action="Exportar" asp-route-periodo="@Model.Periodo" asp-route-fecha="@fecha" title="Descargar estas visitas y gastos en Excel" data-sin-cargando>
                 <icono nombre="excel" tamano="18" /> Exportar
+            </a>
+            <a class="btn btn-gray" asp-controller="Gastos" asp-action="Nuevo" asp-route-fecha="@(Model.Periodo == Periodo.Dia ? fecha : null)" asp-route-volver="@aqui" title="Anotar un pago: personal, cuota de autónomos, dietas, viajes…">
+                <icono nombre="cartera" tamano="18" /> Nuevo gasto
             </a>
             <a class="btn btn-primary" asp-action="Nueva"><icono nombre="mas" tamano="18" /> Nueva visita</a>
         </div>
@@ -70,7 +78,7 @@
         }
     </div>
 
-    <section class="stats" aria-label="Resumen">
+    <section class="stats stats-5" aria-label="Resumen">
         <div class="stat tint-blue">
             <span class="stat-label"><icono nombre="euro" tamano="16" /> Facturado</span>
             <span class="stat-value">@Formato.Euros(r.Facturado)</span>
@@ -90,6 +98,11 @@
             <span class="stat-label"><icono nombre="clientes" tamano="16" /> Visitas</span>
             <span class="stat-value">@r.Visitas</span>
             <span class="stat-foot">@(r.Visitas == 0 ? "—" : $"Media {Formato.Euros(r.Facturado / r.Visitas)}")</span>
+        </div>
+        <div class="stat tint-red">
+            <span class="stat-label"><icono nombre="cartera" tamano="16" /> Gastos</span>
+            <span class="stat-value">@Formato.Euros(g.Total)</span>
+            <span class="stat-foot">@(g.Gastos == 0 ? "Sin gastos anotados" : $"{g.Gastos} {(g.Gastos == 1 ? "gasto" : "gastos")} · cobrado − gastos {Formato.Euros(r.Cobrado - g.Total)}")</span>
         </div>
     </section>
 
@@ -125,8 +138,9 @@
         <div class="section estado-vacio">
             <span class="estado-icono tint-blue"><icono nombre="calendario" tamano="30" /></span>
             <h2>@Model.TextoVacio</h2>
-            <p>Las visitas que registres aparecerán aquí, con lo facturado y lo cobrado.</p>
+            <p>Las visitas y los gastos que anotes aparecerán aquí, con lo facturado, lo cobrado y lo pagado.</p>
             <div class="acciones">
+                <a class="btn btn-gray" asp-controller="Gastos" asp-action="Nuevo" asp-route-fecha="@(Model.Periodo == Periodo.Dia ? fecha : null)" asp-route-volver="@aqui"><icono nombre="cartera" tamano="18" /> Nuevo gasto</a>
                 <a class="btn btn-primary" asp-action="Nueva"><icono nombre="mas" tamano="18" /> Nueva visita</a>
             </div>
         </div>
@@ -135,24 +149,33 @@
     {
         foreach (var grupo in grupos)
         {
+            var totalVisitas = grupo.Where(a => a.Visita is not null).Sum(a => a.Visita!.Total);
+            var gastosDia = grupo.Where(a => a.Gasto is not null).Sum(a => a.Gasto!.Importe);
             <section class="section">
                 @if (Model.AgruparPorDia)
                 {
                     <div class="section-head">
                         <h2>@Formato.Dia(grupo.Key, Model.Hoy)</h2>
-                        <span class="num">@Formato.Euros(grupo.Sum(v => v.Total))</span>
+                        <span class="num">@Formato.Euros(totalVisitas)@if (gastosDia > 0) {<span class="importe-gasto"> · gastos −@Formato.Euros(gastosDia)</span>}</span>
                     </div>
                 }
                 else
                 {
                     <div class="section-head">
-                        <h2>@Model.Pagina.TotalElementos @(Model.Pagina.TotalElementos == 1 ? "visita" : "visitas")</h2>
+                        <h2>@Model.TituloLista</h2>
                     </div>
                 }
                 <div class="list list-avatars">
-                    @foreach (var visita in grupo)
+                    @foreach (var apunte in grupo)
                     {
-                        <partial name="_FilaVisita" model="visita" />
+                        if (apunte.Visita is { } visita)
+                        {
+                            <partial name="_FilaVisita" model="visita" />
+                        }
+                        else
+                        {
+                            <partial name="_FilaGasto" model="apunte.Gasto" />
+                        }
                     }
                 </div>
             </section>

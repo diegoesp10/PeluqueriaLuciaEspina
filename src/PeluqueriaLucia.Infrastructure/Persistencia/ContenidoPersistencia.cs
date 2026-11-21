@@ -56,6 +56,8 @@ internal sealed class ContenidoRepositorio(PeluqueriaDbContext db) : IContenidoR
         var total = await q.CountAsync(ct); pagina = Math.Clamp(pagina, 1, Math.Max(1, (total + 11) / 12));
         return new(await q.OrderByDescending(x => x.CreadaEn).ThenBy(x => x.Id).Skip((pagina - 1) * 12).Take(12).ToListAsync(ct), pagina, 12, total);
     }
+    public async Task<IReadOnlyDictionary<EstadoResena, int>> ConteoResenasAsync(CancellationToken ct) =>
+        await db.Resenas.GroupBy(x => x.Estado).Select(g => new { g.Key, Total = g.Count() }).ToDictionaryAsync(x => x.Key, x => x.Total, ct);
     public async Task<IReadOnlyList<TelefonoContacto>> TelefonosAsync(CancellationToken ct)
     {
         try { return await db.TelefonosContacto.OrderBy(x => x.Orden).ThenBy(x => x.Id).ToListAsync(ct); }

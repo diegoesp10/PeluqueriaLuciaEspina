@@ -85,6 +85,12 @@ Cierra la terminal al acabar (o `Remove-Item Env:ConnectionStrings__Peluqueria`)
 
 **Última migración aplicada en producción:** `ProductosDeSorteoYVariosPremios` (5-nov-2026, ver [SORTEOS.md](SORTEOS.md)). El 29-oct-2026 se aplicaron `VisitasDeCitasYProductosDelServicio` y `SorteosYCostesDeProductos`. El 22-oct-2026 se aplicaron, en este orden y con los datos intactos (109 clientes, 78 visitas, 91 servicios): `ControlDeProductos` (crea `Productos`, `FotosProductos`, `MovimientosStock` y `ProductosVisitas`), `DualidadDeServicios` (añade `Dualidad`, por defecto 0, a `ServiciosGenericos` y `ReservasCitas`), `PreferenciaDeAviso` (añade `CanalPreferido`, que admite nulos, a `Clientes`) y `CategoriasDeProductos` (crea `CategoriasProductos` y cambia la categoría de texto de `Productos` por `CategoriaId`). Detalles en [PRODUCTOS.md](PRODUCTOS.md) y [AGENDA.md](AGENDA.md).
 
+**Pendientes en producción** (el código de `develop` las necesita: se aplican **antes** de publicarlo, y `/salud` responde 503 mientras falte alguna; `dotnet ef database update` las aplica en este orden):
+
+1. `GastosYNumerosDeSorteo`: tabla `Gastos` y números de los sorteos (ver [SORTEOS.md](SORTEOS.md#base-de-datos) y [GASTOS.md](GASTOS.md)).
+2. `EfectivoEntregadoEnElCobro`: añade a `ServiciosClientes` la columna `EfectivoEntregado` (`decimal(18,2)`, admite nulos), lo que da el cliente en efectivo al cobrar, para imprimirlo en el ticket con el cambio. Las visitas que ya hay quedan sin ese dato y su ticket sale como siempre. Su vuelta atrás solo quita esa columna. Aplicada en `PeluqueriaLucia_VistaPrevia`.
+3. `TiposDeGastoTableroYResenas`: crea `TiposGasto` con los tipos de gasto de partida (los mismos números que ya usaba `Gastos.Tipo`), renombra `Gastos.Tipo` a `TipoId` con sus valores y lo enlaza a `TiposGasto`; añade `Sorteos.NumerosHasta` (talonario del tablero) y `Resenas.PublicadaEn` y `Resenas.RevisadaEn`, todas admitiendo nulos. No borra ni cambia datos: las reseñas publicadas antes salen sin fecha de publicación. Ver [GASTOS.md](GASTOS.md#base-de-datos). Aplicada en `PeluqueriaLucia_VistaPrevia` y probada también hacia atrás con datos (su vuelta atrás pasa a «Otros» los gastos de tipos añadidos y las reseñas ocultas a rechazadas).
+
 
 ## 4. Publicar
 

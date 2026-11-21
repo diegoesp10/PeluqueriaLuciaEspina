@@ -1,0 +1,102 @@
+@using PeluqueriaLucia.Domain.Gastos
+@model GastoEdicionModelo
+@{
+    var nuevo = Model.Id is null;
+    ViewData["Title"] = nuevo ? "Nuevo gasto" : "Editar gasto";
+    var f = Model.Formulario;
+    var volver = Model.Volver ?? Url.Action("Index", "Visitas", new { periodo = Periodo.Dia, fecha = f.Fecha?.ToString("yyyy-MM-dd") });
+    // Para volver a este mismo gasto después de editar los tipos
+    var aqui = Url.Action(nuevo ? "Nuevo" : "Editar", new { id = Model.Id, volver = Model.Volver });
+}
+
+<div class="form-pagina">
+    <a class="back-link" href="@volver"><icono nombre="anterior" tamano="20" /> Visitas</a>
+    <header class="page-head">
+        <div>
+            <h1>@ViewData["Title"]</h1>
+            <p class="subtitle">Un pago del salón, no un cobro: el sueldo de una empleada, tu cuota de autónomos, unas dietas, un viaje… Sale en el listado de visitas, en su día, y en el Excel en su propia hoja «Gastos» para el asesor.</p>
+        </div>
+        @if (!nuevo)
+        {
+            <div class="acciones">
+                <form method="post" asp-action="Eliminar" asp-route-id="@Model.Id" asp-route-volver="@Model.Volver" data-confirmar="El gasto «@f.Concepto» se borrará. No se puede deshacer." data-confirmar-accion="Borrar">
+                    <button class="btn btn-gray btn-destructive"><icono nombre="papelera" tamano="18" /> Borrar</button>
+                </form>
+            </div>
+        }
+    </header>
+
+    <form class="form gasto-formulario" method="post" asp-action="@(nuevo ? "Nuevo" : "Editar")" asp-route-id="@Model.Id" novalidate>
+        <input type="hidden" name="volver" value="@Model.Volver" />
+        <div asp-validation-summary="ModelOnly"></div>
+
+        <div class="fields">
+            <div class="fields-2">
+                <div class="field">
+                    <div class="field-cabecera">
+                        <label for="TipoId">Tipo de gasto</label>
+                        <a class="field-enlace" asp-action="Tipos" asp-route-volver="@aqui"><icono nombre="editar" tamano="14" /> Editar tipos</a>
+                    </div>
+                    <select class="input" id="TipoId" name="TipoId" required autofocus="@nuevo">
+                        <option value="">Elige el tipo</option>
+                        @foreach (var tipo in Model.Tipos)
+                        {
+                            <option value="@tipo.Id" selected="@(f.TipoId == tipo.Id)">@tipo.Nombre@(tipo.Activo ? "" : " (archivado)")</option>
+                        }
+                    </select>
+                    @Html.ValidationMessage("TipoId")
+                </div>
+                <div class="field">
+                    <label for="Fecha">Fecha y hora</label>
+                    <input class="input" type="datetime-local" id="Fecha" name="Fecha" value="@f.Fecha?.ToString("yyyy-MM-ddTHH:mm")" required />
+                    @Html.ValidationMessage("Fecha")
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="Concepto">Concepto</label>
+                <input class="input" id="Concepto" name="Concepto" value="@f.Concepto" maxlength="@Gasto.LongitudConcepto" autocomplete="off" required
+                       placeholder="Por ejemplo, nómina de noviembre, tren a Madrid para la feria, comida con proveedor…" />
+                @Html.ValidationMessage("Concepto")
+            </div>
+
+            <div class="field">
+                <label for="Importe">Importe</label>
+                <div class="input-affix input-precio">
+                    <input class="input num" id="Importe" name="Importe" inputmode="decimal" autocomplete="off" required
+                           value="@Formato.Importe(f.Importe)" placeholder="0,00" />
+                    <span>€</span>
+                </div>
+                @Html.ValidationMessage("Importe")
+            </div>
+
+            <fieldset class="gasto-medios">
+                <legend class="field-label">¿Cómo lo has pagado?</legend>
+                <div class="segmented segmented-block gasto-medios-opciones">
+                    @foreach (var medio in GastoEdicionModelo.Medios)
+                    {
+                        <label>
+                            <input type="radio" name="MedioPago" value="@medio" checked="@(f.MedioPago == medio)" />
+                            @Gasto.Nombre(medio)
+                        </label>
+                    }
+                </div>
+                @Html.ValidationMessage("MedioPago")
+            </fieldset>
+
+            <div class="field">
+                <label for="Nota">Nota <span class="muted">(opcional)</span></label>
+                <textarea class="input" id="Nota" name="Nota" maxlength="@Gasto.LongitudNota" rows="2" placeholder="Número de factura, proveedor, para quién…">@f.Nota</textarea>
+                @Html.ValidationMessage("Nota")
+            </div>
+        </div>
+
+        <div class="acciones acciones-form">
+            <button class="btn btn-primary btn-lg">@(nuevo ? "Anotar gasto" : "Guardar cambios")</button>
+            @if (nuevo)
+            {
+                <button class="btn btn-gray btn-lg" name="accion" value="otro">Anotar y añadir otro</button>
+            }
+        </div>
+    </form>
+</div>

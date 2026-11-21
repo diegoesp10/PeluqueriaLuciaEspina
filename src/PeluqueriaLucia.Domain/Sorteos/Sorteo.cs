@@ -56,11 +56,19 @@ public sealed record DatosPremio(TipoPremio Tipo, int Id, string Nombre, string?
 /// <summary>Lo que escribe el salón de un sorteo: título y descripción, en español y en inglés, y cuándo se sortea.</summary>
 public sealed record DatosSorteo(string? Titulo, string? TituloEn, string? Descripcion, string? DescripcionEn, DateTime FechaSorteo);
 
+/// <summary>Un número que se mete a mano en el sorteo (por ejemplo, de unas papeletas), con el nombre de quien lo tiene si se sabe.</summary>
+public sealed record NumeroSorteo(int Numero, string? Nombre = null);
+
+/// <summary>Lo que ha pasado al meter números a mano: cuántos han entrado y cuáles ya estaban en el sorteo.</summary>
+public sealed record NumerosAgregados(int Agregados, IReadOnlyList<int> Repetidos);
+
 /// <summary>
 /// Un sorteo entre los clientes que elige el salón. El premio puede ser un lote: servicios del catálogo, productos de la
-/// tienda y productos de sorteo, cada uno con su cantidad. El ganador sale al azar (o lo elige el salón) y cada extracción
-/// queda en el historial: cuándo, quién, cómo, entre cuántos y cuándo recibió el premio. Los anuncios lo dan a conocer en
-/// la web entre las fechas que se elijan.
+/// tienda y productos de sorteo, cada uno con su cantidad. Cada participante lleva un número: los clientes reciben el
+/// siguiente libre (o el que se elija) y también se pueden meter números a mano, sin ficha (por ejemplo, las papeletas de un
+/// sorteo que ya estaba en marcha en otro sitio). El ganador sale al azar (o lo elige el salón) y cada extracción queda en
+/// el historial: cuándo, quién, con qué número, cómo, entre cuántos y cuándo recibió el premio. Los anuncios lo dan a
+/// conocer en la web entre las fechas que se elijan.
 /// </summary>
 public sealed class Sorteo
 {
@@ -69,6 +77,9 @@ public sealed class Sorteo
     public const int LongitudMotivo = 300;
     public const int MaximoParticipantes = 5000;
     public const int MaximoPremios = 20;
+
+    /// <summary>El número más alto que puede llevar un participante.</summary>
+    public const int NumeroMaximo = 99999;
 
     private readonly List<ParticipanteSorteo> _participantes = [];
     private readonly List<ExtraccionSorteo> _extracciones = [];
@@ -95,6 +106,12 @@ public sealed class Sorteo
     public EstadoSorteo Estado { get; private set; }
 
     public string? MotivoCancelacion { get; private set; }
+
+    /// <summary>
+    /// Hasta qué número llega el talonario (del 1 a este), para el tablero: los números que no tiene nadie salen libres. Null
+    /// si no se ha dicho: el tablero llega hasta el número más alto que hay.
+    /// </summary>
+    public int? NumerosHasta { get; private set; }
 
     public DateTime CreadoEn { get; private set; }
 
@@ -187,31 +204,112 @@ public sealed class Sorteo
         return cambiado;
     }
 
-    /// <summary>Añade participantes; los que ya estaban se pasan por alto. Devuelve cuántos se han añadido.</summary>
+    /// <summary>
+    /// Añade clientes, cada uno con el siguiente número libre; los que ya estaban se pasan por alto. Devuelve cuántos se han
+    /// añadido.
+    /// </summary>
     public int AgregarParticipantes(IEnumerable<Cliente> clientes, DateTime ahora)
     {
         ComprobarAbierto("cambiar los participantes");
         var nuevos = clientes.DistinctBy(c => c.Id).Where(c => _participantes.All(p => p.ClienteId != c.Id)).ToList();
-        if (_participantes.Count + nuevos.Count > MaximoParticipantes)
-            throw new ReglaDeNegocioException($"Un sorteo admite hasta {MaximoParticipantes} participantes.", "Participantes");
-        _participantes.AddRange(nuevos.Select(c => new ParticipanteSorteo(c, ahora)));
+        ComprobarCabida(nuevos.Count);
+        foreach (var cliente in nuevos)
+            _participantes.Add(new ParticipanteSorteo(cliente, SiguienteNumero(), ahora));
         if (nuevos.Count > 0)
             ActualizadoEn = ahora;
         return nuevos.Count;
     }
 
-    public void QuitarParticipante(int clienteId, DateTime ahora)
+    /// <summary>
+    /// Añade un cliente con el número elegido o, sin número, con el siguiente libre. Devuelve false si ya participaba (y no
+    /// se pidió número); con número, que ya participe es un error, para que se cambie su número si es lo que se quería.
+    /// </summary>
+    public bool AgregarCliente(Cliente cliente, int? numero, DateTime ahora)
     {
+        ArgumentNullException.ThrowIfNull(cliente);
         ComprobarAbierto("cambiar los participantes");
-        var participante = _participantes.FirstOrDefault(p => p.ClienteId == clienteId)
-            ?? throw new ReglaDeNegocioException("Ese cliente ya no participa en el sorteo.", "Participantes");
-        _participantes.Remove(participante);
+        if (_participantes.FirstOrDefault(p => p.ClienteId == cliente.Id) is { } yaEsta)
+        {
+            if (numero is null || numero == yaEsta.Numero)
+                return false;
+            throw new ReglaDeNegocioException($"{cliente.NombreCompleto} ya participa con el número {yaEsta.Numero}. Si quieres otro, cámbiale el número en la lista.", "Numero");
+        }
+
+        ComprobarCabida(1);
+        var elegido = numero ?? SiguienteNumero();
+        ComprobarNumeroLibre(elegido, null);
+        _participantes.Add(new ParticipanteSorteo(cliente, elegido, ahora));
         ActualizadoEn = ahora;
+        return true;
     }
 
     /// <summary>
+    /// Mete números a mano, sin ficha de cliente (papeletas, un sorteo que ya estaba en marcha en otro sitio…). Los que ya
+    /// están en el sorteo se pasan por alto y se devuelven para avisar.
+    /// </summary>
+    public NumerosAgregados AgregarNumeros(IEnumerable<NumeroSorteo> numeros, DateTime ahora)
+    {
+        ArgumentNullException.ThrowIfNull(numeros);
+        ComprobarAbierto("cambiar los participantes");
+        var pedidos = numeros.DistinctBy(n => n.Numero).ToList();
+        if (pedidos.Count == 0)
+            throw new ReglaDeNegocioException("Escribe al menos un número.", "Numeros");
+        foreach (var pedido in pedidos)
+        {
+            ComprobarNumero(pedido.Numero, "Numeros");
+            ParticipanteSorteo.NombreValido(pedido.Nombre, "Numeros");
+        }
+
+        var ocupados = _participantes.Select(p => p.Numero).ToHashSet();
+        var repetidos = pedidos.Where(n => ocupados.Contains(n.Numero)).Select(n => n.Numero).Order().ToList();
+        var nuevos = pedidos.Where(n => !ocupados.Contains(n.Numero)).ToList();
+        ComprobarCabida(nuevos.Count);
+        _participantes.AddRange(nuevos.Select(n => new ParticipanteSorteo(n.Numero, n.Nombre, ahora)));
+        if (nuevos.Count > 0)
+            ActualizadoEn = ahora;
+        return new NumerosAgregados(nuevos.Count, repetidos);
+    }
+
+    /// <summary>
+    /// Cambia el número de un participante y, si es un número sin ficha, el nombre de quien lo tiene (el de un cliente es el
+    /// de su ficha).
+    /// </summary>
+    public void CambiarNumero(int numero, int nuevo, string? nombre, DateTime ahora)
+    {
+        ComprobarAbierto("cambiar los participantes");
+        var participante = Participante(numero);
+        ComprobarNumero(nuevo, "Numero");
+        ComprobarNumeroLibre(nuevo, participante);
+        participante.Cambiar(nuevo, nombre);
+        ActualizadoEn = ahora;
+    }
+
+    public void QuitarParticipante(int numero, DateTime ahora)
+    {
+        ComprobarAbierto("cambiar los participantes");
+        _participantes.Remove(Participante(numero));
+        ActualizadoEn = ahora;
+    }
+
+    /// <summary>Dice hasta qué número llega el talonario (null: hasta el más alto que haya).</summary>
+    public void CambiarTalonario(int? hasta, DateTime ahora)
+    {
+        ComprobarAbierto("cambiar el talonario");
+        if (hasta is { } numero)
+            ComprobarNumero(numero, "hasta");
+        NumerosHasta = hasta;
+        ActualizadoEn = ahora;
+    }
+
+    /// <summary>El número más alto del tablero: el del talonario o, si hay números más altos o no se ha dicho, el mayor.</summary>
+    public int UltimoNumero => Math.Max(NumerosHasta ?? 0, _participantes.Count == 0 ? 0 : _participantes.Max(p => p.Numero));
+
+    /// <summary>Ha ganado en alguna extracción (también en las de antes de repetir).</summary>
+    public bool HaGanado(ParticipanteSorteo participante) => _extracciones.Any(e => e.Es(participante));
+
+    /// <summary>
     /// Sortea el premio: <paramref name="azar"/> da un número entre 0 y el número de participantes (sin incluirlo), que
-    /// elige al ganador en el orden en que se apuntaron. Hacen falta al menos un premio y dos participantes.
+    /// elige al ganador en el orden de sus números. Hacen falta al menos un premio y dos participantes.
     /// </summary>
     public ExtraccionSorteo Sortear(Func<int, int> azar, DateTime ahora, int? administradorId)
     {
@@ -239,20 +337,21 @@ public sealed class Sorteo
     }
 
     /// <summary>
-    /// El salón decide quién gana (entre los participantes). Si ya había ganador, hace falta el motivo y la extracción anterior
-    /// se conserva en el historial.
+    /// El salón decide quién gana (entre los participantes, por su número): por ejemplo, el número que ha salido en un
+    /// sorteo hecho en otro sitio. Si ya había ganador, hace falta el motivo y la extracción anterior se conserva en el
+    /// historial.
     /// </summary>
-    public ExtraccionSorteo ElegirGanador(int clienteId, string? motivo, DateTime ahora, int? administradorId)
+    public ExtraccionSorteo ElegirGanador(int numero, string? motivo, DateTime ahora, int? administradorId)
     {
         if (Estado == EstadoSorteo.Cancelado)
             throw new ReglaDeNegocioException("El sorteo está cancelado.");
         ComprobarSinEntregar();
         if (Abierto)
             ComprobarPremios();
-        var participante = _participantes.FirstOrDefault(p => p.ClienteId == clienteId)
-            ?? throw new ReglaDeNegocioException("Elige a uno de los participantes.", "ClienteId");
-        if (Ganador?.ClienteId == clienteId)
-            throw new ReglaDeNegocioException("Ese cliente ya es el ganador.", "ClienteId");
+        var participante = _participantes.FirstOrDefault(p => p.Numero == numero)
+            ?? throw new ReglaDeNegocioException($"El número {numero} no está en el sorteo: elige uno de los participantes.", "Numero");
+        if (Ganador?.Es(participante) == true)
+            throw new ReglaDeNegocioException($"El número {numero} ya es el ganador.", "Numero");
         var limpio = Motivo(motivo, obligatorio: Estado == EstadoSorteo.Realizado);
 
         var extraccion = new ExtraccionSorteo(this, participante, FormaGanador.ElegidoPorElSalon, ahora, _participantes.Count, limpio, administradorId);
@@ -310,15 +409,74 @@ public sealed class Sorteo
 
     public void QuitarAnuncio(int anuncioId, DateTime ahora)
     {
-        var anuncio = _anuncios.FirstOrDefault(a => a.Id == anuncioId)
-            ?? throw new ReglaDeNegocioException("Ese anuncio ya no está.");
-        _anuncios.Remove(anuncio);
+        _anuncios.Remove(Anuncio(anuncioId));
         ActualizadoEn = ahora;
     }
 
-    /// <summary>Los participantes que aún no han ganado, en el orden en que se apuntaron.</summary>
-    private List<ParticipanteSorteo> Candidatos() =>
-        [.. _participantes.Where(p => _extracciones.All(e => e.ClienteId != p.ClienteId)).OrderBy(p => p.Id).ThenBy(p => p.AnadidoEn).ThenBy(p => p.ClienteId)];
+    /// <summary>Cambia el texto o las fechas de un anuncio.</summary>
+    public void CambiarAnuncio(int anuncioId, string? texto, string? textoEn, DateOnly desde, DateOnly hasta, DateTime ahora)
+    {
+        if (Estado == EstadoSorteo.Cancelado)
+            throw new ReglaDeNegocioException("El sorteo está cancelado: no se puede anunciar.");
+        Anuncio(anuncioId).Cambiar(texto, textoEn, desde, hasta, ahora);
+        ActualizadoEn = ahora;
+    }
+
+    /// <summary>
+    /// Deja de enseñar un anuncio en la web desde hoy. Si ya se veía desde antes, queda en el historial hasta ayer
+    /// («Terminado»); si aún no había empezado (o empezó hoy), se quita.
+    /// </summary>
+    public void TerminarAnuncio(int anuncioId, DateTime ahora)
+    {
+        var anuncio = Anuncio(anuncioId);
+        var hoy = DateOnly.FromDateTime(ahora);
+        if (anuncio.Hasta < hoy)
+            throw new ReglaDeNegocioException("Ese anuncio ya no se ve en la web.");
+        if (anuncio.Desde < hoy)
+            anuncio.TerminarAntesDe(hoy);
+        else
+            _anuncios.Remove(anuncio);
+        ActualizadoEn = ahora;
+    }
+
+    private AnuncioSorteo Anuncio(int anuncioId) =>
+        _anuncios.FirstOrDefault(a => a.Id == anuncioId) ?? throw new ReglaDeNegocioException("Ese anuncio ya no está.");
+
+    /// <summary>Los participantes que aún no han ganado, por su número.</summary>
+    private List<ParticipanteSorteo> Candidatos() => [.. _participantes.Where(p => !HaGanado(p)).OrderBy(p => p.Numero).ThenBy(p => p.Id)];
+
+    private ParticipanteSorteo Participante(int numero) =>
+        _participantes.FirstOrDefault(p => p.Numero == numero)
+        ?? throw new ReglaDeNegocioException($"El número {numero} ya no está en el sorteo.", "Participantes");
+
+    /// <summary>El siguiente al más alto o, si se ha llegado al máximo, el primero libre.</summary>
+    private int SiguienteNumero()
+    {
+        var mayor = _participantes.Count == 0 ? 0 : _participantes.Max(p => p.Numero);
+        if (mayor < NumeroMaximo)
+            return mayor + 1;
+        var ocupados = _participantes.Select(p => p.Numero).ToHashSet();
+        return Enumerable.Range(1, NumeroMaximo).First(n => !ocupados.Contains(n));
+    }
+
+    private void ComprobarCabida(int nuevos)
+    {
+        if (_participantes.Count + nuevos > MaximoParticipantes)
+            throw new ReglaDeNegocioException($"Un sorteo admite hasta {MaximoParticipantes} participantes.", "Participantes");
+    }
+
+    private static void ComprobarNumero(int numero, string campo)
+    {
+        if (numero is < 1 or > NumeroMaximo)
+            throw new ReglaDeNegocioException($"Los números van del 1 al {NumeroMaximo}.", campo);
+    }
+
+    private void ComprobarNumeroLibre(int numero, ParticipanteSorteo? excepto)
+    {
+        ComprobarNumero(numero, "Numero");
+        if (_participantes.FirstOrDefault(p => p.Numero == numero && p != excepto) is { } otro)
+            throw new ReglaDeNegocioException($"El número {numero} ya lo tiene {otro.NombreVisible ?? "otro participante"}.", "Numero");
+    }
 
     private ExtraccionSorteo Extraer(List<ParticipanteSorteo> candidatos, Func<int, int> azar, string? motivo, DateTime ahora, int? administradorId)
     {
@@ -511,17 +669,30 @@ public sealed class PremioSorteo
     }
 }
 
-/// <summary>Un cliente que entra en un sorteo.</summary>
+/// <summary>
+/// Quien entra en un sorteo, con su número (único en el sorteo): un cliente con su ficha o un número metido a mano, con el
+/// nombre de quien lo tiene si se sabe.
+/// </summary>
 public sealed class ParticipanteSorteo
 {
+    public const int LongitudNombre = 120;
+
     private ParticipanteSorteo()
     {
     }
 
-    internal ParticipanteSorteo(Cliente cliente, DateTime ahora)
+    internal ParticipanteSorteo(Cliente cliente, int numero, DateTime ahora)
     {
         Cliente = cliente;
         ClienteId = cliente.Id;
+        Numero = numero;
+        AnadidoEn = ahora;
+    }
+
+    internal ParticipanteSorteo(int numero, string? nombre, DateTime ahora)
+    {
+        Numero = numero;
+        Nombre = NombreValido(nombre, "Numeros");
         AnadidoEn = ahora;
     }
 
@@ -529,16 +700,46 @@ public sealed class ParticipanteSorteo
 
     public int SorteoId { get; private set; }
 
-    public int ClienteId { get; private set; }
+    /// <summary>La ficha del cliente; null en los números metidos a mano.</summary>
+    public int? ClienteId { get; private set; }
 
     public Cliente? Cliente { get; private set; }
 
+    /// <summary>Su número en el sorteo.</summary>
+    public int Numero { get; private set; }
+
+    /// <summary>En un número metido a mano, quién lo tiene (opcional). Los clientes llevan el nombre de su ficha.</summary>
+    public string? Nombre { get; private set; }
+
     public DateTime AnadidoEn { get; private set; }
+
+    /// <summary>El nombre de la ficha o el escrito a mano; null en un número sin nombre.</summary>
+    public string? NombreVisible => Cliente?.NombreCompleto is { Length: > 0 } nombre ? nombre : Nombre;
+
+    /// <summary>«Nº 7 · Ana López» o, sin nombre, «Nº 7».</summary>
+    public string Etiqueta => NombreVisible is { } nombre ? $"Nº {Numero} · {nombre}" : $"Nº {Numero}";
+
+    internal void Cambiar(int numero, string? nombre)
+    {
+        // Primero se comprueba todo: si el nombre no vale, no cambia nada
+        var limpio = ClienteId is null ? NombreValido(nombre, "Nombre") : Nombre;
+        Numero = numero;
+        Nombre = limpio;
+    }
+
+    internal static string? NombreValido(string? nombre, string campo)
+    {
+        var limpio = Texto.Opcional(nombre);
+        if (limpio?.Length > LongitudNombre)
+            throw new ReglaDeNegocioException($"El nombre de quien tiene el número admite hasta {LongitudNombre} caracteres.", campo);
+        return limpio;
+    }
 }
 
 /// <summary>
-/// Una extracción del sorteo: quién ganó, cuándo, cómo (al azar entre cuántos, o elegido por el salón), por qué se repitió
-/// si hubo una anterior, si se le avisó y por dónde, y cuándo recibió el premio. Guarda el nombre del ganador del momento.
+/// Una extracción del sorteo: quién ganó y con qué número, cuándo, cómo (al azar entre cuántos, o elegido por el salón),
+/// por qué se repitió si hubo una anterior, si se le avisó y por dónde, y cuándo recibió el premio. Guarda el nombre del
+/// ganador del momento.
 /// </summary>
 public sealed class ExtraccionSorteo
 {
@@ -550,7 +751,8 @@ public sealed class ExtraccionSorteo
     {
         Sorteo = sorteo;
         ClienteId = ganador.ClienteId;
-        Ganador = ganador.Cliente?.NombreCompleto is { Length: > 0 } nombre ? nombre : $"Cliente {ganador.ClienteId}";
+        Numero = ganador.Numero;
+        Ganador = ganador.NombreVisible ?? (ganador.ClienteId is { } clienteId ? $"Cliente {clienteId}" : NombreSinNombre(ganador.Numero));
         Forma = forma;
         Fecha = fecha;
         Participantes = participantes;
@@ -571,6 +773,14 @@ public sealed class ExtraccionSorteo
 
     public string Ganador { get; private set; } = string.Empty;
 
+    /// <summary>El número con el que ganó; null en extracciones de antes de que hubiera números cuyo participante ya no está.</summary>
+    public int? Numero { get; private set; }
+
+    /// <summary>«Nº 7 · Ana López», «Nº 7» (un número sin nombre) o, sin número, el nombre.</summary>
+    public string Etiqueta => Numero is not { } numero ? Ganador
+        : Ganador == NombreSinNombre(numero) ? Ganador
+        : $"Nº {numero} · {Ganador}";
+
     public FormaGanador Forma { get; private set; }
 
     public DateTime Fecha { get; private set; }
@@ -590,11 +800,21 @@ public sealed class ExtraccionSorteo
     /// <summary>Cuándo recibió el premio. Null mientras no se le ha dado.</summary>
     public DateTime? EntregadoEn { get; private set; }
 
+    /// <summary>
+    /// Es la extracción de ese participante: por su número o, en las extracciones de antes de que hubiera números, por su
+    /// ficha.
+    /// </summary>
+    public bool Es(ParticipanteSorteo participante) =>
+        Numero is { } numero ? numero == participante.Numero : ClienteId is { } clienteId && clienteId == participante.ClienteId;
+
     internal void Avisar(CanalConfirmacion canal, DateTime ahora)
     {
         AvisoCanal = canal;
         AvisadoEn = ahora;
     }
+
+    /// <summary>Cómo se guarda el ganador cuando es un número sin nombre: «Nº 7».</summary>
+    private static string NombreSinNombre(int numero) => $"Nº {numero}";
 
     internal void Entregar(DateTime ahora) => EntregadoEn = ahora;
 }
@@ -613,19 +833,29 @@ public sealed class AnuncioSorteo
 
     internal AnuncioSorteo(Sorteo sorteo, string? texto, string? textoEn, DateOnly desde, DateOnly hasta, DateTime ahora)
     {
-        Texto = Comun.Texto.Obligatorio(texto, LongitudTexto, "El texto del anuncio", "TextoAnuncio");
-        TextoEn = Comun.Texto.Obligatorio(textoEn, LongitudTexto, "El texto en inglés", "TextoAnuncioEn");
+        Sorteo = sorteo;
+        CreadoEn = ahora;
+        Cambiar(texto, textoEn, desde, hasta, ahora);
+    }
+
+    internal void Cambiar(string? texto, string? textoEn, DateOnly desde, DateOnly hasta, DateTime ahora)
+    {
+        var nuevo = Comun.Texto.Obligatorio(texto, LongitudTexto, "El texto del anuncio", "TextoAnuncio");
+        var nuevoEn = Comun.Texto.Obligatorio(textoEn, LongitudTexto, "El texto en inglés", "TextoAnuncioEn");
         if (hasta < desde)
             throw new ReglaDeNegocioException("La fecha de fin tiene que ser posterior a la de inicio.", "HastaAnuncio");
         if (hasta < DateOnly.FromDateTime(ahora))
             throw new ReglaDeNegocioException("El anuncio terminaría antes de hoy: elige otra fecha de fin.", "HastaAnuncio");
         if (hasta.DayNumber - desde.DayNumber >= DiasMaximos)
             throw new ReglaDeNegocioException("Un anuncio puede estar en la web hasta un año.", "HastaAnuncio");
-        Sorteo = sorteo;
+        Texto = nuevo;
+        TextoEn = nuevoEn;
         Desde = desde;
         Hasta = hasta;
-        CreadoEn = ahora;
     }
+
+    /// <summary>Lo deja en el historial hasta el día anterior a <paramref name="dia"/>.</summary>
+    internal void TerminarAntesDe(DateOnly dia) => Hasta = dia.AddDays(-1);
 
     public int Id { get; private set; }
 

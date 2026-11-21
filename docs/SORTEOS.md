@@ -16,17 +16,35 @@ También se pueden crear desde el propio sorteo («Nuevo producto de sorteo» ju
 
 1. **Nuevo sorteo**: el título y, si se quiere, una descripción, **en español y en inglés** (se ven en la web), y cuándo se sortea. Al crearlo lleva a añadir los premios.
 2. **Premios**: mientras el sorteo está abierto se añaden con un buscador que agrupa *Productos de sorteo*, *Servicios del catálogo* y *Productos de la tienda*, con una **cantidad** (1 a 99; añadir otra vez el mismo premio suma la cantidad). Hasta 20 premios por sorteo, y se pueden quitar. **Quien gana se lleva el lote entero.** Se guarda el nombre (y la descripción) del momento: si luego se borra el servicio, el producto o el producto de sorteo, el sorteo lo conserva.
-3. **Participantes**: se añaden con el buscador de clientes (nombre, teléfono o correo) o, de golpe, **todos los clientes que vinieron entre dos fechas**. Los repetidos no se duplican. Mientras el sorteo está abierto se pueden quitar.
-4. **Sortear**: el botón *Sortear ahora* elige al ganador **al azar entre todos los participantes** (hacen falta al menos dos y al menos un premio), con un generador criptográfico: cada uno tiene la misma probabilidad y nadie puede predecir el resultado. La pantalla lo descubre con una ruleta de nombres y confeti (sin animación si el sistema pide reducir movimiento). También se puede **elegir el ganador a mano** («Prefiero elegir yo al ganador»), por ejemplo si el sorteo se hizo en el salón con papeletas.
+3. **Participantes**: **cada participante lleva un número**, único en su sorteo (del 1 al 99.999), y la lista se ordena por número. Se añaden de tres formas:
+   - Con el **buscador de clientes** (nombre, teléfono o correo). Al lado hay un campo para **su número**: si se deja vacío, se lleva el siguiente al más alto (o el 1 si no hay ninguno).
+   - De golpe, **todos los clientes que vinieron entre dos fechas**, cada uno con el siguiente número libre.
+   - **Meter números a mano** (por ejemplo, papeletas o un sorteo que ya está en marcha en otro sitio, como Instagram): sin ficha de cliente, una línea por persona, primero los números y después, si se quiere, el nombre de quien los tiene. Admite números sueltos y rangos: `1-50`, `51 María López`, `60, 61, 75 Juan`. Los números que ya estén en el sorteo se dejan como estaban y el aviso dice cuáles eran. Si una línea no empieza por un número (o se sale de 1 a 99.999), no se añade nada y el texto se conserva con el error al lado para corregirlo. Hasta 5.000 participantes por sorteo.
+
+   Un cliente que ya participa no se duplica (con otro número, avisa del que ya tiene); un número ocupado avisa de quién lo tiene. Mientras el sorteo está abierto, el lápiz de cada fila **cambia su número** y, en los números sin ficha, **el nombre de quien lo tiene**; la ✕ lo quita. El nombre de un cliente es siempre el de su ficha.
+4. **Sortear**: el botón *Sortear ahora* elige al ganador **al azar entre todos los participantes** (hacen falta al menos dos y al menos un premio), con un generador criptográfico: cada uno tiene la misma probabilidad y nadie puede predecir el resultado. La pantalla lo descubre con una ruleta de números y nombres («Nº 7 · María López») y confeti (sin animación si el sistema pide reducir movimiento). También se puede **elegir el ganador a mano** por su número («Prefiero elegir yo al ganador»), por ejemplo si el sorteo se hizo en el salón con papeletas o en otro sitio.
 5. **Avisar al ganador**: la pantalla propone un mensaje (con los premios, el sorteo y el teléfono del salón), que se puede retocar, y dos botones:
    - *Enviar por correo*: sale con la imagen de los correos del salón y los premios destacados. Hace falta que su ficha tenga correo y que el SMTP del servidor esté configurado.
    - *Abrir WhatsApp*: abre la conversación con su móvil y el mensaje escrito; se envía desde WhatsApp. Hace falta un móvil en su ficha.
-   En los dos casos queda anotado por dónde y cuándo se le avisó.
+   En los dos casos queda anotado por dónde y cuándo se le avisó. Si gana **un número sin ficha**, no hay correo ni móvil: el mensaje sale preparado («¡Enhorabuena, María! …» o, sin nombre, «¡Enhorabuena! El número 7 ha ganado…») para copiarlo y avisarle por su cuenta, y el sorteo lo marca como «Sin ficha: avísale por tu cuenta».
 6. **Entregar**: cuando el ganador recoge el premio, *Marcar premio entregado* anota la fecha. A partir de ahí el ganador ya no se puede cambiar.
 7. **Si el ganador no responde o no puede venir** (y aún no se le ha entregado): *Repetir el sorteo* vuelve a sortear entre los que aún no han ganado, o *Elegir otro ganador* lo designa el salón. Las dos cosas piden un **motivo**; la extracción anterior se conserva.
 8. **Cancelar**: un sorteo abierto se puede cancelar (con un motivo opcional); queda en el historial y la web deja de anunciarlo. Un sorteo sin ganador se puede eliminar; con ganador, no, porque forma parte del historial.
 
+Quitar un premio, un participante o un anuncio, cancelar o eliminar el sorteo **siempre pregunta antes** con una ventana de confirmación.
+
 En **En marcha** se ven los sorteos abiertos con sus premios, con un aviso destacado cuando llega el día de sortear (o ha pasado y aún no se ha hecho). El **Historial** guarda cada sorteo realizado: qué premios se sortearon, cuándo, quién ganó, cómo (al azar entre cuántos o elegido por el salón), si se le avisó y por dónde, si se le entregó y cuándo, y cuántas extracciones hubo. Cada sorteo guarda todas sus extracciones con su motivo.
+
+## Tablero del sorteo
+
+El botón **Tablero** del sorteo (y «Ver el tablero» en sus participantes) abre `/admin/Sorteos/Tablero/{id}`: **todos los números**, del 1 al último, en casillas de colores, para ver de un vistazo cómo va el sorteo y enseñarlo en el salón.
+
+- Arriba, las cifras: números ocupados, libres, sorteados y hasta dónde llega el talonario, con una barra del porcentaje ocupado.
+- **Números sorteados**: cada número que ha salido como una bola, con quién lo tenía, cuándo y cómo (al azar o elegido por el salón). El último es el ganador; los anteriores, «Salió antes».
+- Cada casilla lleva el número y el nombre corto de quien lo tiene («María L.»; los nombres de pila muy largos se acortan sin puntos suspensivos) o «libre». Colores: libre (borde discontinuo), ocupado, ganador (dorado, con estrella) y «salió antes». Se puede **buscar** un número o un nombre (sin distinguir tildes) y enseñar **todos, solo los libres o solo los ocupados**.
+- Al pulsar una casilla se abre una ventana: si está ocupada, quién la tiene, su teléfono o correo y el enlace a su ficha; si está libre, mientras el sorteo está abierto, **se apunta** ahí mismo con el nombre de quien tiene la papeleta (opcional; para un cliente con ficha se añade desde «Participantes»). Al apuntarlo se vuelve al tablero con esa casilla resaltada.
+- **Talonario**: «¿Hasta qué número llega?». Con un talonario de papeletas (del 1 al 100, por ejemplo), el tablero enseña también los números que aún nadie tiene. Vacío, llega hasta el número más alto que haya. Si hay números por encima del talonario, el tablero llega hasta ellos. Se pintan hasta 2.000 casillas; los números más altos están en la lista de participantes.
+- **Pantalla completa** (en los navegadores que la permiten), para ponerlo en una pantalla del salón: el título, las cifras, las bolas y el tablero, sin el resto del panel.
 
 ## En la web
 
@@ -35,17 +53,23 @@ Cada sorteo puede tener **anuncios**: un texto en español y en inglés que la w
 - Sale un **aviso flotante** abajo a la izquierda, en todas las páginas de la web pública, con el título, los premios y la fecha del sorteo (o «¡Ya tenemos ganador!» si ya se hizo). Quien lo cierra no lo vuelve a ver para ese anuncio (se recuerda en su navegador).
 - El menú enseña **Sorteos** (`/sorteos` y `/en/sorteos`), una página con cada sorteo anunciado: la lista de premios (con la descripción de los productos de sorteo), la fecha, el texto y la descripción.
 
+En el detalle del sorteo, la sección **Anuncio en la web** cambia según su estado:
+
+- **Sin anuncio**: el formulario *Anunciar en la web* (texto en los dos idiomas y fechas).
+- **En la web ahora** (o **Programado**, si empieza más adelante): una tarjeta con las fechas («Se ve hasta el …») y el texto, y dos botones bien separados. *Dejar de mostrar en la web* (*Cancelar el anuncio* si aún no ha empezado) pregunta antes con una ventana de confirmación. Si el anuncio ya se veía desde antes de hoy, queda en el historial hasta ayer; si empezaba hoy o más adelante, se quita. *Finalizar el sorteo* lleva a sortear o elegir al ganador. Debajo, *Cambiar el texto o las fechas*.
+- **Otros anuncios**: el historial (terminados y los que vengan después), cada uno con su estado y la ✕ para borrarlo, que también pregunta antes.
+
 La web **nunca enseña** a los participantes ni el nombre del ganador. Los anuncios se leen de la base de datos y se guardan 5 minutos en memoria; cambiar un sorteo o un producto de sorteo en el panel los actualiza al momento. Si la base de datos fallara, la web sale sin el aviso.
 
 ## Base de datos
 
 | Tabla | Qué guarda |
 |---|---|
-| `Sorteos` | Título y descripción (español e inglés), fecha, estado (0 abierto, 1 realizado, 2 cancelado), motivo de cancelación y `rowversion`: dos «Sortear» a la vez no dan dos ganadores, ni dos cambios de premios a la vez se pisan. Las columnas `TipoPremio`, `ServicioId`, `ProductoId`, `Premio` y `PremioEn` son de cuando cada sorteo tenía un solo premio: se conservan con sus datos y los sorteos nuevos las dejan a nulo. |
+| `Sorteos` | Título y descripción (español e inglés), fecha, estado (0 abierto, 1 realizado, 2 cancelado), motivo de cancelación, `NumerosHasta` (hasta dónde llega el talonario del tablero; nulo si no se ha dicho) y `rowversion`: dos «Sortear» a la vez no dan dos ganadores, ni dos cambios de premios a la vez se pisan. Las columnas `TipoPremio`, `ServicioId`, `ProductoId`, `Premio` y `PremioEn` son de cuando cada sorteo tenía un solo premio: se conservan con sus datos y los sorteos nuevos las dejan a nulo. |
 | `PremiosSorteos` | Los premios de cada sorteo: tipo (0 servicio, 1 producto de la tienda, 2 producto de sorteo), la clave del que corresponda (`ServicioId`, `ProductoId` o `ProductoSorteoId`), nombre y descripción del momento en los dos idiomas y cantidad (1 a 99). Si se borra el servicio, el producto o el producto de sorteo, la clave queda a nulo y el nombre se conserva. |
 | `ProductosSorteo` | Nombre y descripción en los dos idiomas, `Activo` y fechas de alta, cambio y eliminación. |
-| `ParticipantesSorteos` | Un cliente por sorteo (índice único). Borrar la ficha del cliente lo saca de los sorteos. |
-| `ExtraccionesSorteos` | Cada extracción: ganador (ficha y nombre del momento), forma (0 al azar, 1 elegido por el salón), fecha, entre cuántos, motivo, administrador, aviso (canal y fecha) y `EntregadoEn`, cuándo se entregó el premio. Si se borra la ficha del ganador, queda su nombre. |
+| `ParticipantesSorteos` | `Numero` (1 a 99.999, único en su sorteo), `ClienteId` (nulo en los números metidos a mano; un cliente no se repite en el mismo sorteo, con un índice único filtrado) y `Nombre` (solo en los números sin ficha, hasta 120 caracteres). Borrar la ficha del cliente lo saca de los sorteos. |
+| `ExtraccionesSorteos` | Cada extracción: ganador (ficha, `Numero` y nombre del momento), forma (0 al azar, 1 elegido por el salón), fecha, entre cuántos, motivo, administrador, aviso (canal y fecha) y `EntregadoEn`, cuándo se entregó el premio. Si se borra la ficha del ganador, queda su nombre. |
 | `AnunciosSorteos` | Texto en los dos idiomas y fechas `Desde`/`Hasta` (date). |
 
 Migraciones:
@@ -54,3 +78,9 @@ Migraciones:
 - `ProductosDeSorteoYVariosPremios` solo **añade**: las tablas `ProductosSorteo` y `PremiosSorteos`, la columna `ExtraccionesSorteos.EntregadoEn`, y deja admitir nulos a `Sorteos.TipoPremio` y `Sorteos.Premio`. Copia el premio de cada sorteo que ya hubiera como su primer premio en `PremiosSorteos`, sin tocar las columnas antiguas. La vuelta atrás devuelve a esas columnas el primer premio de los sorteos creados después (un producto de sorteo queda como producto sin enlace, con su nombre; un sorteo sin premios, «Sin premio»).
 
   Estado: aplicada en la base **local** (`PeluqueriaLuciaDb`, copia previa `PeluqueriaLuciaDb_antes_ProductosDeSorteo_20261105.bak`) y en `PeluqueriaLucia_VistaPrevia`, probada también hacia atrás con datos. **Aplicada en producción** el 5-nov-2026 (antes de publicar el código, que es compatible con el esquema anterior y con el nuevo).
+- `GastosYNumerosDeSorteo` solo **añade**: la tabla `Gastos` (ver [GASTOS.md](GASTOS.md)), las columnas `Numero` y `Nombre` de `ParticipantesSorteos` (con `ClienteId` ya admitiendo nulos y sus índices únicos por número y por cliente) y `ExtraccionesSorteos.Numero`. A los participantes que ya había les da los números 1, 2, 3… dentro de cada sorteo, en el orden en que se añadieron, y a cada extracción, el número de su ganador si sigue en el sorteo. No borra nada.
+
+  **Ojo con la vuelta atrás**: borra la tabla `Gastos` (con los gastos anotados) y los participantes sin ficha, que no caben en el esquema anterior. Antes de deshacerla en una base con datos, hay que exportar los gastos.
+
+  Estado: aplicada en la base **local** (`PeluqueriaLuciaDb`, copia previa `PeluqueriaLuciaDb_antes_GastosYNumerosDeSorteo_20261121.bak`) y en `PeluqueriaLucia_VistaPrevia`, probada también hacia atrás con datos; la prueba `La_migracion_numera_a_los_participantes_que_ya_habia…` la repite con datos en cada ejecución. **Pendiente en producción**: el código nuevo necesita las columnas y la tabla nuevas, así que se aplica **antes** de publicar (`/salud` responde 503 mientras falte).
+- `TiposDeGastoTableroYResenas` solo **añade** la columna `Sorteos.NumerosHasta` (admite nulos: los sorteos que ya hay quedan sin talonario y su tablero llega hasta el número más alto), además de los tipos de gasto editables ([GASTOS.md](GASTOS.md#base-de-datos)) y las fechas de las reseñas. Aplicada en `PeluqueriaLucia_VistaPrevia` y probada también hacia atrás; **pendiente en producción**, después de las dos anteriores (ver [AZURE.md](AZURE.md)).

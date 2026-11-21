@@ -225,8 +225,119 @@ public sealed class SorteoTests
         sorteo.ElegirGanador(1, "Bea no puede venir", Ahora.AddHours(1), 1);
 
         Assert.Equal((FormaGanador.ElegidoPorElSalon, 2, EstadoSorteo.Realizado), (elegido.Forma, elegido.Participantes, sorteo.Estado));
-        Assert.Equal(("ClienteId", "Motivo", "ClienteId"), (mismo.Campo, sinMotivo.Campo, deFuera.Campo));
+        Assert.Equal(("Numero", "Motivo", "Numero"), (mismo.Campo, sinMotivo.Campo, deFuera.Campo));
         Assert.Equal((1, "Bea no puede venir"), (sorteo.Ganador!.ClienteId!.Value, sorteo.Ganador.Motivo));
+    }
+
+    [Fact]
+    public void Cada_participante_lleva_un_numero_el_siguiente_libre_o_el_que_se_elija()
+    {
+        var sorteo = ConParticipantes("Ana", "Bea");
+
+        var conNumero = sorteo.AgregarCliente(Cliente(3, "Carla"), 10, Ahora);
+        sorteo.AgregarParticipantes([Cliente(4, "Dana")], Ahora);
+        var yaEstaba = sorteo.AgregarCliente(Cliente(1, "Ana"), null, Ahora);
+        var otroNumero = Assert.Throws<ReglaDeNegocioException>(() => sorteo.AgregarCliente(Cliente(1, "Ana"), 30, Ahora));
+        var ocupado = Assert.Throws<ReglaDeNegocioException>(() => sorteo.AgregarCliente(Cliente(5, "Eva"), 10, Ahora));
+        var fuera = Assert.Throws<ReglaDeNegocioException>(() => sorteo.AgregarCliente(Cliente(5, "Eva"), Sorteo.NumeroMaximo + 1, Ahora));
+
+        Assert.True(conNumero);
+        Assert.False(yaEstaba);
+        Assert.Equal([1, 2, 10, 11], sorteo.Participantes.Select(p => p.Numero));
+        Assert.Equal("Nº 10 · Carla Pérez", sorteo.Participantes.Single(p => p.ClienteId == 3).Etiqueta);
+        Assert.Contains("ya participa con el número 1", otroNumero.Message);
+        Assert.Equal(("El número 10 ya lo tiene Carla Pérez.", "Numero"), (ocupado.Message, ocupado.Campo));
+        Assert.Equal("Numero", fuera.Campo);
+    }
+
+    [Fact]
+    public void Se_pueden_meter_numeros_a_mano_sin_ficha_y_los_repetidos_se_saltan()
+    {
+        var sorteo = ConParticipantes("Ana", "Bea");
+
+        var agregados = sorteo.AgregarNumeros(LectorNumerosSorteo.Leer("2-5\n7 María López\n9, 12 Juan"), Ahora);
+
+        Assert.Equal(6, agregados.Agregados);
+        Assert.Equal([2], agregados.Repetidos);
+        Assert.Equal([1, 2, 3, 4, 5, 7, 9, 12], sorteo.Participantes.Select(p => p.Numero).Order());
+        var maria = sorteo.Participantes.Single(p => p.Numero == 7);
+        Assert.Equal((null, "María López", "Nº 7 · María López"), (maria.ClienteId, maria.Nombre, maria.Etiqueta));
+        Assert.Equal(["Juan", "Juan"], sorteo.Participantes.Where(p => p.Numero is 9 or 12).Select(p => p.Nombre!));
+        Assert.Equal("Nº 3", sorteo.Participantes.Single(p => p.Numero == 3).Etiqueta);
+        // Un cliente nuevo se lleva el siguiente al más alto
+        sorteo.AgregarParticipantes([Cliente(3, "Carla")], Ahora);
+        Assert.Equal(13, sorteo.Participantes.Single(p => p.ClienteId == 3).Numero);
+        Assert.Throws<ReglaDeNegocioException>(() => sorteo.AgregarNumeros([], Ahora));
+    }
+
+    [Theory]
+    [InlineData("1-3", new[] { 1, 2, 3 }, null)]
+    [InlineData("5 - 3", new[] { 3, 4, 5 }, null)]
+    [InlineData("1–2 Ana", new[] { 1, 2 }, "Ana")]
+    [InlineData("4,6 8   Bea Gil", new[] { 4, 6, 8 }, "Bea Gil")]
+    [InlineData("  15 - Carla  ", new[] { 15 }, "Carla")]
+    [InlineData("3; 4 Dani", new[] { 3, 4 }, null)]
+    public void El_lector_de_numeros_entiende_rangos_listas_y_nombres(string texto, int[] numeros, string? primerNombre)
+    {
+        var leidos = LectorNumerosSorteo.Leer(texto);
+
+        Assert.Equal(numeros, leidos.Select(n => n.Numero));
+        Assert.Equal(primerNombre, leidos[0].Nombre);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("María 12")]
+    [InlineData("0")]
+    [InlineData("100000")]
+    [InlineData("3B")]
+    [InlineData("1-6000")]
+    [InlineData("99999999999999999999")]
+    public void El_lector_de_numeros_rechaza_lo_que_no_son_numeros_validos(string texto)
+    {
+        var error = Assert.Throws<ReglaDeNegocioException>(() => LectorNumerosSorteo.Leer(texto));
+
+        Assert.Equal("Numeros", error.Campo);
+    }
+
+    [Fact]
+    public void Se_puede_cambiar_el_numero_y_el_nombre_de_un_numero_sin_ficha()
+    {
+        var sorteo = ConParticipantes("Ana", "Bea");
+        sorteo.AgregarNumeros([new NumeroSorteo(7, "María")], Ahora);
+
+        sorteo.CambiarNumero(7, 70, "María López", Ahora);
+        sorteo.CambiarNumero(1, 15, "No cuenta", Ahora);
+        var ocupado = Assert.Throws<ReglaDeNegocioException>(() => sorteo.CambiarNumero(15, 2, null, Ahora));
+        var noEsta = Assert.Throws<ReglaDeNegocioException>(() => sorteo.CambiarNumero(1, 3, null, Ahora));
+        var largo = Assert.Throws<ReglaDeNegocioException>(() => sorteo.CambiarNumero(70, 71, new string('x', ParticipanteSorteo.LongitudNombre + 1), Ahora));
+
+        Assert.Equal("Nº 70 · María López", sorteo.Participantes.Single(p => p.ClienteId is null).Etiqueta);
+        // El nombre de un cliente es el de su ficha
+        var ana = sorteo.Participantes.Single(p => p.ClienteId == 1);
+        Assert.Equal((15, null, "Ana Pérez"), (ana.Numero, ana.Nombre, ana.NombreVisible));
+        Assert.Contains("Bea Pérez", ocupado.Message);
+        Assert.Contains("ya no está", noEsta.Message);
+        Assert.Equal("Nombre", largo.Campo);
+    }
+
+    [Fact]
+    public void Un_numero_sin_ficha_puede_ganar_y_no_vuelve_a_salir_al_repetir()
+    {
+        var sorteo = ConParticipantes("Ana");
+        sorteo.AgregarNumeros([new NumeroSorteo(5, "María"), new NumeroSorteo(8)], Ahora);
+
+        // Por número: Ana (1), María (5) y el 8
+        var primera = sorteo.Sortear(_ => 1, Ahora, null);
+        var segunda = sorteo.Repetir(n => n - 1, "No aparece", Ahora.AddDays(1), null);
+
+        Assert.Equal((null, 5, "María", "Nº 5 · María"), (primera.ClienteId, primera.Numero, primera.Ganador, primera.Etiqueta));
+        Assert.Equal((8, "Nº 8", "Nº 8", 2), (segunda.Numero!.Value, segunda.Ganador, segunda.Etiqueta, segunda.Participantes));
+        Assert.True(sorteo.HaGanado(sorteo.Participantes.Single(p => p.Numero == 5)));
+        Assert.False(sorteo.HaGanado(sorteo.Participantes.Single(p => p.Numero == 1)));
+        // El salón también puede elegir por número
+        var elegido = sorteo.ElegirGanador(1, "Mejor Ana", Ahora.AddDays(2), null);
+        Assert.Equal(("Nº 1 · Ana Pérez", 1), (elegido.Etiqueta, elegido.ClienteId!.Value));
     }
 
     [Fact]
@@ -288,6 +399,71 @@ public sealed class SorteoTests
         Assert.Equal([false, true, true, false], new[] { Hoy.AddDays(-1), Hoy, Hoy.AddDays(10), Hoy.AddDays(11) }.Select(anuncio.VisibleEl));
         Assert.Equal(("HastaAnuncio", "HastaAnuncio", "TextoAnuncioEn", "HastaAnuncio"), (alReves.Campo, pasado.Campo, sinIngles.Campo, largo.Campo));
         Assert.Single(sorteo.Anuncios);
+    }
+
+    [Fact]
+    public void Terminar_un_anuncio_que_ya_se_veia_lo_deja_en_el_historial_hasta_ayer()
+    {
+        var sorteo = ConParticipantes("Ana", "Bea");
+        var anuncio = sorteo.Anunciar("Participa con tu visita", "Join with your visit", Hoy.AddDays(-3), Hoy.AddDays(5), Ahora.AddDays(-3));
+
+        sorteo.TerminarAnuncio(anuncio.Id, Ahora);
+
+        Assert.Equal((Hoy.AddDays(-3), Hoy.AddDays(-1)), (anuncio.Desde, anuncio.Hasta));
+        Assert.False(anuncio.VisibleEl(Hoy));
+        Assert.Single(sorteo.Anuncios);
+        var otraVez = Assert.Throws<ReglaDeNegocioException>(() => sorteo.TerminarAnuncio(anuncio.Id, Ahora));
+        Assert.Equal("Ese anuncio ya no se ve en la web.", otraVez.Message);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(4)]
+    public void Terminar_un_anuncio_que_empieza_hoy_o_mas_adelante_lo_quita(int dias)
+    {
+        var sorteo = ConParticipantes("Ana", "Bea");
+        var anuncio = sorteo.Anunciar("Participa con tu visita", "Join with your visit", Hoy.AddDays(dias), Hoy.AddDays(dias + 7), Ahora);
+
+        sorteo.TerminarAnuncio(anuncio.Id, Ahora);
+
+        Assert.Empty(sorteo.Anuncios);
+        Assert.Throws<ReglaDeNegocioException>(() => sorteo.TerminarAnuncio(anuncio.Id, Ahora));
+    }
+
+    [Fact]
+    public void Cambiar_un_anuncio_cambia_texto_y_fechas_y_si_algo_falla_lo_deja_como_estaba()
+    {
+        var sorteo = ConParticipantes("Ana", "Bea");
+        var anuncio = sorteo.Anunciar("Hola", "Hi", Hoy, Hoy.AddDays(3), Ahora);
+
+        sorteo.CambiarAnuncio(anuncio.Id, " Participa en diciembre ", "Join in December", Hoy.AddDays(1), Hoy.AddDays(20), Ahora);
+        var alReves = Assert.Throws<ReglaDeNegocioException>(() => sorteo.CambiarAnuncio(anuncio.Id, "Otro", "Other", Hoy.AddDays(5), Hoy, Ahora));
+
+        Assert.Equal(("Participa en diciembre", "Join in December", Hoy.AddDays(1), Hoy.AddDays(20)), (anuncio.Texto, anuncio.TextoEn, anuncio.Desde, anuncio.Hasta));
+        Assert.Equal("HastaAnuncio", alReves.Campo);
+        sorteo.Cancelar("Se aplaza", Ahora);
+        Assert.Throws<ReglaDeNegocioException>(() => sorteo.CambiarAnuncio(anuncio.Id, "Otro", "Other", Hoy, Hoy.AddDays(1), Ahora));
+    }
+
+    [Fact]
+    public void El_talonario_marca_hasta_donde_llega_el_tablero_salvo_que_haya_numeros_mas_altos()
+    {
+        var sorteo = Sorteo.Crear(Datos(), Ahora);
+        Assert.Equal(0, sorteo.UltimoNumero);
+
+        sorteo.AgregarNumeros([new NumeroSorteo(5, "María")], Ahora);
+        Assert.Equal(5, sorteo.UltimoNumero);
+        sorteo.CambiarTalonario(100, Ahora);
+        Assert.Equal(((int?)100, 100), (sorteo.NumerosHasta, sorteo.UltimoNumero));
+        sorteo.AgregarNumeros([new NumeroSorteo(150)], Ahora);
+        Assert.Equal(150, sorteo.UltimoNumero);
+        sorteo.CambiarTalonario(null, Ahora);
+        Assert.Equal(((int?)null, 150), (sorteo.NumerosHasta, sorteo.UltimoNumero));
+
+        Assert.Throws<ReglaDeNegocioException>(() => sorteo.CambiarTalonario(0, Ahora));
+        Assert.Throws<ReglaDeNegocioException>(() => sorteo.CambiarTalonario(Sorteo.NumeroMaximo + 1, Ahora));
+        sorteo.Cancelar("No sale adelante", Ahora);
+        Assert.Throws<ReglaDeNegocioException>(() => sorteo.CambiarTalonario(50, Ahora));
     }
 
     [Fact]

@@ -1,28 +1,89 @@
 @model PanelModelo
-@{ ViewData["Title"] = "Panel de administración"; var r = Model.Resumen; }
+@{
+    ViewData["Title"] = "Panel de administración";
+    var r = Model.Resumen;
+    var g = Model.GastosHoy;
+    var mes = Model.Mes;
+    var gastosMes = Model.GastosMes;
+    var nombreMes = Model.Hoy.ToString("MMMM", Formato.Espanol);
+    var textoHoy = Model.Hoy.ToString("yyyy-MM-dd");
+    var queda = mes.Cobrado - gastosMes.Total;
+}
 <section class="panel-bienvenida" aria-labelledby="titulo-panel">
-    <div><p class="panel-fecha">@Model.Hoy.ToString("dddd, d 'de' MMMM", Formato.Espanol)</p><h1 id="titulo-panel">Hola, @User.Identity?.Name.<br /><em>Este es tu salón hoy.</em></h1><p class="subtitle">Un espacio para cuidar de tus clientes y de cada detalle.</p><a class="btn btn-primary" asp-controller="Visitas" asp-action="Nueva"><icono nombre="mas" tamano="18" /> Nueva visita</a></div>
+    <div>
+        <p class="panel-fecha">@Model.Hoy.ToString("dddd, d 'de' MMMM", Formato.Espanol)</p>
+        <h1 id="titulo-panel">Hola, @User.Identity?.Name.<br /><em>Este es tu salón hoy.</em></h1>
+        <p class="subtitle">Un espacio para cuidar de tus clientes y de cada detalle.</p>
+        <div class="panel-acciones">
+            <a class="btn btn-primary" asp-controller="Visitas" asp-action="Nueva"><icono nombre="mas" tamano="18" /> Nueva visita</a>
+            <a class="btn btn-gray" asp-controller="Gastos" asp-action="Nuevo" asp-route-fecha="@textoHoy"><icono nombre="cartera" tamano="18" /> Nuevo gasto</a>
+        </div>
+    </div>
     <img class="panel-foto" src="~/publico/fachada-lucia.png" asp-append-version="true" alt="Fachada de Lucía Peluquería Ecológica" width="1369" height="1306" />
 </section>
-<section class="stats" aria-label="Resumen de hoy">
+<section class="stats stats-5" aria-label="Resumen de hoy">
     <div class="stat tint-blue"><span class="stat-label"><icono nombre="euro" tamano="16" /> Facturado hoy</span><strong class="stat-value">@Formato.Euros(r.Facturado)</strong><span class="stat-foot">@r.Servicios servicios@(r.Productos > 0 ? $" · {r.Productos} productos" : "")</span></div>
     <div class="stat tint-green"><span class="stat-label"><icono nombre="check-circulo" tamano="16" /> Cobrado</span><strong class="stat-value">@Formato.Euros(r.Cobrado)</strong><span class="stat-foot">@Formato.Euros(r.Efectivo) efectivo · @Formato.Euros(r.Tarjeta) tarjeta</span></div>
     <div class="stat tint-orange"><span class="stat-label"><icono nombre="reloj" tamano="16" /> Pendiente</span><strong class="stat-value">@Formato.Euros(r.Pendiente)</strong><span class="stat-foot">Por cobrar</span></div>
     <div class="stat tint-purple"><span class="stat-label"><icono nombre="clientes" tamano="16" /> Visitas</span><strong class="stat-value">@r.Visitas</strong><span class="stat-foot">Hoy</span></div>
+    <a class="stat stat-enlace tint-red" asp-controller="Visitas" asp-action="Index" asp-route-periodo="@Periodo.Dia" asp-route-fecha="@textoHoy">
+        <span class="stat-label"><icono nombre="cartera" tamano="16" /> Gastos hoy</span>
+        <strong class="stat-value importe-gasto">@(g.Total == 0 ? Formato.Euros(0) : "−" + Formato.Euros(g.Total))</strong>
+        <span class="stat-foot">@(g.Gastos switch { 0 => "Sin gastos anotados", 1 => "1 gasto", var n => $"{n} gastos" })@(g.Efectivo > 0 ? $" · {Formato.Euros(g.Efectivo)} de la caja" : "")</span>
+    </a>
 </section>
 <div class="panel-grid">
     <section class="section"><div class="section-head"><h2>Tu gestión diaria</h2></div><div class="list">
         <a class="row" href="/admin/agenda"><icono nombre="calendario" /><span class="row-title">Agenda y solicitudes de cita</span><icono nombre="siguiente" tamano="16" /></a>
-        <a class="row" asp-controller="Visitas" asp-action="Index"><icono nombre="calendario" /><span class="row-title">Visitas y cobros</span><icono nombre="siguiente" tamano="16" /></a>
+        <a class="row" asp-controller="Visitas" asp-action="Index"><icono nombre="calendario" /><span class="row-title">Visitas, cobros y gastos</span><icono nombre="siguiente" tamano="16" /></a>
         <a class="row" asp-controller="Clientes" asp-action="Index"><icono nombre="clientes" /><span class="row-title">Clientes e historiales</span><icono nombre="siguiente" tamano="16" /></a>
         <a class="row" asp-controller="Catalogo" asp-action="Index"><icono nombre="tijeras" /><span class="row-title">Catálogo de servicios</span><icono nombre="siguiente" tamano="16" /></a>
         <a class="row" asp-controller="Productos" asp-action="Index"><icono nombre="producto" /><span class="row-title">Productos y stock de la tienda</span><icono nombre="siguiente" tamano="16" /></a>
+        <a class="row" asp-controller="Gastos" asp-action="Tipos"><icono nombre="cartera" /><span class="row-title">Tipos de gasto</span><icono nombre="siguiente" tamano="16" /></a>
         <a class="row" asp-controller="Seguridad" asp-action="Index"><icono nombre="check-circulo" /><span class="row-title">Seguridad y sesiones</span><icono nombre="siguiente" tamano="16" /></a>
         <a class="row" asp-controller="Tratamientos" asp-action="Index"><icono nombre="hoja" /><span class="row-title">Precios y servicios de la web</span><icono nombre="siguiente" tamano="16" /></a>
         <a class="row" asp-controller="Resenas" asp-action="Index"><icono nombre="clientes" /><span class="row-title">Reseñas y fotos</span><icono nombre="siguiente" tamano="16" /></a>
         <a class="row" asp-area="" asp-controller="Inicio" asp-action="Index"><icono nombre="casa" /><span class="row-title">Ver la web del salón</span><icono nombre="flecha-salir" tamano="14" /></a>
     </div></section>
     <div>
+        <section class="section" aria-labelledby="titulo-gastos-mes">
+            <div class="section-head">
+                <h2 id="titulo-gastos-mes">Cobros y gastos de @nombreMes</h2>
+                <a asp-controller="Visitas" asp-action="Index" asp-route-periodo="@Periodo.Mes" asp-route-fecha="@textoHoy">Ver el mes <icono nombre="flecha" tamano="14" /></a>
+            </div>
+            <div class="card panel-gastos">
+                <dl class="panel-gastos-cifras">
+                    <div class="tint-green"><dt>Cobrado</dt><dd>@Formato.Euros(mes.Cobrado)</dd></div>
+                    <div class="tint-red"><dt>Gastos</dt><dd class="importe-gasto">@(gastosMes.Total == 0 ? Formato.Euros(0) : "−" + Formato.Euros(gastosMes.Total))</dd></div>
+                    <div class="@(queda < 0 ? "tint-red" : "tint-purple")"><dt>Queda</dt><dd class="@(queda < 0 ? "importe-gasto" : "")">@Formato.Euros(queda)</dd></div>
+                </dl>
+                @if (Model.GastosPorTipo.Count == 0)
+                {
+                    <p class="panel-gastos-vacio">Este mes no hay gastos anotados. Anótalos al pagarlos (nóminas, cuota de autónomos, material…) y saldrán aquí y en el Excel del asesor.</p>
+                }
+                else
+                {
+                    <ul class="panel-gastos-tipos" aria-label="Gastos de @nombreMes por tipo">
+                        @foreach (var t in Model.GastosPorTipo.Take(PanelModelo.TiposVisibles))
+                        {
+                            <li>
+                                <span class="panel-gastos-tipo"><span>@t.Tipo</span><span class="num">−@Formato.Euros(t.Total)</span></span>
+                                <progress max="@Formato.ImporteJs(gastosMes.Total)" value="@Formato.ImporteJs(t.Total)" aria-label="@t.Tipo: @Math.Round(t.Total * 100 / gastosMes.Total) % de los gastos">@Math.Round(t.Total * 100 / gastosMes.Total) %</progress>
+                            </li>
+                        }
+                        @if (Model.GastosPorTipo.Count > PanelModelo.TiposVisibles)
+                        {
+                            var resto = Model.GastosPorTipo.Skip(PanelModelo.TiposVisibles).ToList();
+                            <li class="panel-gastos-resto"><span class="panel-gastos-tipo"><span>@resto.Count @(resto.Count == 1 ? "tipo más" : "tipos más")</span><span class="num">−@Formato.Euros(resto.Sum(x => x.Total))</span></span></li>
+                        }
+                    </ul>
+                }
+                <div class="panel-gastos-pie">
+                    <span class="muted small">@(gastosMes.Gastos switch { 0 => "Ningún gasto", 1 => "1 gasto", var n => $"{n} gastos" }) · @mes.Visitas @(mes.Visitas == 1 ? "visita" : "visitas")@(mes.Pendiente > 0 ? $" · {Formato.Euros(mes.Pendiente)} por cobrar" : "")</span>
+                    <a class="btn btn-gray btn-sm" asp-controller="Gastos" asp-action="Tipos"><icono nombre="editar" tamano="15" /> Tipos de gasto</a>
+                </div>
+            </div>
+        </section>
         @if (Model.PorReponer.Count > 0)
         {
             <section class="section">

@@ -336,6 +336,113 @@ public sealed class SorteosTests : IAsyncLifetime
         Assert.Equal(4.25m, await bd.EscalarAsync<decimal>("SELECT PrecioCoste FROM Productos WHERE Referencia = N'A-1'"));
     }
 
+    [Fact]
+    public async Task Los_numeros_se_meten_a_mano_se_cambian_y_un_numero_sin_ficha_puede_ganar()
+    {
+        var corte = await ServicioAsync("Corte", "Cut");
+        var id = await ConPremioAsync(Datos(), new PremioElegido(TipoPremio.Servicio, corte));
+        var ana = await ClienteAsync("Ana", "ana@example.test", "611 222 333");
+        var bea = await ClienteAsync("Bea", null, null);
+
+        var conAna = await Sorteos().AgregarClienteAsync(id, ana, null);
+        var conBea = await Sorteos().AgregarClienteAsync(id, bea, 20);
+        var otraVez = await Sorteos().AgregarClienteAsync(id, ana, null);
+        var sinCliente = await Sorteos().AgregarClienteAsync(id, null, 5);
+        Assert.Equal((true, true, false), (conAna.Valor, conBea.Valor, otraVez.Valor));
+        Assert.Equal("ClienteId", sinCliente.Error?.Campo);
+
+        // Números de un sorteo que ya estaba en marcha en otro sitio: rangos, sueltos y con nombre
+        var numeros = await Sorteos().AgregarNumerosAsync(id, "2-4\n7 María López\n1");
+        Assert.True(numeros.Exito, numeros.Error?.Mensaje);
+        Assert.Equal(4, numeros.Valor!.Agregados);
+        Assert.Equal([1], numeros.Valor.Repetidos);
+        Assert.Equal("Numeros", (await Sorteos().AgregarNumerosAsync(id, "María 12")).Error?.Campo);
+        Assert.Equal("Numero", (await Sorteos().AgregarClienteAsync(id, await ClienteAsync("Carla", null, null), 7)).Error?.Campo);
+
+        Assert.True((await Sorteos().CambiarNumeroAsync(id, 7, 27, "María López Gil")).Exito);
+        Assert.Equal("Numero", (await Sorteos().CambiarNumeroAsync(id, 27, null, null)).Error?.Campo);
+        Assert.Contains("Bea Pérez", (await Sorteos().CambiarNumeroAsync(id, 27, 20, null)).Error?.Mensaje);
+        Assert.True((await Sorteos().QuitarParticipanteAsync(id, 3)).Exito);
+        Assert.False((await Sorteos().QuitarParticipanteAsync(id, 3)).Exito);
+
+        var sorteo = (await Sorteos().ObtenerAsync(id))!;
+        Assert.Equal(["Nº 1 · Ana Pérez", "Nº 2", "Nº 4", "Nº 20 · Bea Pérez", "Nº 27 · María López Gil"],
+            sorteo.Participantes.OrderBy(p => p.Numero).Select(p => p.Etiqueta));
+        Assert.Equal(3, await _bd.EscalarAsync<int>("SELECT COUNT(*) FROM ParticipantesSorteos WHERE ClienteId IS NULL"));
+
+        // Ganó en el sorteo de fuera: se elige por su número
+        Assert.True((await Sorteos().ElegirGanadorAsync(id, 27, "Ganó en Instagram", null)).Exito);
+        sorteo = (await Sorteos().ObtenerAsync(id))!;
+        Assert.Equal(((int?)null, 27, "María López Gil", FormaGanador.ElegidoPorElSalon),
+            (sorteo.Ganador!.ClienteId, sorteo.Ganador.Numero!.Value, sorteo.Ganador.Ganador, sorteo.Ganador.Forma));
+
+        // Sin ficha no hay correo ni móvil: el salón copia el mensaje y le avisa por su cuenta
+        var aviso = (await Sorteos().AvisoAsync(sorteo))!;
+        Assert.True(aviso.SinFicha);
+        Assert.Equal(((string?)null, (string?)null), (aviso.Correo, aviso.WhatsApp));
+        Assert.StartsWith("¡Enhorabuena, María López Gil! Has ganado Corte", aviso.Texto);
+        Assert.Contains("por tu cuenta", (await Sorteos().AvisarPorCorreoAsync(id, aviso.Texto)).Error?.Mensaje);
+        Assert.Contains("por tu cuenta", (await Sorteos().AvisarPorWhatsAppAsync(id, aviso.Texto)).Error?.Mensaje);
+        Assert.Empty(_correo.Enviados);
+
+        // Al repetir no vuelve a salir el 27: el azar elige entre el 1, 2, 4 y 20
+        _azar = 2;
+        Assert.True((await Sorteos().RepetirAsync(id, "No contesta", null)).Exito);
+        sorteo = (await Sorteos().ObtenerAsync(id))!;
+        Assert.Equal((4, 4, "Nº 4"), (_pedido, sorteo.Ganador!.Numero!.Value, sorteo.Ganador.Etiqueta));
+        Assert.StartsWith("¡Enhorabuena! El número 4 ha ganado", (await Sorteos().AvisoAsync(sorteo))!.Texto);
+        Assert.Equal("27,4", await _bd.EscalarAsync<string>("SELECT STRING_AGG(Numero, ',') WITHIN GROUP (ORDER BY Id) FROM ExtraccionesSorteos"));
+    }
+
+    [Fact]
+    public async Task La_migracion_numera_a_los_participantes_que_ya_habia_y_a_sus_ganadores_sin_borrar_nada()
+    {
+        await using var bd = await BaseDeDatosPrueba.CrearAsync("20261105103526_ProductosDeSorteoYVariosPremios");
+        List<int> clientes;
+        await using (var db = bd.Contexto())
+        {
+            var nuevos = new[] { "Ana", "Bea", "Carla" }.Select(n => Cliente.Crear(n, "Pérez", null, null, Sexo.Mujer, DateTime.Now)).ToList();
+            db.AddRange(nuevos);
+            await db.SaveChangesAsync();
+            clientes = nuevos.Select(c => c.Id).ToList();
+        }
+        var (ana, bea, carla) = (clientes[0], clientes[1], clientes[2]);
+        // Dos sorteos; en el A ya hubo dos extracciones: la primera, de un cliente ya borrado, y la última, Ana
+        await bd.EjecutarAsync($"""
+            INSERT INTO Sorteos (Titulo, FechaSorteo, Estado, CreadoEn, ActualizadoEn)
+            VALUES (N'Sorteo A', '2026-11-20T18:00:00', 1, '2026-11-01', '2026-11-01'),
+                   (N'Sorteo B', '2026-11-25T18:00:00', 0, '2026-11-01', '2026-11-01');
+            DECLARE @a int = (SELECT Id FROM Sorteos WHERE Titulo = N'Sorteo A');
+            DECLARE @b int = (SELECT Id FROM Sorteos WHERE Titulo = N'Sorteo B');
+            INSERT INTO ParticipantesSorteos (SorteoId, ClienteId, AnadidoEn)
+            VALUES (@a, {carla}, '2026-11-01'), (@a, {ana}, '2026-11-01'), (@b, {bea}, '2026-11-01'), (@a, {bea}, '2026-11-01'), (@b, {ana}, '2026-11-01');
+            INSERT INTO ExtraccionesSorteos (SorteoId, ClienteId, Ganador, Fecha, Forma, Participantes)
+            VALUES (@a, NULL, N'Cliente borrado', '2026-11-20T18:00:00', 0, 4),
+                   (@a, {ana}, N'Ana Pérez', '2026-11-20T18:05:00', 0, 3);
+            """);
+
+        await using (var db = bd.Contexto())
+            await db.Database.MigrateAsync();
+
+        // En cada sorteo, 1, 2, 3… en el orden en que se apuntaron
+        Assert.Equal("A:1-Carla,2-Ana,3-Bea;B:1-Bea,2-Ana", await bd.EscalarAsync<string>("""
+            SELECT STRING_AGG(x.Grupo, ';') WITHIN GROUP (ORDER BY x.Titulo)
+            FROM (SELECT s.Titulo, CONCAT(RIGHT(s.Titulo, 1), ':', STRING_AGG(CONCAT(p.Numero, '-', c.Nombre), ',') WITHIN GROUP (ORDER BY p.Numero)) AS Grupo
+                  FROM ParticipantesSorteos p JOIN Sorteos s ON s.Id = p.SorteoId JOIN Clientes c ON c.Id = p.ClienteId
+                  GROUP BY s.Titulo) AS x
+            """));
+        // Las extracciones llevan el número de su ganador si sigue en el sorteo; la del cliente borrado se queda sin él
+        Assert.Equal("Cliente borrado|;Ana Pérez|2", await bd.EscalarAsync<string>(
+            "SELECT STRING_AGG(CONCAT(Ganador, '|', Numero), ';') WITHIN GROUP (ORDER BY Id) FROM ExtraccionesSorteos"));
+        await using (var db = bd.Contexto())
+        {
+            var sorteo = await new SorteoRepositorio(db).ObtenerAsync(await bd.EscalarAsync<int>("SELECT Id FROM Sorteos WHERE Titulo = N'Sorteo A'"), default);
+            Assert.Equal("Nº 2 · Ana Pérez", sorteo!.Ganador!.Etiqueta);
+            Assert.Equal([2], sorteo.Participantes.Where(sorteo.HaGanado).Select(p => p.Numero));
+            Assert.Equal("Cliente borrado", sorteo.Extracciones[0].Etiqueta);
+        }
+    }
+
     private static DatosSorteo Datos(string titulo = "Sorteo de Navidad") =>
         new(titulo, titulo + " (en)", null, null, DateTime.Today.AddDays(10).AddHours(18));
 

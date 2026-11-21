@@ -73,7 +73,7 @@
                                 @FormatoSorteos.Premios(s) ·
                                 @if (ganador is not null)
                                 {
-                                    <text>@ganador.Fecha.ToString("dd/MM/yyyy HH:mm") · <strong>@ganador.Ganador</strong> · @SorteosService.Como(ganador) · @FormatoSorteos.Aviso(ganador) · @FormatoSorteos.Entrega(ganador)@(s.Extracciones.Count > 1 ? $" · {s.Extracciones.Count} extracciones" : "")</text>
+                                    <text>@ganador.Fecha.ToString("dd/MM/yyyy HH:mm") · <strong>@ganador.Etiqueta</strong> · @SorteosService.Como(ganador) · @FormatoSorteos.Aviso(ganador) · @FormatoSorteos.Entrega(ganador)@(s.Extracciones.Count > 1 ? $" · {s.Extracciones.Count} extracciones" : "")</text>
                                 }
                                 else
                                 {
