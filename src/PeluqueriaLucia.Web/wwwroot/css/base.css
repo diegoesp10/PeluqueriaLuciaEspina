@@ -165,6 +165,7 @@ svg {
 .tint-teal { --tint: var(--teal); }
 .tint-indigo { --tint: var(--indigo); }
 .tint-gray { --tint: var(--gray); }
+.tint-gold { --tint: var(--gold); }
 
 /* Vidrio: fondo translúcido con desenfoque, filo de luz y sombra amplia. Solo para lo que flota sobre el contenido */
 .glass {

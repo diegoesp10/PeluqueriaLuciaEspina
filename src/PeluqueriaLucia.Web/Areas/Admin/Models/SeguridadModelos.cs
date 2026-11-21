@@ -49,4 +49,14 @@ public sealed record SeguridadModelo(Guid SesionActual, IReadOnlyList<SesionAdmi
     IReadOnlyList<IntentoAcceso> Intentos, IReadOnlyList<ActividadIp> Actividad, OpcionesSeguridad Opciones);
 
 /// <param name="PorReponer">Productos agotados o bajo mínimo (los primeros), para avisar en el panel.</param>
-public sealed record PanelModelo(DateOnly Hoy, ResumenVisitas Resumen, IReadOnlyList<ActividadIp> Actividad, IReadOnlyList<PeluqueriaLucia.Domain.Productos.Producto> PorReponer);
+/// <param name="GastosHoy">Lo pagado hoy.</param>
+/// <param name="Mes">Lo facturado y cobrado en el mes en curso.</param>
+/// <param name="GastosMes">Lo pagado en el mes en curso.</param>
+/// <param name="GastosPorTipo">Lo pagado en el mes por tipo, de más a menos.</param>
+public sealed record PanelModelo(DateOnly Hoy, ResumenVisitas Resumen, IReadOnlyList<ActividadIp> Actividad, IReadOnlyList<PeluqueriaLucia.Domain.Productos.Producto> PorReponer,
+    PeluqueriaLucia.Application.Gastos.ResumenGastos GastosHoy, ResumenVisitas Mes, PeluqueriaLucia.Application.Gastos.ResumenGastos GastosMes,
+    IReadOnlyList<PeluqueriaLucia.Application.Gastos.TotalPorTipo> GastosPorTipo)
+{
+    /// <summary>Los tipos que se ven en el panel; el resto se suma en una línea.</summary>
+    public const int TiposVisibles = 5;
+}

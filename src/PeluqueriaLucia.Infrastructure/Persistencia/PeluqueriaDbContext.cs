@@ -42,6 +42,8 @@ public sealed class PeluqueriaDbContext(DbContextOptions<PeluqueriaDbContext> op
 
     public DbSet<CosteProducto> CostesProductos => Set<CosteProducto>();
 
+    public DbSet<PeluqueriaLucia.Domain.Gastos.Gasto> Gastos => Set<PeluqueriaLucia.Domain.Gastos.Gasto>();
+
     public DbSet<PeluqueriaLucia.Domain.Sorteos.Sorteo> Sorteos => Set<PeluqueriaLucia.Domain.Sorteos.Sorteo>();
 
     public DbSet<PeluqueriaLucia.Domain.Sorteos.AnuncioSorteo> AnunciosSorteos => Set<PeluqueriaLucia.Domain.Sorteos.AnuncioSorteo>();
@@ -60,6 +62,7 @@ public sealed class PeluqueriaDbContext(DbContextOptions<PeluqueriaDbContext> op
     public DbSet<CategoriaTratamiento> CategoriasPublicas => Set<CategoriaTratamiento>();
     public DbSet<PermisoResena> PermisosResenas => Set<PermisoResena>();
     public DbSet<Resena> Resenas => Set<Resena>();
+    public DbSet<PeluqueriaLucia.Domain.Gastos.TipoGasto> TiposGasto => Set<PeluqueriaLucia.Domain.Gastos.TipoGasto>();
     public DbSet<TelefonoContacto> TelefonosContacto => Set<TelefonoContacto>();
 
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();

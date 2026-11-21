@@ -92,7 +92,7 @@
                                     <span class="row-sub">
                                         @if (s.Estado == EstadoSorteo.Realizado && ganador is not null)
                                         {
-                                            <text>Sorteado el @ganador.Fecha.ToString("dd/MM/yyyy") · ganó <strong>@ganador.Ganador</strong> · @FormatoSorteos.Entrega(ganador)</text>
+                                            <text>Sorteado el @ganador.Fecha.ToString("dd/MM/yyyy") · ganó <strong>@ganador.Etiqueta</strong> · @FormatoSorteos.Entrega(ganador)</text>
                                         }
                                         else if (s.Abierto)
                                         {

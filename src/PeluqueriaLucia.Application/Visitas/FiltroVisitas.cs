@@ -1,4 +1,5 @@
 using System.Globalization;
+using PeluqueriaLucia.Domain.Visitas;
 
 namespace PeluqueriaLucia.Application.Visitas;
 
@@ -54,6 +55,26 @@ public sealed record ResumenVisitas(
     public static ResumenVisitas Vacio { get; } = new(0, 0, 0, 0, 0, 0);
 
     public decimal Pendiente => Facturado - Cobrado;
+}
+
+/// <summary>Una fila del listado de visitas: una visita (un cobro) o un gasto (un pago).</summary>
+public sealed record Apunte
+{
+    private Apunte(Visita? visita, Domain.Gastos.Gasto? gasto)
+    {
+        Visita = visita;
+        Gasto = gasto;
+    }
+
+    public Visita? Visita { get; }
+
+    public Domain.Gastos.Gasto? Gasto { get; }
+
+    public DateTime Fecha => Visita?.Fecha ?? Gasto!.Fecha;
+
+    public static Apunte De(Visita visita) => new(visita ?? throw new ArgumentNullException(nameof(visita)), null);
+
+    public static Apunte De(Domain.Gastos.Gasto gasto) => new(null, gasto ?? throw new ArgumentNullException(nameof(gasto)));
 }
 
 public sealed record NuevaVisita(int ClienteId, DateTime Fecha, Domain.Visitas.FormaPago FormaPago, IReadOnlyCollection<int> ServicioIds, IReadOnlyDictionary<int,decimal>? Precios = null, IReadOnlyList<ProductoNuevaVisita>? Productos = null);

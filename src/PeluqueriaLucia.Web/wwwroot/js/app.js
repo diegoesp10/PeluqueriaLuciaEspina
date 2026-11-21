@@ -56,7 +56,8 @@
   const menu = botonMenu && document.getElementById(botonMenu.getAttribute('aria-controls'));
   if (menu && botonMenu) {
     const raiz = document.documentElement;
-    const movil = matchMedia('(max-width: 900px)');
+    // Hasta qué ancho se usa el menú: lo dice el botón (el panel, 1180px); la web pública, 900px
+    const movil = matchMedia(`(max-width: ${botonMenu.dataset.menuHasta ?? '900px'})`);
     const textos = (() => {
       try {
         return JSON.parse(document.getElementById('textos-js')?.textContent ?? '{}');
@@ -138,14 +139,22 @@
     if (!toast.hasAttribute('data-persistente')) setTimeout(() => cerrarToast(toast), 4500);
   });
 
-  // ── Confirmación antes de acciones destructivas: <form data-confirmar="texto"> ──
+  // ── Confirmación antes de quitar o borrar algo: <form data-confirmar="texto"> o, en un formulario con varios botones,
+  //    <button data-confirmar="texto"> en el que la necesita. Opcionales: data-confirmar-titulo y data-confirmar-accion.
+  //    Va en la fase de captura: el aviso de carga y el bloqueo del doble envío no se activan hasta confirmar. ──
   const dialogo = document.getElementById('dialogo-confirmar');
-  document.querySelectorAll('form[data-confirmar]').forEach((form) => {
-    form.addEventListener('submit', (evento) => {
-      if (form.dataset.confirmado === 'true' || !dialogo?.showModal) return;
+  document.addEventListener(
+    'submit',
+    (evento) => {
+      const form = evento.target;
+      if (!(form instanceof HTMLFormElement) || !dialogo?.showModal || form.dataset.confirmado === 'true') return;
+      const boton = evento.submitter;
+      const origen = boton?.dataset.confirmar !== undefined ? boton : form.dataset.confirmar !== undefined ? form : null;
+      if (!origen) return;
       evento.preventDefault();
-      dialogo.querySelector('#dialogo-texto').textContent = form.dataset.confirmar;
-      dialogo.querySelector('#dialogo-aceptar').textContent = form.dataset.confirmarAccion ?? 'Eliminar';
+      dialogo.querySelector('#dialogo-titulo').textContent = origen.dataset.confirmarTitulo ?? '¿Seguro?';
+      dialogo.querySelector('#dialogo-texto').textContent = origen.dataset.confirmar;
+      dialogo.querySelector('#dialogo-aceptar').textContent = origen.dataset.confirmarAccion ?? 'Eliminar';
       dialogo.returnValue = '';
       dialogo.showModal();
       dialogo.addEventListener(
@@ -153,12 +162,15 @@
         () => {
           if (dialogo.returnValue !== 'confirmar') return;
           form.dataset.confirmado = 'true';
-          form.requestSubmit();
+          // Con el botón pulsado, para que llegue su name/value (Estado=Oculta, accion=…)
+          form.requestSubmit(boton && boton.form === form ? boton : undefined);
+          delete form.dataset.confirmado;
         },
         { once: true },
       );
-    });
-  });
+    },
+    true,
+  );
 
   // Fotos cuyo fichero ya no existe: se quitan para que se vea el icono de respaldo en vez de una imagen rota
   document.querySelectorAll('img[data-ocultar-si-falla]').forEach((img) => {

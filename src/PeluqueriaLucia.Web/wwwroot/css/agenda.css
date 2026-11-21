@@ -38,7 +38,6 @@
   .agenda-filtro > :is(.fecha-control,.btn) { flex: 1 1 100%; }
   .agenda-horarios .agenda-gestion { grid-template-columns: minmax(0,1fr); }
 }
-@media(min-width:901px) and (max-width:1180px){.sidebar-foot{width:60px;overflow-wrap:anywhere}.sidebar-foot>a{font-size:10px;line-height:1.4;display:block;text-align:center;margin:10px 0}.sidebar-foot .btn{font-size:10px;white-space:normal;padding:8px;min-width:0}.sidebar{overflow-x:hidden}.agenda-contador{position:absolute;right:0;top:0}.nav-item{position:relative}}
 
 .cliente-faltas > p { margin: 12px 0 24px; }
 .cliente-faltas .card { padding: 24px; margin: 16px 0; }
@@ -101,7 +100,7 @@
 .calendario-punto.canceladas { background: var(--red); }
 .calendario-punto.completadas { background: var(--forest); color: var(--cream); }
 .calendario-punto.bloqueos { background: var(--label-2); }
-.calendario-cierre { font-size: 10px; line-height: 1.2; color: var(--label-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.calendario-cierre { font-size: 10px; line-height: 1.2; color: var(--label-2); max-width: 100%; overflow-wrap: anywhere; }
 .calendario-pie { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px 24px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--separator); }
 .calendario-leyenda { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 12px; color: var(--label-2); }
 .calendario-leyenda span { display: inline-flex; align-items: center; gap: 6px; }

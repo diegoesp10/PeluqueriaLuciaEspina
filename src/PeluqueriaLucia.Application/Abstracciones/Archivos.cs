@@ -1,3 +1,4 @@
+using PeluqueriaLucia.Domain.Gastos;
 using PeluqueriaLucia.Domain.Visitas;
 
 namespace PeluqueriaLucia.Application.Abstracciones;
@@ -17,7 +18,8 @@ public interface IAlmacenImagenes
 /// <summary>Un fichero generado para descargar.</summary>
 public sealed record ArchivoGenerado(byte[] Contenido, string TipoContenido, string NombreArchivo);
 
+/// <summary>Las cuentas de un periodo en Excel para el asesor: las visitas (cobros) y, en su propia hoja, los gastos (pagos).</summary>
 public interface IExportadorVisitas
 {
-    ArchivoGenerado Exportar(IReadOnlyList<Visita> visitas, string descripcionPeriodo);
+    ArchivoGenerado Exportar(IReadOnlyList<Visita> visitas, IReadOnlyList<Gasto> gastos, string descripcionPeriodo);
 }

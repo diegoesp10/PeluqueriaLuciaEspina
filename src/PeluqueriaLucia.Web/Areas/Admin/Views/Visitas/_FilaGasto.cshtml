@@ -1,0 +1,18 @@
+@using PeluqueriaLucia.Domain.Gastos
+@model Gasto
+@{
+    // La pantalla a la que volver después de editarlo (el listado de visitas en el que se ve)
+    var volver = ViewData["Volver"] as string;
+}
+<a class="row fila-gasto" asp-controller="Gastos" asp-action="Editar" asp-route-id="@Model.Id" asp-route-volver="@volver">
+    <span class="avatar tint-red"><icono nombre="cartera" tamano="18" /></span>
+    <span class="row-main">
+        <span class="row-title">@Model.Concepto</span>
+        <span class="row-sub"><span class="num">@Formato.Hora(Model.Fecha)</span> · Gasto · @Model.NombreTipo</span>
+    </span>
+    <span class="row-end">
+        <span class="pill tint-red"><icono nombre="@FormatoGastos.Icono(Model.MedioPago)" tamano="13" /> @Gasto.Nombre(Model.MedioPago)</span>
+        <span class="row-amount importe-gasto">−@Formato.Euros(Model.Importe)</span>
+        <span class="row-chevron"><icono nombre="siguiente" tamano="16" /></span>
+    </span>
+</a>

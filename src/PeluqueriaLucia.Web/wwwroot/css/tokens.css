@@ -30,6 +30,7 @@
   --orange-text: var(--orange);
   --purple: light-dark(#8a5cc4, #d6c6f6);
   --pink: light-dark(#ad5a8c, #eeaad0);
+  --gold: light-dark(#9a6a08, #f0cf73);
   --teal: var(--blue);
   --indigo: var(--purple);
   --gray: light-dark(#7a7190, #a99fbf);

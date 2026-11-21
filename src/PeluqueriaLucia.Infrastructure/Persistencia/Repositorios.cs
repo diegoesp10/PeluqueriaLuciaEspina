@@ -138,6 +138,40 @@ internal sealed class VisitaRepositorio(PeluqueriaDbContext db) : IVisitaReposit
         return new Pagina<Visita>(elementos, pagina, tamano, total);
     }
 
+    public async Task<Pagina<Apunte>> ListarApuntesAsync(FiltroVisitas filtro, int pagina, int tamano, CancellationToken ct)
+    {
+        // Una sola lista ordenada en la base de datos (UNION ALL de fecha, clase e id); después se cargan solo las filas de la página
+        var claves = Filtrar(filtro).Select(v => new { v.Fecha, Gasto = false, v.Id })
+            .Concat(GastoRepositorio.Filtrar(db, filtro).Select(g => new { g.Fecha, Gasto = true, g.Id }));
+        var total = await claves.CountAsync(ct);
+        var pagina0 = await claves
+            .OrderByDescending(c => c.Fecha).ThenBy(c => c.Gasto).ThenByDescending(c => c.Id)
+            .Skip((pagina - 1) * tamano)
+            .Take(tamano)
+            .ToListAsync(ct);
+
+        var idsVisitas = pagina0.Where(c => !c.Gasto).Select(c => c.Id).ToList();
+        var idsGastos = pagina0.Where(c => c.Gasto).Select(c => c.Id).ToList();
+        var visitas = idsVisitas.Count == 0 ? new Dictionary<int, Visita>() : await db.Visitas
+            .AsNoTracking()
+            .Include(v => v.Cliente)
+            .Include(v => v.Lineas)
+            .Include(v => v.Productos)
+            .Where(v => idsVisitas.Contains(v.Id))
+            .AsSplitQuery()
+            .ToDictionaryAsync(v => v.Id, ct);
+        var gastos = idsGastos.Count == 0 ? new Dictionary<int, PeluqueriaLucia.Domain.Gastos.Gasto>() : await db.Gastos.AsNoTracking().Include(g => g.Tipo).Where(g => idsGastos.Contains(g.Id)).ToDictionaryAsync(g => g.Id, ct);
+
+        // Si algo se ha borrado entre las dos consultas, se pasa por alto
+        var elementos = pagina0
+            .Select(c => c.Gasto
+                ? gastos.TryGetValue(c.Id, out var gasto) ? Apunte.De(gasto) : null
+                : visitas.TryGetValue(c.Id, out var visita) ? Apunte.De(visita) : null)
+            .OfType<Apunte>()
+            .ToList();
+        return new Pagina<Apunte>(elementos, pagina, tamano, total);
+    }
+
     public async Task<IReadOnlyList<Visita>> ListarTodasAsync(FiltroVisitas filtro, CancellationToken ct) =>
         await Filtrar(filtro)
             .AsNoTracking()

@@ -38,7 +38,14 @@ Están en la tabla `TelefonosContacto` (migración `TelefonosDeContacto`, solo c
 
 Al abrir un ticket cobrado se genera un código aleatorio de 128 bits, válido durante seis meses desde la emisión del código. Las reimpresiones conservan el mismo código, incluso simultáneas. SQL conserva un hash para verificarlo y una copia cifrada para reimprimirlo. Un ticket admite una sola opinión y no vuelve a habilitarse si esta se rechaza. Los tickets pendientes no habilitan opiniones.
 
-En `/opiniones` se introducen código, nombre público, estrellas, comentario y foto opcional del peinado, con consentimiento de publicación. La comprobación del código no muestra datos de la visita. Las opiniones se guardan pendientes en **Reseñas**; allí se pueden publicar, retirar y responder. Las valoraciones negativas también son válidas: la revisión debe comprobar contenido pertinente y datos personales, sin seleccionar únicamente reseñas favorables.
+En `/opiniones` se introducen código, nombre público, estrellas, comentario y foto opcional del peinado, con consentimiento de publicación. La comprobación del código no muestra datos de la visita. Las opiniones se guardan pendientes en **Reseñas**, que las separa en cuatro pestañas con su contador (el de pendientes, en naranja): *Pendientes*, *Publicadas*, *Ocultas* (estuvieron en la web y se quitaron) y *Rechazadas*.
+
+- Una pendiente se **publica** (con la respuesta del salón en los dos idiomas, opcional) o se **rechaza**.
+- Una publicada enseña **cuándo se publicó** («Publicada el 21/11/2026 a las 15:34»). Se puede cambiar su respuesta (*Guardar respuesta*) u **ocultarla de la web** (*Ocultar de la web*); solo se ocultan las publicadas.
+- Una oculta dice desde cuándo y cuándo se publicó, y se puede **volver a publicar** o rechazar. Una rechazada se puede publicar o devolver a pendientes.
+- Ocultar y rechazar siempre preguntan antes con una ventana de confirmación. Tras cada botón se vuelve a la misma pestaña (la reseña sale de la lista si cambió de estado), con los contadores al día y un aviso que dice qué ha pasado y dónde está ahora.
+
+Cada cambio de estado anota cuándo (`Resenas.RevisadaEn`) y al publicar, `Resenas.PublicadaEn` (migración `TiposDeGastoTableroYResenas`, que solo añade esas dos columnas, con nulos en las reseñas que ya había: las publicadas antes salen como «Publicada en la web», sin fecha). El estado *Oculta* se guarda como 3. Las valoraciones negativas también son válidas: la revisión debe comprobar contenido pertinente y datos personales, sin seleccionar únicamente reseñas favorables.
 
 Las fotos admiten JPG, PNG y WebP, hasta 5 MB y 20 megapíxeles. Se decodifican y se generan de nuevo como JPEG de hasta 1600 píxeles, con orientación corregida y sin metadatos del original. Se rechazan archivos dañados, animados y formatos ejecutables. Los nombres son aleatorios y el almacén queda fuera de `wwwroot`. El controlador público solo entrega fotos de opiniones publicadas; retirarlas retira también su foto pública. Las fotos pendientes solo se consultan en administración. Las subidas fallidas se limpian.
 

@@ -14,7 +14,8 @@ public sealed class VisitasService(
     IProductoRepositorio productos,
     IExportadorVisitas exportador,
     IUnidadDeTrabajo unidadDeTrabajo,
-    TimeProvider reloj)
+    TimeProvider reloj,
+    Gastos.IGastoRepositorio? gastos = null)
 {
     public const int TamanoPagina = 30;
 
@@ -23,6 +24,10 @@ public sealed class VisitasService(
 
     public Task<ResumenVisitas> ResumirAsync(FiltroVisitas filtro, CancellationToken ct = default) =>
         visitas.ResumirAsync(filtro, ct);
+
+    /// <summary>Visitas y gastos del periodo en una sola lista, lo más reciente primero.</summary>
+    public Task<Pagina<Apunte>> ListarApuntesAsync(FiltroVisitas filtro, int pagina, CancellationToken ct = default) =>
+        visitas.ListarApuntesAsync(filtro, Pagina<Apunte>.Normalizar(pagina), TamanoPagina, ct);
 
     public Task<Visita?> ObtenerAsync(int id, CancellationToken ct = default) => visitas.ObtenerAsync(id, ct);
 
@@ -147,10 +152,11 @@ public sealed class VisitasService(
     /// Cobra la visita con los <paramref name="precios"/> cambiados en el último momento y, en la misma operación, descuenta
     /// del stock lo vendido y lo usado en el servicio que se ha terminado (si falta, queda en negativo) y da por completada su
     /// cita de la agenda. Si otro cobro ha movido a la vez el mismo producto, o la cita ha cambiado, el guardado falla por
-    /// concurrencia y no se cobra nada (quien llama lo avisa).
+    /// concurrencia y no se cobra nada (quien llama lo avisa). <paramref name="entregado"/> es lo que da el cliente en efectivo,
+    /// para el ticket.
     /// </summary>
     public async Task<Resultado> CobrarAsync(int id, FormaPago formaPago, decimal? efectivo, decimal? tarjeta, int? administradorId = null,
-        PreciosVisita? precios = null, CancellationToken ct = default)
+        PreciosVisita? precios = null, decimal? entregado = null, CancellationToken ct = default)
     {
         var visita = await visitas.ObtenerAsync(id, ct);
         if (visita is null)
@@ -164,7 +170,7 @@ public sealed class VisitasService(
         {
             if (precios is not null)
                 visita.CambiarPrecios(precios.Servicios, precios.Productos);
-            var movimientos = visita.Cobrar(formaPago, efectivo, tarjeta, existencias, reloj.GetLocalNow().DateTime, administradorId);
+            var movimientos = visita.Cobrar(formaPago, efectivo, tarjeta, existencias, reloj.GetLocalNow().DateTime, administradorId, entregado);
             productos.AgregarMovimientos(movimientos);
             if (cita is not null)
                 Completar(cita, administradorId);
@@ -192,13 +198,15 @@ public sealed class VisitasService(
         });
     }
 
+    /// <summary>Las visitas del periodo y, en su propia hoja, sus gastos (para el asesor).</summary>
     public async Task<Resultado<ArchivoGenerado>> ExportarAsync(FiltroVisitas filtro, CancellationToken ct = default)
     {
         var seleccion = await visitas.ListarTodasAsync(filtro, ct);
-        if (seleccion.Count == 0)
-            return new Error($"No hay visitas que exportar ({filtro.Descripcion}).");
+        IReadOnlyList<Domain.Gastos.Gasto> pagos = gastos is null || filtro.ClienteId is not null ? [] : await gastos.ListarAsync(filtro, ct);
+        if (seleccion.Count == 0 && pagos.Count == 0)
+            return new Error($"No hay visitas ni gastos que exportar ({filtro.Descripcion}).");
 
-        return Resultado.Ok(exportador.Exportar(seleccion, filtro.Descripcion));
+        return Resultado.Ok(exportador.Exportar(seleccion, pagos, filtro.Descripcion));
     }
 
     /// <summary>

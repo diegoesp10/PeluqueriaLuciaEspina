@@ -74,27 +74,101 @@ public sealed class AnuncioFormulario
     public DateOnly? DesdeAnuncio { get; set; }
 
     public DateOnly? HastaAnuncio { get; set; }
+
+    /// <summary>El anuncio que se está cambiando; null al crear uno nuevo.</summary>
+    public int? AnuncioId { get; set; }
 }
 
 /// <param name="Aviso">Texto propuesto y canales del ganador; null si aún no lo hay.</param>
 /// <param name="Opciones">Lo que se puede añadir como premio; null si el sorteo ya no está abierto.</param>
 /// <param name="TextoAviso">El mensaje que se estaba escribiendo cuando hubo un error.</param>
 /// <param name="Revelar">Recién sorteado: la pantalla enseña el ganador con la animación de la ruleta.</param>
+/// <param name="TextoNumeros">Los números que se estaban metiendo a mano cuando hubo un error.</param>
 public sealed record SorteoDetalleModelo(Sorteo Sorteo, DateOnly Hoy, AvisoGanador? Aviso, bool CorreoConfigurado, AnuncioFormulario Anuncio,
-    OpcionesPremio? Opciones, string? TextoAviso = null, bool Revelar = false)
+    OpcionesPremio? Opciones, string? TextoAviso = null, bool Revelar = false, string? TextoNumeros = null)
 {
-    public IReadOnlyList<ParticipanteSorteo> Participantes =>
-        [.. Sorteo.Participantes.OrderBy(p => p.Cliente?.Nombre).ThenBy(p => p.Cliente?.Apellido).ThenBy(p => p.ClienteId)];
+    /// <summary>Por su número.</summary>
+    public IReadOnlyList<ParticipanteSorteo> Participantes => [.. Sorteo.Participantes.OrderBy(p => p.Numero)];
 
-    /// <summary>Clientes que ya han ganado en alguna extracción (los de antes de repetir, también).</summary>
-    public bool HaGanado(int clienteId) => Sorteo.Extracciones.Any(e => e.ClienteId == clienteId);
+    /// <summary>El participante del ganador actual (con su ficha, si la tiene); null si no hay ganador o ya no está.</summary>
+    public ParticipanteSorteo? DelGanador => Sorteo.Ganador is { } ganador ? Sorteo.Participantes.FirstOrDefault(ganador.Es) : null;
 
-    public ParticipanteSorteo? Ficha(int? clienteId) => Sorteo.Participantes.FirstOrDefault(p => p.ClienteId == clienteId);
+    /// <summary>El siguiente número libre, como pista al añadir un cliente.</summary>
+    public int SiguienteNumero => Sorteo.Participantes.Count == 0 ? 1 : Math.Min(Sorteo.Participantes.Max(p => p.Numero) + 1, Sorteo.NumeroMaximo);
+}
+
+/// <summary>Cómo está cada número del tablero.</summary>
+public enum EstadoCelda { Libre, Ocupado, Ganador, GanoAntes }
+
+/// <summary>
+/// El tablero de un sorteo: del 1 al último número (el del talonario o el más alto que haya), libres y ocupados, con quién
+/// tiene cada uno y los números que han salido.
+/// </summary>
+public sealed record SorteoTableroModelo(Sorteo Sorteo, DateOnly Hoy)
+{
+    /// <summary>Lo más que se pinta: un talonario de papeletas rara vez pasa de unos cientos.</summary>
+    public const int CeldasMaximas = 2000;
+
+    private readonly Dictionary<int, ParticipanteSorteo> _porNumero = Sorteo.Participantes.GroupBy(p => p.Numero).ToDictionary(g => g.Key, g => g.First());
+
+    public int Ultimo => Sorteo.UltimoNumero;
+
+    public int Celdas => Math.Min(Ultimo, CeldasMaximas);
+
+    public int Ocupados => _porNumero.Count;
+
+    public int Libres => Math.Max(0, Ultimo - Ocupados);
+
+    public int PorcentajeOcupado => Ultimo == 0 ? 0 : (int)Math.Round(Ocupados * 100m / Ultimo);
+
+    /// <summary>Lo que ha salido, del primero al último (el último es el ganador).</summary>
+    public IReadOnlyList<ExtraccionSorteo> Sorteados => Sorteo.Extracciones;
+
+    public ParticipanteSorteo? Participante(int numero) => _porNumero.GetValueOrDefault(numero);
+
+    public EstadoCelda Estado(int numero) => Participante(numero) is not { } p ? EstadoCelda.Libre
+        : Sorteo.Ganador?.Es(p) == true ? EstadoCelda.Ganador
+        : Sorteo.HaGanado(p) ? EstadoCelda.GanoAntes
+        : EstadoCelda.Ocupado;
+
+    /// <summary>El nombre de quien salió: el de ahora si sigue en el sorteo, el que quedó guardado si no.</summary>
+    public string NombreDe(ExtraccionSorteo e) =>
+        Sorteo.Participantes.FirstOrDefault(e.Es)?.NombreVisible ?? (e.Ganador is { Length: > 0 } nombre ? nombre : "Sin nombre");
+
+    public static string Clase(EstadoCelda estado) => estado switch
+    {
+        EstadoCelda.Ocupado => "is-ocupado",
+        EstadoCelda.Ganador => "is-ganador",
+        EstadoCelda.GanoAntes => "is-gano-antes",
+        _ => "is-libre",
+    };
+
+    public static string Texto(EstadoCelda estado) => estado switch
+    {
+        EstadoCelda.Ocupado => "ocupado",
+        EstadoCelda.Ganador => "ganador",
+        EstadoCelda.GanoAntes => "salió antes",
+        _ => "libre",
+    };
 }
 
 /// <summary>Textos y tintes de los sorteos en el panel.</summary>
 public static class FormatoSorteos
 {
+    /// <summary>
+    /// El nombre en una casilla del tablero: el nombre de pila y la inicial del apellido («María L.»), sin cortar con
+    /// puntos suspensivos. Los nombres de pila muy largos se acortan a 10 letras.
+    /// </summary>
+    public static string? NombreCorto(ParticipanteSorteo p)
+    {
+        if (p.NombreVisible is not { Length: > 0 } nombre)
+            return null;
+        var partes = nombre.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var pila = partes[0].Length > 10 ? partes[0][..9] + "." : partes[0];
+        var inicial = partes.Skip(1).Select(parte => parte.FirstOrDefault(char.IsLetter)).FirstOrDefault(letra => letra != default);
+        return inicial == default ? pila : $"{pila} {char.ToUpper(inicial, Formato.Espanol)}.";
+    }
+
     public static string Estado(Sorteo s) => s.Estado switch
     {
         EstadoSorteo.Realizado => "Realizado",
@@ -156,8 +230,26 @@ public static class FormatoSorteos
     {
         CanalConfirmacion.Correo => $"Avisado por correo el {e.AvisadoEn:dd/MM/yyyy HH:mm}",
         CanalConfirmacion.WhatsApp => $"Avisado por WhatsApp el {e.AvisadoEn:dd/MM/yyyy HH:mm}",
+        _ when e.ClienteId is null && e.Numero is not null => "Sin ficha: avísale por tu cuenta",
         _ => "Sin avisar todavía",
     };
+
+    /// <summary>«Se han añadido 50 números» y, si alguno ya estaba, cuáles se han saltado.</summary>
+    public static string NumerosAgregados(NumerosAgregados agregados)
+    {
+        var texto = agregados.Agregados switch
+        {
+            0 => "No se ha añadido ningún número",
+            1 => "Se ha añadido 1 número",
+            var n => $"Se han añadido {n} números",
+        };
+        if (agregados.Repetidos.Count == 0)
+            return texto + ".";
+        var repetidos = agregados.Repetidos.Count <= 10
+            ? string.Join(", ", agregados.Repetidos)
+            : string.Join(", ", agregados.Repetidos.Take(10)) + $" y {agregados.Repetidos.Count - 10} más";
+        return $"{texto}. {(agregados.Repetidos.Count == 1 ? "Ya estaba el" : "Ya estaban los")} {repetidos}: se han dejado como estaban.";
+    }
 
     public static string Entrega(ExtraccionSorteo e) =>
         e.EntregadoEn is { } entregado ? $"Premio entregado el {entregado:dd/MM/yyyy}" : "Premio sin entregar";

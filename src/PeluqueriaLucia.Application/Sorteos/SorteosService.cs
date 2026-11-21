@@ -72,7 +72,8 @@ public sealed record AnuncioPublico(int AnuncioId, int SorteoId, string Titulo, 
 public sealed record PremioElegido(TipoPremio Tipo, int Id);
 
 /// <summary>Cómo avisar al ganador: los canales que tiene su ficha y el texto que se propone.</summary>
-public sealed record AvisoGanador(string Texto, string? Correo, string? WhatsApp);
+/// <param name="SinFicha">Ganó un número metido a mano, sin ficha de cliente: se le avisa por otro lado.</param>
+public sealed record AvisoGanador(string Texto, string? Correo, string? WhatsApp, bool SinFicha = false);
 
 public sealed class SorteosService(
     ISorteoRepositorio sorteos,
@@ -122,6 +123,49 @@ public sealed class SorteosService(
     public Task<Resultado> QuitarPremioAsync(int id, int premioId, CancellationToken ct = default) =>
         CambiarAsync(id, s => s.QuitarPremio(premioId, Ahora), ct);
 
+    /// <summary>
+    /// Añade un cliente elegido con el buscador, con el número que se indique o con el siguiente libre. Devuelve false si ya
+    /// participaba.
+    /// </summary>
+    public async Task<Resultado<bool>> AgregarClienteAsync(int id, int? clienteId, int? numero, CancellationToken ct = default)
+    {
+        var cliente = clienteId is { } elegido ? (await sorteos.ClientesAsync([elegido], ct)).FirstOrDefault() : null;
+        if (cliente is null)
+            return new Error("Elige un cliente de la lista.", "ClienteId");
+        var sorteo = await sorteos.ObtenerAsync(id, ct);
+        if (sorteo is null)
+            return Error.NoEncontrado("El sorteo");
+        return await Resultado.ProtegerAsync<bool>(async () =>
+        {
+            var nuevo = sorteo.AgregarCliente(cliente, numero, Ahora);
+            await unidadDeTrabajo.GuardarCambiosAsync(ct);
+            return Resultado.Ok(nuevo);
+        });
+    }
+
+    /// <summary>
+    /// Mete números escritos a mano («1-50», «51 María»…), sin ficha de cliente. Devuelve cuántos han entrado y cuáles ya
+    /// estaban.
+    /// </summary>
+    public async Task<Resultado<NumerosAgregados>> AgregarNumerosAsync(int id, string? texto, CancellationToken ct = default)
+    {
+        var sorteo = await sorteos.ObtenerAsync(id, ct);
+        if (sorteo is null)
+            return Error.NoEncontrado("El sorteo");
+        return await Resultado.ProtegerAsync<NumerosAgregados>(async () =>
+        {
+            var agregados = sorteo.AgregarNumeros(LectorNumerosSorteo.Leer(texto), Ahora);
+            await unidadDeTrabajo.GuardarCambiosAsync(ct);
+            return Resultado.Ok(agregados);
+        });
+    }
+
+    /// <summary>Cambia el número de un participante y, si es un número sin ficha, el nombre de quien lo tiene.</summary>
+    public Task<Resultado> CambiarNumeroAsync(int id, int numero, int? nuevo, string? nombre, CancellationToken ct = default) =>
+        nuevo is null
+            ? Task.FromResult<Resultado>(new Error("Escribe el número nuevo.", "Numero"))
+            : CambiarAsync(id, s => s.CambiarNumero(numero, nuevo.Value, nombre, Ahora), ct);
+
     /// <summary>Añade clientes elegidos uno a uno. Devuelve cuántos son nuevos en el sorteo.</summary>
     public async Task<Resultado<int>> AgregarParticipantesAsync(int id, IReadOnlyCollection<int> clienteIds, CancellationToken ct = default)
     {
@@ -142,8 +186,8 @@ public sealed class SorteosService(
         return await AgregarAsync(id, clientes, ct);
     }
 
-    public Task<Resultado> QuitarParticipanteAsync(int id, int clienteId, CancellationToken ct = default) =>
-        CambiarAsync(id, s => s.QuitarParticipante(clienteId, Ahora), ct);
+    public Task<Resultado> QuitarParticipanteAsync(int id, int numero, CancellationToken ct = default) =>
+        CambiarAsync(id, s => s.QuitarParticipante(numero, Ahora), ct);
 
     /// <summary>
     /// Sortea al azar entre los participantes. Si otra pestaña sortea a la vez, el guardado falla por concurrencia y no se
@@ -155,8 +199,9 @@ public sealed class SorteosService(
     public Task<Resultado> RepetirAsync(int id, string? motivo, int? administradorId, CancellationToken ct = default) =>
         CambiarAsync(id, s => s.Repetir(azar.Siguiente, motivo, Ahora, administradorId), ct);
 
-    public Task<Resultado> ElegirGanadorAsync(int id, int clienteId, string? motivo, int? administradorId, CancellationToken ct = default) =>
-        CambiarAsync(id, s => s.ElegirGanador(clienteId, motivo, Ahora, administradorId), ct);
+    /// <summary>El salón elige al ganador por su número (por ejemplo, el que ha salido en un sorteo hecho en otro sitio).</summary>
+    public Task<Resultado> ElegirGanadorAsync(int id, int numero, string? motivo, int? administradorId, CancellationToken ct = default) =>
+        CambiarAsync(id, s => s.ElegirGanador(numero, motivo, Ahora, administradorId), ct);
 
     /// <summary>Anota que el ganador ya tiene su premio: desde entonces no se puede cambiar el ganador.</summary>
     public Task<Resultado> MarcarEntregadoAsync(int id, CancellationToken ct = default) =>
@@ -186,17 +231,37 @@ public sealed class SorteosService(
     public Task<Resultado> QuitarAnuncioAsync(int id, int anuncioId, CancellationToken ct = default) =>
         CambiarAsync(id, s => s.QuitarAnuncio(anuncioId, Ahora), ct);
 
+    public Task<Resultado> CambiarAnuncioAsync(int id, int anuncioId, string? texto, string? textoEn, DateOnly? desde, DateOnly? hasta,
+        CancellationToken ct = default) =>
+        desde is null || hasta is null
+            ? Task.FromResult<Resultado>(new Error("Indica entre qué fechas se ve el anuncio en la web.", desde is null ? "DesdeAnuncio" : "HastaAnuncio"))
+            : CambiarAsync(id, s => s.CambiarAnuncio(anuncioId, texto, textoEn, desde.Value, hasta.Value, Ahora), ct);
+
+    /// <summary>Deja de enseñar el anuncio en la web desde hoy (queda en el historial si ya se veía).</summary>
+    public Task<Resultado> TerminarAnuncioAsync(int id, int anuncioId, CancellationToken ct = default) =>
+        CambiarAsync(id, s => s.TerminarAnuncio(anuncioId, Ahora), ct);
+
+    /// <summary>Hasta qué número llega el talonario, para el tablero (null: hasta el más alto que haya).</summary>
+    public Task<Resultado> CambiarTalonarioAsync(int id, int? hasta, CancellationToken ct = default) =>
+        CambiarAsync(id, s => s.CambiarTalonario(hasta, Ahora), ct);
+
     /// <summary>El texto que se propone para avisar al ganador y por dónde se le puede avisar. Null si aún no hay ganador.</summary>
     public async Task<AvisoGanador?> AvisoAsync(Sorteo sorteo, CancellationToken ct = default)
     {
         if (sorteo.Ganador is not { } ganador)
             return null;
-        var ficha = sorteo.Participantes.FirstOrDefault(p => p.ClienteId == ganador.ClienteId)?.Cliente;
+        var participante = sorteo.Participantes.FirstOrDefault(ganador.Es);
+        var ficha = participante?.Cliente;
+        var sinFicha = ganador.ClienteId is null && participante is not null;
         var datos = salon is null ? null : await salon.ObtenerAsync(ct);
         var nombreSalon = datos?.Nombre is { Length: > 0 } n ? n : "la peluquería";
         var llamar = datos is { Telefonos.Count: > 0 } ? $" Llámanos al {datos.TelefonosEnTexto} para acordar cuándo te viene bien." : " Pásate por el salón cuando te venga bien.";
-        var texto = $"¡Enhorabuena, {ficha?.Nombre ?? ganador.Ganador}! Has ganado {Premios(sorteo)} en el sorteo «{sorteo.Titulo}» de {nombreSalon}.{llamar} ¡Te esperamos!";
-        return new AvisoGanador(texto, AgendaService.NormalizarCorreo(ficha?.Email), TelefonoWhatsApp(ficha?.Telefono));
+        var nombre = ficha?.Nombre ?? (sinFicha ? participante!.Nombre : ganador.Ganador);
+        var saludo = nombre is { Length: > 0 }
+            ? $"¡Enhorabuena, {nombre}! Has ganado"
+            : $"¡Enhorabuena! El número {ganador.Numero} ha ganado";
+        var texto = $"{saludo} {Premios(sorteo)} en el sorteo «{sorteo.Titulo}» de {nombreSalon}.{llamar} ¡Te esperamos!";
+        return new AvisoGanador(texto, AgendaService.NormalizarCorreo(ficha?.Email), TelefonoWhatsApp(ficha?.Telefono), sinFicha);
     }
 
     /// <summary>Envía el aviso al ganador por correo, con la imagen del salón, y lo anota.</summary>
@@ -209,6 +274,8 @@ public sealed class SorteosService(
             return Error.NoEncontrado("El sorteo");
         if (await AvisoAsync(sorteo, ct) is not { } aviso)
             return new Error("Aún no hay ganador al que avisar.");
+        if (aviso.SinFicha)
+            return new Error("Ha ganado un número sin ficha de cliente: copia el mensaje y avísale por tu cuenta.");
         if (aviso.Correo is not { } destinatario)
             return new Error("La ficha del ganador no tiene un correo válido. Avísale por WhatsApp o corrige su ficha.");
         if (TextoValido(texto) is not { } mensaje)
@@ -236,6 +303,8 @@ public sealed class SorteosService(
             return Error.NoEncontrado("El sorteo");
         if (await AvisoAsync(sorteo, ct) is not { } aviso)
             return new Error("Aún no hay ganador al que avisar.");
+        if (aviso.SinFicha)
+            return new Error("Ha ganado un número sin ficha de cliente: copia el mensaje y avísale por tu cuenta.");
         if (aviso.WhatsApp is not { } telefono)
             return new Error("La ficha del ganador no tiene un móvil válido para WhatsApp. Avísale por correo o corrige su ficha.");
         if (TextoValido(texto) is not { } mensaje)

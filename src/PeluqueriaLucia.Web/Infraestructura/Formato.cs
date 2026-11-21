@@ -22,6 +22,12 @@ public static class Formato
 
     public static string FechaCorta(DateTime fecha) => fecha.ToString("dd/MM/yyyy", Espanol);
 
+    private static readonly TimeZoneInfo ZonaSalon = TimeZoneInfo.FindSystemTimeZoneById("Europe/Madrid");
+
+    /// <summary>«21/11/2026 a las 15:10» en la hora del salón, para un momento guardado en UTC.</summary>
+    public static string MomentoSalon(DateTime utc) =>
+        TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), ZonaSalon).ToString("dd/MM/yyyy 'a las' HH:mm", Espanol);
+
     /// <summary>«viernes, 10 de octubre de 2026» con la primera letra en mayúscula.</summary>
     public static string FechaLarga(DateOnly fecha) => Capitalizar(fecha.ToString("dddd, d 'de' MMMM 'de' yyyy", Espanol));
 

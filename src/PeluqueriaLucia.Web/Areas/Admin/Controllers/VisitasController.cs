@@ -15,6 +15,7 @@ namespace PeluqueriaLucia.Web.Areas.Admin.Controllers;
 
 public sealed class VisitasController(
     VisitasService visitas,
+    PeluqueriaLucia.Application.Gastos.GastosService gastos,
     ClientesService clientes,
     CatalogoService catalogo,
     ProductosService productos,
@@ -38,10 +39,11 @@ public sealed class VisitasController(
         var filtro = VisitasIndiceModelo.Filtro(periodo, dia);
 
         // Secuencial a propósito: el contexto de base de datos no admite consultas simultáneas
-        var listado = await visitas.ListarAsync(filtro, pagina, ct);
+        var listado = await visitas.ListarApuntesAsync(filtro, pagina, ct);
         var resumen = await visitas.ResumirAsync(filtro, ct);
+        var resumenGastos = await gastos.ResumirAsync(filtro, ct);
         var porCobrar = periodo == Periodo.Dia ? await visitas.CitasPorCobrarAsync(dia, ct) : [];
-        return View(new VisitasIndiceModelo(periodo, dia, Hoy, listado, resumen, porCobrar));
+        return View(new VisitasIndiceModelo(periodo, dia, Hoy, listado, resumen, porCobrar, resumenGastos));
     }
 
     [HttpGet]
@@ -183,12 +185,14 @@ public sealed class VisitasController(
         if (visita is null)
             return NotFound();
 
-        var precios = LeerPrecios(formulario, visita, nameof(formulario.FormaPago), nameof(formulario.Efectivo), nameof(formulario.Tarjeta));
+        var precios = LeerPrecios(formulario, visita, nameof(formulario.FormaPago), nameof(formulario.Efectivo), nameof(formulario.Tarjeta),
+            nameof(formulario.Entregado));
         if (precios is not null)
         {
             try
             {
-                var resultado = await visitas.CobrarAsync(id, formulario.FormaPago, formulario.Efectivo, formulario.Tarjeta, AdministradorId, precios, ct);
+                var resultado = await visitas.CobrarAsync(id, formulario.FormaPago, formulario.Efectivo, formulario.Tarjeta, AdministradorId, precios,
+                    formulario.Entregado, ct);
                 if (resultado.Exito)
                 {
                     this.AvisarExito("Visita cobrada.");

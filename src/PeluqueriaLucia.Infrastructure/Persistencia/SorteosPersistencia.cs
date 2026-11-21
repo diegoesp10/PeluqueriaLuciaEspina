@@ -94,10 +94,15 @@ internal sealed class ParticipanteSorteoConfiguracion : IEntityTypeConfiguration
 {
     public void Configure(EntityTypeBuilder<ParticipanteSorteo> builder)
     {
-        builder.ToTable("ParticipantesSorteos");
+        builder.ToTable("ParticipantesSorteos", t => t.HasCheckConstraint("CK_ParticipantesSorteos_Numero", $"[Numero] BETWEEN 1 AND {Sorteo.NumeroMaximo}"));
+        builder.Ignore(p => p.NombreVisible);
+        builder.Ignore(p => p.Etiqueta);
+        builder.Property(p => p.Nombre).HasMaxLength(ParticipanteSorteo.LongitudNombre);
         // Borrar la ficha de un cliente lo saca de los sorteos (si ganó alguno, la extracción guarda su nombre)
         builder.HasOne(p => p.Cliente).WithMany().HasForeignKey(p => p.ClienteId).OnDelete(DeleteBehavior.Cascade);
-        builder.HasIndex(p => new { p.SorteoId, p.ClienteId }).IsUnique();
+        // Un cliente entra una vez en cada sorteo; los números metidos a mano no tienen ficha
+        builder.HasIndex(p => new { p.SorteoId, p.ClienteId }).IsUnique().HasFilter("[ClienteId] IS NOT NULL");
+        builder.HasIndex(p => new { p.SorteoId, p.Numero }).IsUnique();
     }
 }
 
@@ -108,6 +113,7 @@ internal sealed class ExtraccionSorteoConfiguracion : IEntityTypeConfiguration<E
         builder.ToTable("ExtraccionesSorteos", t => t.HasCheckConstraint("CK_ExtraccionesSorteos_Participantes", "[Participantes] >= 1"));
         builder.Property(e => e.Ganador).IsRequired().HasMaxLength(Cliente.LongitudNombre * 2 + 1);
         builder.Property(e => e.Motivo).HasMaxLength(Sorteo.LongitudMotivo);
+        builder.Ignore(e => e.Etiqueta);
         builder.HasOne(e => e.Cliente).WithMany().HasForeignKey(e => e.ClienteId).OnDelete(DeleteBehavior.SetNull);
     }
 }
